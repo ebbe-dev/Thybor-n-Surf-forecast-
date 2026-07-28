@@ -69,11 +69,12 @@ export const SPOTS: Spot[] = [
     id: "indsejlingen",
     name: "Indsejlingen (kanalmundingen)",
     shortName: "Indsejlingen",
-    shoreNormal: 300, // DEFAULT-GÆT fra spec — ukalibreret
+    // Kalibreret 28/07/2026: brugerens pil på satellitfoto viser bølgerne
+    // ind fra NV (~322°) gennem mundingen — rundet til 320.
+    shoreNormal: 320,
     lat: 56.7089371, // brugerens nål, 28/07/2026
     lon: 8.2171907,
-    adjustableNormal: true,
-    uncalibrated: true
+    adjustableNormal: true
   },
   {
     id: "faergehavnen",
