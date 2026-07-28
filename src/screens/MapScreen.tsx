@@ -10,8 +10,10 @@ import { SPOTS, type Spot } from "../config/spots";
 import { buildDays, nowLocalIso, type Block } from "../lib/blocks";
 import { scoreColor, scoreLabel, BG, FG, MUTED } from "../lib/colors";
 import { fmtDayLabel, fmtClock } from "../lib/time";
-import { fmt } from "../lib/format";
+import { fmt, compass } from "../lib/format";
 import { Info } from "../components/Info";
+import { WindArrow } from "../components/WindArrow";
+import type { Row } from "../model/model";
 
 // Flyt et punkt distM meter i kompasretning bearing. Rigeligt præcist
 // til høfde-streger på dette zoomniveau.
@@ -75,6 +77,13 @@ export function MapScreen() {
   }, [timeline, idx]);
 
   const time = idx >= 0 && idx < timeline.length ? timeline[idx] : null;
+
+  // Vind og bølge er fælles for hele strækket (ét gridpunkt for hver) —
+  // én viser på kortet, ikke seks ens pile.
+  const rowNow: Row | null = useMemo(() => {
+    if (!forecast || !time) return null;
+    return forecast.rows.find((r) => r.time === time) ?? null;
+  }, [forecast, time]);
 
   // Kortet oprettes én gang
   useEffect(() => {
@@ -190,7 +199,35 @@ export function MapScreen() {
           </p>
         </Info>
       </div>
-      <div ref={mapEl} className="map-el" />
+      <div className="map-body">
+        <div ref={mapEl} className="map-el" />
+        {rowNow && (
+          <div className="map-wind" aria-label="vind og bølgeretning">
+            <div className="map-wind-row">
+              <WindArrow deg={rowNow.wdir} spd={rowNow.wspd} size={22} />
+              <span>
+                <span className="map-wind-label">VIND</span>
+                {compass(rowNow.wdir)} {fmt(rowNow.wspd, 0)} m/s
+              </span>
+            </div>
+            <div className="map-wind-row">
+              <svg
+                width={22}
+                height={22}
+                viewBox="0 0 16 16"
+                style={{ transform: `rotate(${rowNow.swdir + 180}deg)` }}
+              >
+                <line x1="8" y1="14" x2="8" y2="3.5" stroke="#E7E2D3" strokeWidth="1.6" strokeDasharray="2 1.4" />
+                <path d="M8 1 L4.6 6.4 L8 4.8 L11.4 6.4 Z" fill="#E7E2D3" />
+              </svg>
+              <span>
+                <span className="map-wind-label">BØLGE</span>
+                {compass(rowNow.swdir)} {fmt(rowNow.hs)} m
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -323,10 +323,41 @@ body {
   background: transparent;
   touch-action: none;
 }
+.map-body {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  display: flex;
+}
 .map-el {
   flex: 1;
   min-height: 0;
   background: var(--line);
+}
+.map-wind {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 800; /* over Leaflets fliser, under popups */
+  background: var(--bg);
+  border: 1px solid var(--muted);
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.map-wind-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.map-wind-label {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: var(--muted);
 }
 /* mørk popup i appens farver */
 .leaflet-popup-content-wrapper,

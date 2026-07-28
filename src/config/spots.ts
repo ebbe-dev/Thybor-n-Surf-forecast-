@@ -22,11 +22,7 @@ export interface Spot {
 export const WAVE_POINT = { lat: 56.66, lon: 8.13 };
 export const WIND_POINT = { lat: 56.68, lon: 8.2 };
 
-const KANAL_WARNING =
-  "Strømmen i Thyborøn Kanal forudsiges ikke af nogen model, og den kan " +
-  "være livsfarlig. Vurdér den selv på stedet, hver gang.";
-
-// Alle fem positioner er bekræftet af brugeren 28/07/2026 (Udkigsposten
+// Alle positioner er bekræftet af brugeren 28/07/2026 (Udkigsposten
 // med præcis nål, resten visuelt på kortet). Kystnormalerne for de
 // ukalibrerede spots justeres i appen. id'erne må ikke ændres
 // (localStorage-nøgler).
@@ -77,8 +73,7 @@ export const SPOTS: Spot[] = [
     lat: 56.7089371, // brugerens nål, 28/07/2026
     lon: 8.2171907,
     adjustableNormal: true,
-    uncalibrated: true,
-    warning: KANAL_WARNING
+    uncalibrated: true
   },
   {
     id: "faergehavnen",
@@ -88,8 +83,7 @@ export const SPOTS: Spot[] = [
     lat: 56.6903646, // brugerens nål, 28/07/2026
     lon: 8.2265966,
     adjustableNormal: true,
-    uncalibrated: true,
-    warning: KANAL_WARNING
+    uncalibrated: true
   }
 ];
 
