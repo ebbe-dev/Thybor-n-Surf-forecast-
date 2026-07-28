@@ -80,7 +80,10 @@ export function MapScreen() {
   useEffect(() => {
     if (!mapEl.current || mapRef.current) return;
     const map = L.map(mapEl.current, { zoomControl: true, attributionControl: true });
-    map.setView([56.681, 8.195], 12);
+    // Indram alle spots uanset hvor langt de spreder sig ned langs tangen
+    map.fitBounds(
+      L.latLngBounds(SPOTS.map((s) => [s.lat, s.lon] as [number, number])).pad(0.12)
+    );
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 17,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
