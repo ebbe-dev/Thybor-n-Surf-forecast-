@@ -1,7 +1,7 @@
 // NU: dommen øverst, 7-døgns barograf i 3-timers blokke, tryk på en
 // søjle → tal + høfde-planview der roterer med vinden.
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useForecast } from "../hooks/useForecast";
 import { SPOTS, effectiveNormal, setNormal, type Spot } from "../config/spots";
 import { buildDays, pickVerdict, nowLocalIso, type Block } from "../lib/blocks";
@@ -124,6 +124,7 @@ export function NowScreen() {
   const [spotId, setSpotId] = useState(SPOTS[0].id);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [normalVersion, setNormalVersion] = useState(0);
+  const detailRef = useRef<HTMLDivElement>(null);
 
   const spot = SPOTS.find((s) => s.id === spotId) ?? SPOTS[0];
 
@@ -239,8 +240,21 @@ export function NowScreen() {
       <Barograph
         days={days}
         selected={selected?.time ?? null}
-        onSelect={(b) => setSelectedTime(b.time)}
+        onSelect={(b) => {
+          setSelectedTime(b.time);
+          // tallene står under skærmkanten på en telefon — rul dem frem
+          setTimeout(
+            () => detailRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
+            60
+          );
+        }}
       />
+
+      {selected && (
+        <div ref={detailRef}>
+          <BlockDetail block={selected} spot={spot} />
+        </div>
+      )}
 
       <Info q="Sådan læser du søjlerne">
         <p>
@@ -262,8 +276,6 @@ export function NowScreen() {
           vindretning og læside.
         </p>
       </Info>
-
-      {selected && <BlockDetail block={selected} spot={spot} />}
 
       {selected && (
         <Info q="Hvad betyder tallene og tegningen?">

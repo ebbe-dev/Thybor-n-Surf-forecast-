@@ -208,6 +208,11 @@ body {
   width: 32px;
   display: block;
 }
+.baro-block.selected {
+  outline: 2px solid var(--fg);
+  outline-offset: -1px;
+  background: #16261f;
+}
 .baro-block.selected .baro-barwrap {
   border-bottom-color: var(--fg);
 }
