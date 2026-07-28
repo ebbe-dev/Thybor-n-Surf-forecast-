@@ -120,20 +120,7 @@ export const SPOTS: Spot[] = [
     lon: 8.2265966,
     adjustableNormal: true
   },
-  // ---- Sydområdet (Bovbjerg/Thorsminde). Positionerne er skøn og skal
-  // ---- bekræftes med brugerens nåle — Høfde Q er det mest usikre.
-  {
-    id: "hoefde-q",
-    name: "Høfde Q (Vejlby Klit)",
-    shortName: "Høfde Q",
-    area: "thorsminde",
-    shoreNormal: 275, // skøn — ret når nålen er bekræftet
-    lat: 56.548,
-    lon: 8.112,
-    adjustableNormal: true,
-    uncalibrated: true,
-    groynes: { count: 1, spacingM: 250, lengthM: 150 }
-  },
+  // ---- Sydområdet (Bovbjerg/Thorsminde), nord → syd.
   {
     id: "fjaltring",
     name: "Fjaltring (stranden vest for byen)",
@@ -144,6 +131,21 @@ export const SPOTS: Spot[] = [
     lon: 8.118,
     adjustableNormal: true,
     uncalibrated: true
+  },
+  {
+    // Researchet 28/07/2026 (visitnordvestkysten/comevisit): klassisk
+    // HØJRE-bølge, lang og hul på gode dage; der surfes SYD for høfden
+    // (ind på indersiden af sydsiden, padl ud til takeoff). Sydenden med
+    // de sidste 3-4 høfder er bedst. Niveau: øvet/ekspert.
+    id: "hoefde-q",
+    name: "Høfde Q — højre, surfes syd for høfden (Fjaltring)",
+    shortName: "Høfde Q",
+    area: "thorsminde",
+    shoreNormal: 270, // kysten løber ret N-S her
+    lat: 56.4762505, // brugerens nål, 28/07/2026
+    lon: 8.1215395,
+    adjustableNormal: true,
+    groynes: { count: 4, spacingM: 250, lengthM: 150 }
   },
   {
     id: "thorsminde",
