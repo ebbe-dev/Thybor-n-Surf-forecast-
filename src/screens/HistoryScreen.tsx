@@ -16,6 +16,7 @@ import { WindRose } from "../components/WindRose";
 import { ScoreDist } from "../components/ScoreDist";
 import { DayTimeline } from "../components/DayTimeline";
 import { loadSessions, sessionsOnDate } from "../lib/sessions";
+import { Info, Legend } from "../components/Info";
 
 function isoToday(): string {
   return dateOf(new Date().toISOString());
@@ -127,6 +128,20 @@ export function HistoryScreen() {
           ) : (
             <>
               <h3 className="section-h">Dagens højeste score</h3>
+              <Info q="Sådan læser du kalenderen">
+                <p>
+                  Hvert lille felt er <strong>én dag</strong>, farvet efter dagens bedste time
+                  for det valgte spot. Kolonnerne er uger — så mørke striber er stille perioder,
+                  og varme striber er perioder, hvor det var værd at køre. Det er sæsonmønsteret
+                  på ét blik.
+                </p>
+                <Legend />
+                <p>
+                  <strong>Tryk på et felt</strong> for at se den dags 24 timer. Tomme felter med
+                  kant er huller i vejrarkivet — ikke dage uden bølger. Dine loggede sessions
+                  vises med ★ i dags-visningen.
+                </p>
+              </Info>
               <CalendarHeatmap
                 days={stats.days}
                 start={applied.start}
@@ -151,9 +166,30 @@ export function HistoryScreen() {
               ) : (
                 <WindRose counts={stats.rose} />
               )}
+              <Info q="Hvad viser rosen?">
+                <p>
+                  Rosen tæller kun de timer, hvor scoren kom <strong>over {fmt(ROSE_THRESHOLD, 0)}</strong> —
+                  altså de gode timer — og viser, <strong>hvilken retning vinden kom fra</strong>,
+                  når det skete. Et langt kronblad mod fx NNV betyder: når det er godt her, er det
+                  som regel med vind fra NNV. Det er den, der efterprøver teorien om, at
+                  nordenvinden efter et NV-blæsevejr er stedets bedste opskrift.
+                </p>
+              </Info>
 
               <h3 className="section-h">Fordeling af timescores</h3>
               <ScoreDist bins={stats.bins} daysOver={stats.daysOver} totalDays={stats.days.size} />
+              <Info q="Hvad viser fordelingen?">
+                <p>
+                  Søjlerne tæller, hvor mange timer i perioden der landede på hvert scoretrin
+                  (0–1, 1–2 … 9–10). Tallet over søjlen er det ærlige antal — søjlehøjderne er
+                  skævet, så de få gode timer kan ses ved siden af de mange flade.
+                </p>
+                <p>
+                  Tabellen nedenunder svarer på det praktiske: <strong>hvor mange dage</strong> i
+                  perioden nåede op over hver tærskel — fx hvor mange dage der mindst var "værd
+                  at køre".
+                </p>
+              </Info>
             </>
           )}
         </>

@@ -11,6 +11,7 @@ import { fmt, compass } from "../lib/format";
 import { Verdict } from "../components/Verdict";
 import { Barograph } from "../components/Barograph";
 import { GroynePlan } from "../components/GroynePlan";
+import { Info, Legend } from "../components/Info";
 
 function fmtFetched(iso: string): string {
   const d = new Date(iso);
@@ -23,7 +24,9 @@ function NormalSetting({ spot, onChange }: { spot: Spot; onChange: () => void })
   return (
     <div className="normal-setting">
       <label htmlFor="normal-input">
-        Mundingens retning (grader) — <strong>UKALIBRERET</strong>, default er et gæt
+        Hvilken retning vender spottet imod? (0 = nord, 90 = øst, 180 = syd, 270 = vest).
+        Tallet er et <strong>gæt</strong> — står du derude og kan se det vender anderledes,
+        så ret det her og tryk Gem. Scoren regner med det samme med den nye retning.
       </label>
       <div className="normal-row">
         <input
@@ -164,6 +167,24 @@ export function NowScreen() {
 
       <Verdict pick={verdict} />
 
+      <Info q="Hvad betyder dommen?">
+        <p>
+          Dommen er appens svar på hovedspørgsmålet: <strong>hvornår skal du køre derud, og til
+          hvilken mole.</strong> Den finder det bedste 3-timers tidsrum i de næste 7 døgn på tværs
+          af alle spots.
+        </p>
+        <p>
+          <strong>"Læ på nordsiden"</strong> betyder: gå i vandet på nordsiden af høfden — det er
+          den side, vinden ikke roder op, så vandet er glattest der.
+        </p>
+        <p>Scoren går fra 0 til 10, og farverne betyder det samme i hele appen:</p>
+        <Legend />
+        <p>
+          Spots mærket <strong>UKALIBRERET</strong> regner med en retning, vi endnu ikke har
+          efterprøvet i virkeligheden — tag deres tal med et gran salt.
+        </p>
+      </Info>
+
       <div className="spot-tabs">
         {SPOTS.map((s) => (
           <button
@@ -192,7 +213,54 @@ export function NowScreen() {
         onSelect={(b) => setSelectedTime(b.time)}
       />
 
+      <Info q="Sådan læser du søjlerne">
+        <p>
+          Hver søjle er et 3-timers tidsrum (kl. 05, 08, 11, 14, 17 og 20), og der er 7 dage —
+          <strong> stryg til siden</strong> for at se længere frem. Jo højere og "varmere" søjlen
+          er, jo bedre forhold for det valgte spot.
+        </p>
+        <p>
+          <strong>Pilen over søjlen</strong> viser, hvor vinden blæser <em>hen</em> (op = mod
+          nord). Peger pilen ud mod havet, er det offshore — det glatter bølgerne. Peger den ind
+          mod land, roder den dem sammen.
+        </p>
+        <p>
+          Nedtonede søjler er allerede passeret i dag. Et tomt felt med stiplet kant betyder, at
+          vejrtjenesten mangler data for de timer — det er et hul, ikke fladt hav.
+        </p>
+        <p>
+          <strong>Tryk på en søjle</strong> for at se tallene bag og en tegning af høfden med
+          vindretning og læside.
+        </p>
+      </Info>
+
       {selected && <BlockDetail block={selected} spot={spot} />}
+
+      {selected && (
+        <Info q="Hvad betyder tallene og tegningen?">
+          <p>
+            <strong>Bølge</strong> er bølgehøjden i meter. Mærket{" "}
+            <span className="src-badge swell">swell</span> betyder ren dønning (organiserede
+            bølger, det bedste);{" "}
+            <span className="src-badge vindsø">vindsø</span> betyder, at tallet er den samlede,
+            mere rodede sø, som vinden pisker op — der var ingen ren dønning at måle.
+          </p>
+          <p>
+            <strong>Periode</strong> er sekunder mellem bølgerne. Høj periode (8+) = kraft og
+            orden. Lav (4–5) = tætpakket plaskeri.
+          </p>
+          <p>
+            <strong>Bølgeretning</strong> og <strong>vind</strong> er der, hvor bølge og vind
+            kommer <em>fra</em>. <strong>Stød</strong> er vindstødene — over 14 m/s trækker de
+            fra i scoren.
+          </p>
+          <p>
+            <strong>Tegningen</strong> er en høfde set fra oven (nord er op). Den lange streg er
+            selve høfden, det skraverede felt er læsiden — der, hvor du går i — og pilen viser
+            vinden.
+          </p>
+        </Info>
+      )}
     </div>
   );
 }

@@ -11,6 +11,7 @@ import { buildDays, nowLocalIso, type Block } from "../lib/blocks";
 import { scoreColor, scoreLabel, BG, FG, MUTED } from "../lib/colors";
 import { fmtDayLabel, fmtClock } from "../lib/time";
 import { fmt } from "../lib/format";
+import { Info } from "../components/Info";
 
 // Flyt et punkt distM meter i kompasretning bearing. Rigeligt præcist
 // til høfde-streger på dette zoomniveau.
@@ -168,6 +169,23 @@ export function MapScreen() {
           onChange={(e) => setIdx(Number(e.target.value))}
           aria-label="tidsskyder over 7 døgn"
         />
+        <Info q="Sådan bruger du kortet">
+          <p>
+            <strong>Træk i skyderen</strong> for at spole gennem de næste 7 døgn — dagen og
+            klokkeslættet står ovenover, og prikkerne skifter tal og farve med. I en flad uge
+            rykker tallene sig kun lidt; det er havet, ikke kortet, der står stille.
+          </p>
+          <p>
+            <strong>Tallet i prikken</strong> er spottets score (0–10) på det valgte tidspunkt,
+            med samme farver som alle andre steder i appen. <strong>Tryk på en prik</strong> for
+            dom, læside og bølgetal.
+          </p>
+          <p>
+            En <strong>stiplet ring</strong> betyder ukalibreret spot — retningen er et gæt
+            endnu. De små hvide streger er høfderne. Kortudsnit, du har set, virker også uden
+            net.
+          </p>
+        </Info>
       </div>
       <div ref={mapEl} className="map-el" />
     </div>

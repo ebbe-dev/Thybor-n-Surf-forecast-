@@ -16,6 +16,7 @@ import {
 import { scoreColor } from "../lib/colors";
 import { fmt, compass } from "../lib/format";
 import { dayName, fmtClock, dateOf } from "../lib/time";
+import { Info } from "../components/Info";
 
 function nowLocal(): { date: string; hour: number } {
   const d = new Date();
@@ -70,6 +71,24 @@ export function LogScreen() {
           </span>
         </section>
       )}
+
+      <Info q="Hvorfor logge — og hvad betyder tallet øverst?">
+        <p>
+          Hver gang du gemmer en session, gemmer appen samtidig et <strong>snapshot</strong> af
+          de forhold, modellen forudsagde for tidspunktet — og modellens score. Så kan vi
+          bagefter sammenligne, hvad modellen <em>troede</em>, med hvad du <em>oplevede</em>.
+        </p>
+        <p>
+          Tallet øverst er den sammenligning: dine stjerner ganget med 2 (så 5★ = 10, samme
+          skala som scoren) minus modellens score, i snit. <strong>Minus</strong> betyder, at
+          modellen lover mere, end stedet holder; <strong>plus</strong>, at den undervurderer
+          det. Når du har logget en håndfuld sessions, bruger vi tallet til at justere modellen.
+        </p>
+        <p>
+          Loggen ligger <strong>kun på denne telefon</strong>. CSV-knappen gemmer en
+          regnearksfil som backup — gør det i ny og næ.
+        </p>
+      </Info>
 
       <h3 className="section-h">Ny session</h3>
       <div className="range-row">

@@ -353,6 +353,71 @@ body {
   display: none;
 }
 
+/* ---- info-bokse ---- */
+.info {
+  margin: 8px 0 12px;
+  border-left: 3px solid var(--line);
+}
+.info summary {
+  list-style: none;
+  cursor: pointer;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  color: var(--muted);
+  font-size: 14px;
+  user-select: none;
+}
+.info summary::-webkit-details-marker {
+  display: none;
+}
+.info summary::before {
+  content: "?";
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid var(--muted);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 13px;
+}
+.info[open] summary {
+  color: var(--fg);
+}
+.info[open] summary::before {
+  border-color: var(--fg);
+}
+.info-body {
+  padding: 2px 10px 10px 38px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.info-body p {
+  margin-bottom: 8px;
+}
+.info-body p:last-child {
+  margin-bottom: 0;
+}
+.legend {
+  list-style: none;
+  margin: 8px 0;
+  font-size: 14px;
+}
+.legend li {
+  padding: 3px 0;
+}
+.legend-range {
+  display: inline-block;
+  min-width: 58px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
 /* ---- historik ---- */
 .range-row {
   display: flex;
