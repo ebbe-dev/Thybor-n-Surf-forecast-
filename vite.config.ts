@@ -2,7 +2,11 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
+// Appen serveres fra https://ebbe-dev.github.io/Thybor-n-Surf-forecast-/
+const BASE = "/Thybor-n-Surf-forecast-/";
+
 export default defineConfig({
+  base: BASE,
   plugins: [
     react(),
     VitePWA({
@@ -13,7 +17,8 @@ export default defineConfig({
         short_name: "Byg Tangen",
         description: "Surf-forecast for Harboøre Tange / Thyborøn",
         lang: "da",
-        start_url: "/",
+        start_url: BASE,
+        scope: BASE,
         display: "standalone",
         orientation: "portrait",
         background_color: "#0B1917",
@@ -32,8 +37,8 @@ export default defineConfig({
       workbox: {
         // App-skallen precaches; forecast-data cachelagres separat i localStorage
         // (lib/storage.ts) så sidste hentede forecast altid kan vises offline.
-        globPatterns: ["**/*.{js,css,html,png,svg,ico}"],
-        navigateFallback: "index.html"
+        // navigateFallback sættes af pluginet ud fra base
+        globPatterns: ["**/*.{js,css,html,png,svg,ico}"]
       }
     })
   ]
