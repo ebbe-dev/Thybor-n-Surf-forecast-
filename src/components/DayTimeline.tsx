@@ -1,13 +1,14 @@
-// Timeline for én valgt dag: 24 timesøjler i scorefarver.
-// Loggede sessions markeres her, når loggen (etape 4) er i drift.
+// Timeline for én valgt dag: 24 timesøjler i scorefarver, med loggede
+// sessions markeret som ★ over timen.
 
 import type { DayStat } from "../lib/history";
 import { hoursOfDay } from "../lib/history";
-import { scoreColor } from "../lib/colors";
-import { dayName, fmtClock } from "../lib/time";
+import { scoreColor, FG } from "../lib/colors";
+import { dayName, fmtClock, hourOf } from "../lib/time";
 import { fmt, compass } from "../lib/format";
+import type { Session } from "../lib/sessions";
 
-export function DayTimeline({ day }: { day: DayStat }) {
+export function DayTimeline({ day, sessions = [] }: { day: DayStat; sessions?: Session[] }) {
   const hours = hoursOfDay(day);
   const best = day.hours.find((h) => h.time === day.bestTime);
   return (
@@ -45,8 +46,25 @@ export function DayTimeline({ day }: { day: DayStat }) {
             {String(t).padStart(2, "0")}
           </text>
         ))}
+        {sessions.map((s) => (
+          <text
+            key={s.id}
+            x={4 + hourOf(s.time) * 14 + 5.5}
+            y={8}
+            fontSize="9"
+            fontWeight="700"
+            fill={FG}
+            textAnchor="middle"
+          >
+            ★{s.rating}
+          </text>
+        ))}
       </svg>
-      <p className="muted daytimeline-note">Loggede sessions markeres her fra etape 4.</p>
+      {sessions.length > 0 && (
+        <p className="muted daytimeline-note">
+          ★ = logget session med din karakter. Detaljer under LOG.
+        </p>
+      )}
     </section>
   );
 }

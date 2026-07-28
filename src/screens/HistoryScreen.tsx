@@ -15,6 +15,7 @@ import { CalendarHeatmap } from "../components/CalendarHeatmap";
 import { WindRose } from "../components/WindRose";
 import { ScoreDist } from "../components/ScoreDist";
 import { DayTimeline } from "../components/DayTimeline";
+import { loadSessions, sessionsOnDate } from "../lib/sessions";
 
 function isoToday(): string {
   return dateOf(new Date().toISOString());
@@ -134,7 +135,12 @@ export function HistoryScreen() {
                 onSelect={setSelectedDate}
               />
 
-              {selectedDay && <DayTimeline day={selectedDay} />}
+              {selectedDay && (
+                <DayTimeline
+                  day={selectedDay}
+                  sessions={sessionsOnDate(loadSessions(), selectedDay.date)}
+                />
+              )}
 
               <h3 className="section-h">
                 Vindretninger med score over {fmt(ROSE_THRESHOLD, 0)}

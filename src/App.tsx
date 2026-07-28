@@ -2,7 +2,7 @@ import { useState } from "react";
 import { NowScreen } from "./screens/NowScreen";
 import { MapScreen } from "./screens/MapScreen";
 import { HistoryScreen } from "./screens/HistoryScreen";
-import { LogScreen } from "./screens/stubs";
+import { LogScreen } from "./screens/LogScreen";
 
 const TABS = [
   { id: "nu", label: "NU" },

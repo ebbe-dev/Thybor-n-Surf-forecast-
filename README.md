@@ -3,9 +3,9 @@
 Personlig surf-forecast for Harboøre Tange / Thyborøn. Én bruger, ét
 spørgsmål: **hvornår skal jeg køre derud, og til hvilken mole.**
 
-Installerbar PWA (Vite + React + TS). Ingen backend — Open-Meteo direkte
-fra klienten; Google Sheets via Apps Script kommer i etape 4 til log og
-historik-cache.
+Installerbar PWA (Vite + React + TS). Ingen backend overhovedet —
+Open-Meteo direkte fra klienten, log og caches i localStorage,
+CSV/JSON-eksport som backup.
 
 ## Kør
 
@@ -19,10 +19,16 @@ npm run preview    # server dist/
 ## Status pr. etape
 
 1. **NU** — dom, 7-døgns barograf, blokdetalje + høfde-planview, offline-cache. ✅
-2. **KORT** — Leaflet + tidsskyder. Stub.
-3. **HISTORIK** — kalender-heatmap, vindrose, fordeling. Stub. Marine-arkivets
-   rækkevidde skal verificeres først.
-4. **LOG** — sessions til Google Sheets via Apps Script. Stub.
+2. **KORT** — Leaflet, fem bekræftede spots, tidsskyder, score-tal på markører. ✅
+3. **HISTORIK** — kalender-heatmap (12 mdr.), vindrose, fordeling, dags-timeline
+   med session-markering. Kildens reelle dækning vises i UI'et; huller står tomme. ✅
+4. **LOG** — lokal session-log med forecast-snapshot, løbende afvigelses-snit
+   (karakter × 2 vs. score) og CSV/JSON-eksport. ✅
+
+Google Sheets-backenden fra den oprindelige plan blev fravalgt efter aftale
+(28/07/2026, "bare det nemmeste"): loggen bor i localStorage, og eksporten er
+backuppen. CSV'en følger spec'ens kolonner: timestamp, spot, rating, note,
+hs, tp, swell_dir, wind_spd, wind_dir, gust, predicted_score.
 
 ## Gridkoordinater
 
