@@ -12,6 +12,8 @@ export interface Spot {
   adjustableNormal?: boolean;
   uncalibrated?: boolean; // vis "ukalibreret" i UI'et
   warning?: string; // fast advarsel, vises altid på spottet
+  // Tegn en høfderække på kortet: antal streger, afstand og længde i meter.
+  groynes?: { count: number; spacingM: number; lengthM: number };
 }
 
 // Gridpunkter til Open-Meteo. Verificeret i produktion 28/07/2026:
@@ -27,7 +29,8 @@ export const SPOTS: Spot[] = [
     shortName: "Vestkysten",
     shoreNormal: 275,
     lat: 56.6605,
-    lon: 8.1695
+    lon: 8.1695,
+    groynes: { count: 7, spacingM: 250, lengthM: 130 }
   },
   {
     id: "indsejlingen",

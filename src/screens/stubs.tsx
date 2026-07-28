@@ -1,4 +1,4 @@
-// Pladsholdere for etape 2–4. Ingen falsk funktionalitet — de siger
+// Pladsholdere for etape 3–4. Ingen falsk funktionalitet — de siger
 // bare hvad der kommer.
 
 function Stub({ title, etape, text }: { title: string; etape: number; text: string }) {
@@ -10,14 +10,6 @@ function Stub({ title, etape, text }: { title: string; etape: number; text: stri
     </div>
   );
 }
-
-export const MapScreen = () => (
-  <Stub
-    title="Kort"
-    etape={2}
-    text="Leaflet-kort over tangen med spots farvet efter score og en tidsskyder over de 7 døgn."
-  />
-);
 
 export const HistoryScreen = () => (
   <Stub

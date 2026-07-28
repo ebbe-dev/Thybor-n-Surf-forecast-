@@ -294,6 +294,52 @@ body {
   border: 1px solid var(--line);
 }
 
+/* ---- kort ---- */
+.map-screen {
+  display: flex;
+  flex-direction: column;
+  height: calc(100dvh - 62px); /* minus tabbar */
+}
+.timeslider {
+  padding: 10px 12px 6px;
+  border-bottom: 2px solid var(--line);
+}
+.timeslider-label {
+  font-size: 16px;
+  margin-bottom: 6px;
+  min-height: 20px;
+}
+.timeslider input[type="range"] {
+  width: 100%;
+  height: 44px; /* stor trykflade */
+  accent-color: var(--fg);
+  background: transparent;
+  touch-action: none;
+}
+.map-el {
+  flex: 1;
+  min-height: 0;
+  background: var(--line);
+}
+/* mørk popup i appens farver */
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--muted);
+  border-radius: 0;
+  box-shadow: none;
+}
+.leaflet-popup-content {
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.45;
+  margin: 10px 12px;
+}
+.leaflet-container a {
+  color: var(--muted);
+}
+
 /* ---- stubs ---- */
 .stub h2 {
   font-size: 22px;
