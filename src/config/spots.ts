@@ -75,8 +75,8 @@ export const SPOTS: Spot[] = [
     name: "Den gamle færgehavn (øst for Thyborøn by)",
     shortName: "Færgehavnen",
     shoreNormal: 30, // DEFAULT-GÆT: lever af refrakteret energi ned gennem kanalen
-    lat: 56.7045,
-    lon: 8.2195,
+    lat: 56.6903646, // brugerens nål, 28/07/2026
+    lon: 8.2265966,
     adjustableNormal: true,
     uncalibrated: true,
     warning: KANAL_WARNING
