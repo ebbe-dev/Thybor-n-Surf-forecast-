@@ -353,6 +353,85 @@ body {
   display: none;
 }
 
+/* ---- historik ---- */
+.range-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.range-row input[type="date"] {
+  flex: 1;
+  min-height: 48px;
+  min-width: 0;
+  background: var(--bg);
+  border: 2px solid var(--line);
+  color: var(--fg);
+  font-family: inherit;
+  font-size: 14px;
+  padding: 0 6px;
+}
+.section-h {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+  margin: 16px 0 6px;
+}
+.heatmap {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.windrose {
+  width: 220px;
+  max-width: 100%;
+  display: block;
+  margin: 0 auto;
+}
+.scoredist {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.threshold-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+  margin-top: 4px;
+}
+.threshold-table td {
+  padding: 6px 0;
+  border-top: 1px solid var(--line);
+}
+.threshold-table td:last-child {
+  text-align: right;
+}
+.dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 8px;
+  vertical-align: -1px;
+}
+.daytimeline {
+  border: 2px solid var(--line);
+  padding: 10px 12px;
+  margin-top: 10px;
+}
+.daytimeline-best {
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+.daytimeline-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.daytimeline-note {
+  font-size: 12px;
+  margin-top: 6px;
+}
+
 /* ---- stubs ---- */
 .stub h2 {
   font-size: 22px;

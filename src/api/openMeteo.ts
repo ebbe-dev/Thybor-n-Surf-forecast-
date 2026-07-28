@@ -10,20 +10,24 @@ import type { Row } from "../model/model";
 import { WAVE_POINT, WIND_POINT } from "../config/spots";
 import type { CachedForecast } from "../lib/storage";
 
-const MARINE_URL =
+export const MARINE_HOURLY =
+  "wave_height,wave_direction,wave_period," +
+  "swell_wave_height,swell_wave_period,swell_wave_direction,swell_wave_peak_period";
+
+export const WIND_HOURLY =
+  "wind_speed_10m,wind_direction_10m,wind_gusts_10m,temperature_2m";
+
+export const MARINE_BASE =
   "https://marine-api.open-meteo.com/v1/marine" +
   `?latitude=${WAVE_POINT.lat}&longitude=${WAVE_POINT.lon}` +
-  "&hourly=wave_height,wave_direction,wave_period," +
-  "swell_wave_height,swell_wave_period,swell_wave_direction,swell_wave_peak_period" +
-  "&timezone=Europe%2FCopenhagen&forecast_days=7";
+  `&hourly=${MARINE_HOURLY}&timezone=Europe%2FCopenhagen`;
 
-const WIND_URL =
+export const WIND_BASE =
   "https://api.open-meteo.com/v1/forecast" +
   `?latitude=${WIND_POINT.lat}&longitude=${WIND_POINT.lon}` +
-  "&hourly=wind_speed_10m,wind_direction_10m,wind_gusts_10m,temperature_2m" +
-  "&wind_speed_unit=ms&timezone=Europe%2FCopenhagen&forecast_days=7";
+  `&hourly=${WIND_HOURLY}&wind_speed_unit=ms&timezone=Europe%2FCopenhagen`;
 
-interface MarineHourly {
+export interface MarineHourly {
   time: string[];
   wave_height: (number | null)[];
   wave_direction: (number | null)[];
@@ -33,7 +37,7 @@ interface MarineHourly {
   swell_wave_direction: (number | null)[];
 }
 
-interface WindHourly {
+export interface WindHourly {
   time: string[];
   wind_speed_10m: (number | null)[];
   wind_direction_10m: (number | null)[];
@@ -41,7 +45,7 @@ interface WindHourly {
   temperature_2m: (number | null)[];
 }
 
-async function getJson<T>(url: string): Promise<T> {
+export async function getJson<T>(url: string): Promise<T> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Open-Meteo svarede ${res.status}`);
   const body = (await res.json()) as T & { error?: boolean; reason?: string };
@@ -49,23 +53,9 @@ async function getJson<T>(url: string): Promise<T> {
   return body;
 }
 
-export async function fetchForecast(): Promise<CachedForecast> {
-  const [marine, wind] = await Promise.all([
-    getJson<{ hourly: MarineHourly }>(MARINE_URL),
-    getJson<{ hourly: WindHourly }>(WIND_URL)
-  ]);
-
-  const m = marine.hourly;
-  const w = wind.hourly;
-
-  // Bølgemodellen har ramt land, hvis alt er null hele vejen igennem.
-  if (m.wave_height.every((v) => v == null)) {
-    throw new Error(
-      "Bølgemodellen returnerede kun null — gridcellen er tør. " +
-        "Ret WAVE_POINT i src/config/spots.ts til en våd celle."
-    );
-  }
-
+// Fletter marine- og vindtimer til Rows. Bruges af både forecast og arkiv,
+// så fallback-reglerne er garanteret ens alle steder.
+export function mergeHourly(m: MarineHourly, w: WindHourly): { rows: Row[]; holes: string[] } {
   const windAt = new Map<string, number>();
   w.time.forEach((t, i) => windAt.set(t, i));
 
@@ -106,5 +96,23 @@ export async function fetchForecast(): Promise<CachedForecast> {
     });
   });
 
+  return { rows, holes };
+}
+
+export async function fetchForecast(): Promise<CachedForecast> {
+  const [marine, wind] = await Promise.all([
+    getJson<{ hourly: MarineHourly }>(MARINE_BASE + "&forecast_days=7"),
+    getJson<{ hourly: WindHourly }>(WIND_BASE + "&forecast_days=7")
+  ]);
+
+  // Bølgemodellen har ramt land, hvis alt er null hele vejen igennem.
+  if (marine.hourly.wave_height.every((v) => v == null)) {
+    throw new Error(
+      "Bølgemodellen returnerede kun null — gridcellen er tør. " +
+        "Ret WAVE_POINT i src/config/spots.ts til en våd celle."
+    );
+  }
+
+  const { rows, holes } = mergeHourly(marine.hourly, wind.hourly);
   return { fetchedAt: new Date().toISOString(), rows, holes };
 }
