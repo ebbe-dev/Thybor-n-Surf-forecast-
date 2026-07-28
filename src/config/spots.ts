@@ -38,8 +38,8 @@ export const SPOTS: Spot[] = [
     name: "Langerhuse Højre — høfden ved fiskemolen",
     shortName: "Langerhuse H",
     shoreNormal: 275, // kalibreret mod faktiske sessions
-    lat: 56.6605, // = den bekræftede Langerhuse-nål (fiskemole-området)
-    lon: 8.1695,
+    lat: 56.6304935, // brugerens nål på fiskemolen, 28/07/2026
+    lon: 8.1522159,
     groynes: { count: 3, spacingM: 250, lengthM: 130 }
   },
   {
@@ -47,8 +47,8 @@ export const SPOTS: Spot[] = [
     name: "Langerhuse Venstre — høfden ved Flyvholm Redningsstation",
     shortName: "Langerhuse V",
     shoreNormal: 275, // samme kyststrækning, samme kalibrering
-    lat: 56.656, // ~500 m syd for fiskemolen, aflæst af brugerens luftfotos
-    lon: 8.1688,
+    lat: 56.6244138, // brugerens nål på Flyvholm Redningsstation, 28/07/2026
+    lon: 8.1505821,
     groynes: { count: 3, spacingM: 250, lengthM: 130 }
   },
   {
