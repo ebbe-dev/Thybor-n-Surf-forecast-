@@ -26,9 +26,10 @@ const KANAL_WARNING =
   "Strømmen i Thyborøn Kanal forudsiges ikke af nogen model, og den kan " +
   "være livsfarlig. Vurdér den selv på stedet, hver gang.";
 
-// Positionerne for de fire nordlige spots er sat efter kortet og skal
-// bekræftes visuelt af brugeren — ret koordinaterne her, når nålene er
-// tjekket på KORT-fanen. id'erne må ikke ændres (localStorage-nøgler).
+// Alle fem positioner er bekræftet af brugeren 28/07/2026 (Udkigsposten
+// med præcis nål, resten visuelt på kortet). Kystnormalerne for de
+// ukalibrerede spots justeres i appen. id'erne må ikke ændres
+// (localStorage-nøgler).
 
 export const SPOTS: Spot[] = [
   {
