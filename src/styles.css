@@ -164,6 +164,7 @@ body {
   gap: 14px;
   padding: 4px 0 8px;
   -webkit-overflow-scrolling: touch;
+  position: relative; /* offsetLeft på dag-grupperne måles herfra */
 }
 .baro-day {
   flex: 0 0 auto;

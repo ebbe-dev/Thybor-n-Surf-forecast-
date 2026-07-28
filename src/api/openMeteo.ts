@@ -100,9 +100,11 @@ export function mergeHourly(m: MarineHourly, w: WindHourly): { rows: Row[]; hole
 }
 
 export async function fetchForecast(): Promise<CachedForecast> {
+  // 7 dage bagud + 7 frem: barografen kan swipes tilbage, og snapshots til
+  // sessions logget bagudrettet findes uden at åbne historikken først.
   const [marine, wind] = await Promise.all([
-    getJson<{ hourly: MarineHourly }>(MARINE_BASE + "&forecast_days=7"),
-    getJson<{ hourly: WindHourly }>(WIND_BASE + "&forecast_days=7")
+    getJson<{ hourly: MarineHourly }>(MARINE_BASE + "&past_days=7&forecast_days=7"),
+    getJson<{ hourly: WindHourly }>(WIND_BASE + "&past_days=7&forecast_days=7")
   ]);
 
   // Bølgemodellen har ramt land, hvis alt er null hele vejen igennem.

@@ -258,9 +258,10 @@ export function NowScreen() {
 
       <Info q="Sådan læser du søjlerne">
         <p>
-          Hver søjle er et 3-timers tidsrum (kl. 05, 08, 11, 14, 17 og 20), og der er 7 dage —
-          <strong> stryg til siden</strong> for at se længere frem. Jo højere og "varmere" søjlen
-          er, jo bedre forhold for det valgte spot.
+          Hver søjle er et 3-timers tidsrum (kl. 05, 08, 11, 14, 17 og 20). Der er 7 dage frem
+          og 7 dage tilbage — <strong>stryg til højre</strong> for at se frem, og{" "}
+          <strong>til venstre</strong> for ugen, der gik (nedtonet). Jo højere og "varmere"
+          søjlen er, jo bedre forhold. Skal du længere tilbage end en uge, er det HISTORIK-fanen.
         </p>
         <p>
           <strong>Pilen over søjlen</strong> viser, hvor vinden blæser <em>hen</em> (op = mod
