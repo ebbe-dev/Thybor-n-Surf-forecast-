@@ -121,17 +121,7 @@ export const SPOTS: Spot[] = [
     adjustableNormal: true
   },
   // ---- Sydområdet (Bovbjerg/Thorsminde), nord → syd.
-  {
-    id: "fjaltring",
-    name: "Fjaltring (stranden vest for byen)",
-    shortName: "Fjaltring",
-    area: "thorsminde",
-    shoreNormal: 270, // skøn — kysten løber ret N-S her
-    lat: 56.487,
-    lon: 8.118,
-    adjustableNormal: true,
-    uncalibrated: true
-  },
+  // (Fjaltring udgik 28/07/2026 — det VAR Høfde Q, samme sted.)
   {
     // Researchet 28/07/2026 (visitnordvestkysten/comevisit): klassisk
     // HØJRE-bølge, lang og hul på gode dage; der surfes SYD for høfden
