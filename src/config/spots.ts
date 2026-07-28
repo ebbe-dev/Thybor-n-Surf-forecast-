@@ -22,28 +22,63 @@ export interface Spot {
 export const WAVE_POINT = { lat: 56.66, lon: 8.13 };
 export const WIND_POINT = { lat: 56.68, lon: 8.2 };
 
+const KANAL_WARNING =
+  "Strømmen i Thyborøn Kanal forudsiges ikke af nogen model, og den kan " +
+  "være livsfarlig. Vurdér den selv på stedet, hver gang.";
+
+// Positionerne for de fire nordlige spots er sat efter kortet og skal
+// bekræftes visuelt af brugeren — ret koordinaterne her, når nålene er
+// tjekket på KORT-fanen. id'erne må ikke ændres (localStorage-nøgler).
+
 export const SPOTS: Spot[] = [
   {
     id: "vestkysten",
-    name: "Vestkysten — høfderækken (Langerhuse / Rønlanger)",
-    shortName: "Vestkysten",
-    shoreNormal: 275,
+    name: "Langerhuse — høfderækken (Rønlanger)",
+    shortName: "Langerhuse",
+    shoreNormal: 275, // kalibreret mod faktiske sessions
     lat: 56.6605,
     lon: 8.1695,
     groynes: { count: 7, spacingM: 250, lengthM: 130 }
   },
   {
-    id: "indsejlingen",
-    name: "Den gamle færgeindsejling (øst for Thyborøn)",
-    shortName: "Indsejlingen",
-    shoreNormal: 300, // DEFAULT-GÆT. Mundingens retning er ikke kalibreret.
+    id: "udkigsposten",
+    name: "Udkigsposten (mellem Langerhuse og Thyborøn)",
+    shortName: "Udkigsposten",
+    shoreNormal: 280, // kysten drejer svagt nordover her
+    lat: 56.679,
+    lon: 8.181,
+    groynes: { count: 5, spacingM: 250, lengthM: 130 }
+  },
+  {
+    id: "sneglehuset",
+    name: "Sneglehuset (NV-stranden ved Thyborøn by)",
+    shortName: "Sneglehuset",
+    shoreNormal: 300, // NV-vendt bue før kanalmundingen
     lat: 56.7005,
-    lon: 8.2255,
+    lon: 8.2035,
+    groynes: { count: 5, spacingM: 220, lengthM: 120 }
+  },
+  {
+    id: "indsejlingen",
+    name: "Indsejlingen (kanalmundingen)",
+    shortName: "Indsejlingen",
+    shoreNormal: 300, // DEFAULT-GÆT fra spec — ukalibreret
+    lat: 56.709,
+    lon: 8.212,
     adjustableNormal: true,
     uncalibrated: true,
-    warning:
-      "Strømmen i Thyborøn Kanal forudsiges ikke af nogen model, og den kan " +
-      "være livsfarlig. Vurdér den selv på stedet, hver gang."
+    warning: KANAL_WARNING
+  },
+  {
+    id: "faergehavnen",
+    name: "Den gamle færgehavn (øst for Thyborøn by)",
+    shortName: "Færgehavnen",
+    shoreNormal: 30, // DEFAULT-GÆT: lever af refrakteret energi ned gennem kanalen
+    lat: 56.7045,
+    lon: 8.2195,
+    adjustableNormal: true,
+    uncalibrated: true,
+    warning: KANAL_WARNING
   }
 ];
 
