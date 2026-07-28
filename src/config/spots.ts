@@ -138,8 +138,10 @@ export const SPOTS: Spot[] = [
     groynes: { count: 4, spacingM: 250, lengthM: 150 }
   },
   {
+    // Brugerens spotviden 28/07/2026: højre-bølge — man surfer mod syd
+    // langs den store mole.
     id: "thorsminde",
-    name: "Thorsminde (ved molerne)",
+    name: "Thorsminde — højre langs den store mole (surfes mod syd)",
     shortName: "Thorsminde",
     area: "thorsminde",
     shoreNormal: 270, // kysten løber ret N-S her
