@@ -47,11 +47,12 @@ export function saveSessions(list: Session[]): void {
   localStorage.setItem(KEY, JSON.stringify(list));
 }
 
-// Nærmeste kendte time (±2 t) fra forecast- eller historik-cachen.
-export function findRowAt(timeIso: string): Row | null {
+// Nærmeste kendte time (±2 t) i spottets vejr-område, fra forecast-
+// eller historik-cachen.
+export function findRowAt(timeIso: string, areaId: string): Row | null {
   const candidates: Row[] = [
-    ...(loadForecast()?.rows ?? []),
-    ...(loadCachedHistory()?.rows ?? [])
+    ...(loadForecast()?.areas[areaId]?.rows ?? []),
+    ...(loadCachedHistory()?.areas[areaId]?.rows ?? [])
   ];
   let best: Row | null = null;
   let bestDist = Infinity;
@@ -72,7 +73,7 @@ export function createSession(
   rating: Session["rating"],
   note: string
 ): Session {
-  const row = findRowAt(timeIso);
+  const row = findRowAt(timeIso, spot.area);
   return {
     id: String(Date.now()) + Math.random().toString(36).slice(2, 7),
     time: timeIso,

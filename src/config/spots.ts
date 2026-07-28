@@ -5,6 +5,7 @@ export interface Spot {
   id: string;
   name: string;
   shortName: string; // til dommen og knapper
+  area: string; // hvilket vejr-område (AREAS) spottet hører til
   shoreNormal: number; // grader kysten vender imod
   lat: number;
   lon: number;
@@ -19,11 +20,31 @@ export interface Spot {
   groynes?: { count: number; spacingM: number; lengthM: number };
 }
 
-// Gridpunkter til Open-Meteo. Verificeret i produktion 28/07/2026:
-// bølgepunktet er en våd gridcelle (returnerer swell-data). Flyttes punktet,
-// og det rammer land, svarer API'et kun null og appen viser en fejl.
-export const WAVE_POINT = { lat: 56.66, lon: 8.13 };
-export const WIND_POINT = { lat: 56.68, lon: 8.2 };
+// Vejr-områder: spots deler bølge- og vindpunkt inden for et område.
+// Thyborøn-punktet er verificeret vådt i produktion 28/07/2026; syd-punktet
+// ligger ~7 km offshore og bør være vådt — er det tørt, viser appen det
+// pr. område i stedet for at fejle det hele.
+export interface Area {
+  id: string;
+  label: string;
+  wave: { lat: number; lon: number };
+  wind: { lat: number; lon: number };
+}
+
+export const AREAS: Area[] = [
+  {
+    id: "thyboroen",
+    label: "Thyborøn",
+    wave: { lat: 56.66, lon: 8.13 },
+    wind: { lat: 56.68, lon: 8.2 }
+  },
+  {
+    id: "thorsminde",
+    label: "Bovbjerg/Thorsminde",
+    wave: { lat: 56.45, lon: 8.0 },
+    wind: { lat: 56.45, lon: 8.12 }
+  }
+];
 
 // Alle positioner er bekræftet af brugeren 28/07/2026 (Udkigsposten
 // med præcis nål, resten visuelt på kortet). Kystnormalerne for de
@@ -36,6 +57,7 @@ export const SPOTS: Spot[] = [
     id: "vestkysten",
     name: "Langerhuse Højre — høfden ved fiskemolen",
     shortName: "Langerhuse H",
+    area: "thyboroen",
     shoreNormal: 275, // kalibreret mod faktiske sessions
     lat: 56.6304935, // brugerens nål på fiskemolen, 28/07/2026
     lon: 8.1522159,
@@ -45,6 +67,7 @@ export const SPOTS: Spot[] = [
     id: "langerhuse-venstre",
     name: "Langerhuse Venstre — høfden ved Flyvholm Redningsstation",
     shortName: "Langerhuse V",
+    area: "thyboroen",
     shoreNormal: 275, // samme kyststrækning, samme kalibrering
     lat: 56.6244138, // brugerens nål på Flyvholm Redningsstation, 28/07/2026
     lon: 8.1505821,
@@ -54,6 +77,7 @@ export const SPOTS: Spot[] = [
     id: "udkigsposten",
     name: "Udkigsposten (mellem Langerhuse og Thyborøn)",
     shortName: "Udkigsposten",
+    area: "thyboroen",
     shoreNormal: 285, // skøn: kysten er begyndt at dreje mod NV her
     lat: 56.6936676, // brugerens opdaterede nål, 28/07/2026
     lon: 8.1934475,
@@ -63,6 +87,7 @@ export const SPOTS: Spot[] = [
     id: "sneglehuset",
     name: "Sneglehuset (NV-stranden ved Thyborøn by)",
     shortName: "Sneglehuset",
+    area: "thyboroen",
     shoreNormal: 300, // NV-vendt bue før kanalmundingen
     lat: 56.697106, // brugerens nål, 28/07/2026
     lon: 8.1969682,
@@ -72,6 +97,7 @@ export const SPOTS: Spot[] = [
     id: "indsejlingen",
     name: "Indsejlingen (kanalmundingen)",
     shortName: "Indsejlingen",
+    area: "thyboroen",
     // Kalibreret 28/07/2026: brugerens pil på satellitfoto viser bølgerne
     // ind fra NV (~322°) gennem mundingen — rundet til 320.
     shoreNormal: 320,
@@ -83,6 +109,7 @@ export const SPOTS: Spot[] = [
     id: "faergehavnen",
     name: "Den gamle færgehavn (øst for Thyborøn by)",
     shortName: "Færgehavnen",
+    area: "thyboroen",
     // Kalibreret 28/07/2026 af brugerens foto-pile: bugten åbner mod NNØ,
     // bølgerne refrakteres ned gennem kanalen og hooker ind. SPECIELT:
     // vestenvind er offshore her (land mod vest), selvom bølgerne kommer
@@ -92,6 +119,42 @@ export const SPOTS: Spot[] = [
     lat: 56.6903646, // brugerens nål, 28/07/2026
     lon: 8.2265966,
     adjustableNormal: true
+  },
+  // ---- Sydområdet (Bovbjerg/Thorsminde). Positionerne er skøn og skal
+  // ---- bekræftes med brugerens nåle — Høfde Q er det mest usikre.
+  {
+    id: "hoefde-q",
+    name: "Høfde Q (Vejlby Klit)",
+    shortName: "Høfde Q",
+    area: "thorsminde",
+    shoreNormal: 275, // skøn — ret når nålen er bekræftet
+    lat: 56.548,
+    lon: 8.112,
+    adjustableNormal: true,
+    uncalibrated: true,
+    groynes: { count: 1, spacingM: 250, lengthM: 150 }
+  },
+  {
+    id: "fjaltring",
+    name: "Fjaltring (stranden vest for byen)",
+    shortName: "Fjaltring",
+    area: "thorsminde",
+    shoreNormal: 270, // skøn — kysten løber ret N-S her
+    lat: 56.487,
+    lon: 8.118,
+    adjustableNormal: true,
+    uncalibrated: true
+  },
+  {
+    id: "thorsminde",
+    name: "Thorsminde (ved molerne)",
+    shortName: "Thorsminde",
+    area: "thorsminde",
+    shoreNormal: 270, // skøn
+    lat: 56.377,
+    lon: 8.115,
+    adjustableNormal: true,
+    uncalibrated: true
   }
 ];
 

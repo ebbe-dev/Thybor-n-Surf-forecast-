@@ -359,6 +359,20 @@ body {
   letter-spacing: 1px;
   color: var(--muted);
 }
+.map-wind-area {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-top: 1px solid var(--line);
+  padding-top: 6px;
+  margin-top: 2px;
+}
+.map-wind > div:first-child .map-wind-area {
+  border-top: none;
+  padding-top: 0;
+}
 /* mørk popup i appens farver */
 .leaflet-popup-content-wrapper,
 .leaflet-popup-tip {

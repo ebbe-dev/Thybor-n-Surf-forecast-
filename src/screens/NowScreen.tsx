@@ -170,10 +170,23 @@ export function NowScreen() {
         ) : (
           <>hentet {fmtFetched(forecast.fetchedAt)}</>
         )}
-        {forecast.holes.length > 0 && (
-          <span className="muted"> · {forecast.holes.length} timer mangler i kilden</span>
+        {(forecast.areas[spot.area]?.holes.length ?? 0) > 0 && (
+          <span className="muted">
+            {" "}
+            · {forecast.areas[spot.area].holes.length} timer mangler i kilden
+          </span>
         )}
       </p>
+
+      {forecast.areas[spot.area]?.dry && (
+        <div className="errorbox">
+          <strong>Ingen bølgedata for dette område.</strong>
+          <p>
+            Bølgepunktet for {spot.shortName}s vejr-område ramte land — ret AREAS i
+            src/config/spots.ts til en våd celle.
+          </p>
+        </div>
+      )}
 
       <QuickPick forecast={forecast} />
 

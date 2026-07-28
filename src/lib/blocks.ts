@@ -21,9 +21,11 @@ export interface Day {
 }
 
 export function buildDays(f: CachedForecast, spot: Spot): Day[] {
+  const ar = f.areas[spot.area];
+  if (!ar || ar.dry) return [];
   const normal = effectiveNormal(spot);
-  const byTime = new Map(f.rows.map((r) => [r.time, r]));
-  const dates = [...new Set(f.rows.map((r) => dateOf(r.time)))].sort();
+  const byTime = new Map(ar.rows.map((r) => [r.time, r]));
+  const dates = [...new Set(ar.rows.map((r) => dateOf(r.time)))].sort();
   return dates.map((date) => ({
     date,
     blocks: BLOCK_HOURS.map((h) => {

@@ -1,14 +1,16 @@
-// Henter bølge- og vindforecast fra Open-Meteo og fletter dem pr. time
-// til Row[]. Ingen opfundne data: mangler en time i kilden, ryger den i
-// `holes` og vises som hul i UI'et.
+// Henter bølge- og vindforecast fra Open-Meteo for ALLE vejr-områder i ét
+// kald pr. endpoint (kommaseparerede koordinater → array-svar) og fletter
+// pr. område til Row[]. Ingen opfundne data: mangler en time, ryger den i
+// `holes`; er et områdes bølgecelle tør, markeres området — de andre
+// områder kører videre.
 //
 // Swell-felterne er ofte null i Nordsøen (ingen dønning at skille fra
 // vindsøen). Så falder vi tilbage på wave_height/wave_period/wave_direction
 // og markerer rækken med source: "vindsø".
 
 import type { Row } from "../model/model";
-import { WAVE_POINT, WIND_POINT } from "../config/spots";
-import type { CachedForecast } from "../lib/storage";
+import { AREAS } from "../config/spots";
+import type { CachedForecast, AreaForecast } from "../lib/storage";
 
 export const MARINE_HOURLY =
   "wave_height,wave_direction,wave_period," +
@@ -17,14 +19,24 @@ export const MARINE_HOURLY =
 export const WIND_HOURLY =
   "wind_speed_10m,wind_direction_10m,wind_gusts_10m,temperature_2m";
 
+const WAVE_COORDS =
+  `latitude=${AREAS.map((a) => a.wave.lat).join(",")}` +
+  `&longitude=${AREAS.map((a) => a.wave.lon).join(",")}`;
+
+const WIND_COORDS =
+  `latitude=${AREAS.map((a) => a.wind.lat).join(",")}` +
+  `&longitude=${AREAS.map((a) => a.wind.lon).join(",")}`;
+
 export const MARINE_BASE =
-  "https://marine-api.open-meteo.com/v1/marine" +
-  `?latitude=${WAVE_POINT.lat}&longitude=${WAVE_POINT.lon}` +
+  `https://marine-api.open-meteo.com/v1/marine?${WAVE_COORDS}` +
   `&hourly=${MARINE_HOURLY}&timezone=Europe%2FCopenhagen`;
 
 export const WIND_BASE =
-  "https://api.open-meteo.com/v1/forecast" +
-  `?latitude=${WIND_POINT.lat}&longitude=${WIND_POINT.lon}` +
+  `https://api.open-meteo.com/v1/forecast?${WIND_COORDS}` +
+  `&hourly=${WIND_HOURLY}&wind_speed_unit=ms&timezone=Europe%2FCopenhagen`;
+
+export const ARCHIVE_WIND_BASE =
+  `https://archive-api.open-meteo.com/v1/archive?${WIND_COORDS}` +
   `&hourly=${WIND_HOURLY}&wind_speed_unit=ms&timezone=Europe%2FCopenhagen`;
 
 export interface MarineHourly {
@@ -49,8 +61,14 @@ export async function getJson<T>(url: string): Promise<T> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Open-Meteo svarede ${res.status}`);
   const body = (await res.json()) as T & { error?: boolean; reason?: string };
-  if (body.error) throw new Error(`Open-Meteo: ${body.reason ?? "ukendt fejl"}`);
+  if (!Array.isArray(body) && (body as { error?: boolean }).error)
+    throw new Error(`Open-Meteo: ${(body as { reason?: string }).reason ?? "ukendt fejl"}`);
   return body;
+}
+
+// Ét koordinatsæt → objekt, flere → array. Normalisér til array.
+export function asArray<T>(x: T | T[]): T[] {
+  return Array.isArray(x) ? x : [x];
 }
 
 // Fletter marine- og vindtimer til Rows. Bruges af både forecast og arkiv,
@@ -99,22 +117,46 @@ export function mergeHourly(m: MarineHourly, w: WindHourly): { rows: Row[]; hole
   return { rows, holes };
 }
 
+type MarineResp = { hourly: MarineHourly };
+type WindResp = { hourly: WindHourly };
+
+// Bygger område-opdelte forecasts af parallelle API-svar (samme index-
+// rækkefølge som AREAS, da URL'erne bygges af AREAS).
+export function splitByArea(
+  marines: MarineResp[],
+  winds: WindResp[]
+): Record<string, AreaForecast> {
+  const areas: Record<string, AreaForecast> = {};
+  AREAS.forEach((a, i) => {
+    const m = marines[i]?.hourly;
+    const w = winds[i]?.hourly;
+    if (!m || !w) {
+      areas[a.id] = { rows: [], holes: [], dry: true };
+      return;
+    }
+    const dry = m.wave_height.every((v) => v == null);
+    const merged = dry ? { rows: [], holes: [] } : mergeHourly(m, w);
+    areas[a.id] = { ...merged, dry };
+  });
+  return areas;
+}
+
 export async function fetchForecast(): Promise<CachedForecast> {
   // 7 dage bagud + 7 frem: barografen kan swipes tilbage, og snapshots til
   // sessions logget bagudrettet findes uden at åbne historikken først.
-  const [marine, wind] = await Promise.all([
-    getJson<{ hourly: MarineHourly }>(MARINE_BASE + "&past_days=7&forecast_days=7"),
-    getJson<{ hourly: WindHourly }>(WIND_BASE + "&past_days=7&forecast_days=7")
+  const [marineRes, windRes] = await Promise.all([
+    getJson<MarineResp | MarineResp[]>(MARINE_BASE + "&past_days=7&forecast_days=7"),
+    getJson<WindResp | WindResp[]>(WIND_BASE + "&past_days=7&forecast_days=7")
   ]);
 
-  // Bølgemodellen har ramt land, hvis alt er null hele vejen igennem.
-  if (marine.hourly.wave_height.every((v) => v == null)) {
+  const areas = splitByArea(asArray(marineRes), asArray(windRes));
+
+  if (Object.values(areas).every((a) => a.dry)) {
     throw new Error(
-      "Bølgemodellen returnerede kun null — gridcellen er tør. " +
-        "Ret WAVE_POINT i src/config/spots.ts til en våd celle."
+      "Alle bølgepunkter returnerede kun null — gridcellerne er tørre. " +
+        "Ret AREAS i src/config/spots.ts."
     );
   }
 
-  const { rows, holes } = mergeHourly(marine.hourly, wind.hourly);
-  return { fetchedAt: new Date().toISOString(), rows, holes };
+  return { fetchedAt: new Date().toISOString(), areas };
 }

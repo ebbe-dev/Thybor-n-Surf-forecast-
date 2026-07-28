@@ -64,12 +64,12 @@ export function HistoryScreen() {
   const rowsInRange = useMemo(
     () =>
       data
-        ? data.rows.filter((r) => {
+        ? (data.areas[spot.area]?.rows ?? []).filter((r) => {
             const d = dateOf(r.time);
             return d >= applied.start && d <= applied.end;
           })
         : [],
-    [data, applied]
+    [data, applied, spot]
   );
 
   const stats = useMemo(() => computeStats(rowsInRange, spot), [rowsInRange, spot]);

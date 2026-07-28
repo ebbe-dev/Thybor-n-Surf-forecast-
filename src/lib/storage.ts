@@ -4,13 +4,20 @@
 
 import type { Row } from "../model/model";
 
-export interface CachedForecast {
-  fetchedAt: string; // ISO
+export interface AreaForecast {
   rows: Row[];
   holes: string[]; // ISO-timer hvor kilden manglede data
+  dry: boolean; // bølgecellen ramte land — området har ingen data
 }
 
-const KEY = "bygtangen.forecast";
+export interface CachedForecast {
+  fetchedAt: string; // ISO
+  areas: Record<string, AreaForecast>;
+}
+
+// v2: område-opdelt (flere vejr-områder). Gammel v1-cache ignoreres —
+// første åbning efter opdateringen henter frisk.
+const KEY = "bygtangen.forecast2";
 
 export function saveForecast(f: CachedForecast): void {
   try {
@@ -25,7 +32,7 @@ export function loadForecast(): CachedForecast | null {
     const raw = localStorage.getItem(KEY);
     if (!raw) return null;
     const f = JSON.parse(raw) as CachedForecast;
-    if (!Array.isArray(f.rows)) return null;
+    if (!f.areas || typeof f.areas !== "object") return null;
     return f;
   } catch {
     return null;
