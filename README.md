@@ -24,13 +24,14 @@ npm run preview    # server dist/
    rækkevidde skal verificeres først.
 4. **LOG** — sessions til Google Sheets via Apps Script. Stub.
 
-## ⚠ Ubekræftede gridkoordinater
+## Gridkoordinater
 
-`WAVE_POINT` i `src/config/spots.ts` (56.66, 8.13) er **ikke verificeret**
-mod bølgemodellen — udviklingsmiljøets netværk blokerede open-meteo.com.
-Rammer punktet land, svarer API'et kun null, og appen viser en fejl med
-besked om at rette koordinaten. Verificér i browseren (DevTools → Network
-→ marine-api-kaldet) og ret i configen.
+`WAVE_POINT` i `src/config/spots.ts` (56.66, 8.13) er verificeret i
+produktion 28/07/2026 — cellen er våd og returnerer swell-data. Flyttes
+punktet til en tør celle, viser appen en fejl i stedet for tomme tal.
+
+Appen er live på https://ebbe-dev.github.io/Thybor-n-Surf-forecast-/
+og udgives automatisk ved hvert push (`.github/workflows/deploy.yml`).
 
 ## Arkitektur
 
