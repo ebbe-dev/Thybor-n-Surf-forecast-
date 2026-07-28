@@ -142,11 +142,10 @@ export const SPOTS: Spot[] = [
     name: "Thorsminde (ved molerne)",
     shortName: "Thorsminde",
     area: "thorsminde",
-    shoreNormal: 270, // skøn
-    lat: 56.377,
-    lon: 8.115,
-    adjustableNormal: true,
-    uncalibrated: true
+    shoreNormal: 270, // kysten løber ret N-S her
+    lat: 56.3704838, // brugerens nål, 28/07/2026
+    lon: 8.1142532,
+    adjustableNormal: true
   }
 ];
 
