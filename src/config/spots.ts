@@ -64,8 +64,8 @@ export const SPOTS: Spot[] = [
     name: "Indsejlingen (kanalmundingen)",
     shortName: "Indsejlingen",
     shoreNormal: 300, // DEFAULT-GÆT fra spec — ukalibreret
-    lat: 56.709,
-    lon: 8.212,
+    lat: 56.7089371, // brugerens nål, 28/07/2026
+    lon: 8.2171907,
     adjustableNormal: true,
     uncalibrated: true,
     warning: KANAL_WARNING
