@@ -359,19 +359,60 @@ body {
   letter-spacing: 1px;
   color: var(--muted);
 }
+.map-wind-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+.map-wind-head button {
+  background: none;
+  border: none;
+  color: var(--fg);
+  font-size: 15px;
+  cursor: pointer;
+  padding: 2px 2px 2px 12px;
+  min-width: 32px;
+  min-height: 28px;
+}
 .map-wind-area {
   display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-weight: 700;
   font-size: 10px;
   letter-spacing: 1px;
   text-transform: uppercase;
   color: var(--muted);
   border-top: 1px solid var(--line);
-  padding-top: 6px;
+  padding: 8px 0 4px;
   margin-top: 2px;
+  cursor: pointer;
+  min-height: 30px;
 }
-.map-wind > div:first-child .map-wind-area {
+.map-wind > div:first-of-type .map-wind-area {
   border-top: none;
-  padding-top: 0;
+  margin-top: 0;
+}
+.map-wind-fab {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 800;
+  width: 44px;
+  height: 44px;
+  background: var(--bg);
+  border: 1px solid var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
 }
 /* mørk popup i appens farver */
 .leaflet-popup-content-wrapper,

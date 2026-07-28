@@ -68,6 +68,31 @@ export function MapScreen() {
   }, [perSpot]);
 
   const [idx, setIdx] = useState(-1); // -1 = ikke sat endnu
+  // Viser-kassen kan foldes helt eller pr. område — og husker valget.
+  const [windOpen, setWindOpen] = useState(() => localStorage.getItem("bygtangen.mapwind") !== "0");
+  const [closedAreas, setClosedAreas] = useState<string[]>(() => {
+    try {
+      const v = JSON.parse(localStorage.getItem("bygtangen.mapwind.closed") ?? "[]") as string[];
+      return Array.isArray(v) ? v : [];
+    } catch {
+      return [];
+    }
+  });
+
+  function toggleWind() {
+    setWindOpen((o) => {
+      localStorage.setItem("bygtangen.mapwind", o ? "0" : "1");
+      return !o;
+    });
+  }
+
+  function toggleArea(label: string) {
+    setClosedAreas((prev) => {
+      const next = prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label];
+      localStorage.setItem("bygtangen.mapwind.closed", JSON.stringify(next));
+      return next;
+    });
+  }
   useEffect(() => {
     if (idx === -1 && timeline.length > 0) {
       const now = nowLocalIso();
@@ -204,35 +229,57 @@ export function MapScreen() {
       </div>
       <div className="map-body">
         <div ref={mapEl} className="map-el" />
-        {areaRows.length > 0 && (
+        {areaRows.length > 0 && !windOpen && (
+          <button className="map-wind-fab" onClick={toggleWind} aria-label="vis vind og bølge">
+            <WindArrow deg={areaRows[0].row.wdir} spd={areaRows[0].row.wspd} size={22} />
+          </button>
+        )}
+        {areaRows.length > 0 && windOpen && (
           <div className="map-wind" aria-label="vind og bølgeretning">
-            {areaRows.map(({ label, row }) => (
-              <div key={label}>
-                {areaRows.length > 1 && <span className="map-wind-area">{label}</span>}
-                <div className="map-wind-row">
-                  <WindArrow deg={row.wdir} spd={row.wspd} size={22} />
-                  <span>
-                    <span className="map-wind-label">VIND</span>
-                    {compass(row.wdir)} {fmt(row.wspd, 0)} m/s
-                  </span>
+            <div className="map-wind-head">
+              <span>VIND & BØLGE</span>
+              <button onClick={toggleWind} aria-label="fold sammen">
+                ✕
+              </button>
+            </div>
+            {areaRows.map(({ label, row }) => {
+              const closed = closedAreas.includes(label);
+              return (
+                <div key={label}>
+                  {areaRows.length > 1 && (
+                    <button className="map-wind-area" onClick={() => toggleArea(label)}>
+                      {closed ? "▸" : "▾"} {label}
+                    </button>
+                  )}
+                  {!closed && (
+                    <>
+                      <div className="map-wind-row">
+                        <WindArrow deg={row.wdir} spd={row.wspd} size={22} />
+                        <span>
+                          <span className="map-wind-label">VIND</span>
+                          {compass(row.wdir)} {fmt(row.wspd, 0)} m/s
+                        </span>
+                      </div>
+                      <div className="map-wind-row">
+                        <svg
+                          width={22}
+                          height={22}
+                          viewBox="0 0 16 16"
+                          style={{ transform: `rotate(${row.swdir + 180}deg)` }}
+                        >
+                          <line x1="8" y1="14" x2="8" y2="3.5" stroke="#E7E2D3" strokeWidth="1.6" strokeDasharray="2 1.4" />
+                          <path d="M8 1 L4.6 6.4 L8 4.8 L11.4 6.4 Z" fill="#E7E2D3" />
+                        </svg>
+                        <span>
+                          <span className="map-wind-label">BØLGE</span>
+                          {compass(row.swdir)} {fmt(row.hs)} m
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </div>
-                <div className="map-wind-row">
-                  <svg
-                    width={22}
-                    height={22}
-                    viewBox="0 0 16 16"
-                    style={{ transform: `rotate(${row.swdir + 180}deg)` }}
-                  >
-                    <line x1="8" y1="14" x2="8" y2="3.5" stroke="#E7E2D3" strokeWidth="1.6" strokeDasharray="2 1.4" />
-                    <path d="M8 1 L4.6 6.4 L8 4.8 L11.4 6.4 Z" fill="#E7E2D3" />
-                  </svg>
-                  <span>
-                    <span className="map-wind-label">BØLGE</span>
-                    {compass(row.swdir)} {fmt(row.hs)} m
-                  </span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
