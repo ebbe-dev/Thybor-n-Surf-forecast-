@@ -105,6 +105,9 @@ export function MapScreen() {
         fillOpacity: 1
       }).addTo(map);
       marker.bindPopup("", { closeButton: false });
+      // Score-tallet oven på prikken: i en flad uge skifter farvebåndet
+      // sjældent, men tallet skal altid bevæge sig når man scrubber.
+      marker.bindTooltip("", { permanent: true, direction: "center", className: "score-tip" });
       markersRef.current.set(spot.id, marker);
     }
     mapRef.current = map;
@@ -129,6 +132,11 @@ export function MapScreen() {
         color: spot.uncalibrated ? MUTED : BG
       });
       marker.setPopupContent(popupHtml({ spot, block }));
+      // mørk tekst på de lyse bånd, lys tekst på de mørke
+      const tipColor = block ? (block.score >= 3.5 ? BG : FG) : MUTED;
+      marker.setTooltipContent(
+        `<span style="color:${tipColor}">${block ? fmt(block.score) : "–"}</span>`
+      );
     }
   }, [time, perSpot]);
 

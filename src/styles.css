@@ -339,6 +339,18 @@ body {
 .leaflet-container a {
   color: var(--muted);
 }
+/* score-tal oven på markørerne */
+.score-tip {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 800;
+}
+.score-tip::before {
+  display: none;
+}
 
 /* ---- stubs ---- */
 .stub h2 {
