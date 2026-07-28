@@ -8,6 +8,9 @@ export interface Spot {
   shoreNormal: number; // grader kysten vender imod
   lat: number;
   lon: number;
+  // Glattende vindretning hvis den afviger fra kystnormal+180 —
+  // refraktionsspots hvor bølger og vind har forskellig geometri.
+  offshoreDir?: number;
   // Orienteringen kan overstyres i UI'et (gemmes i localStorage).
   adjustableNormal?: boolean;
   uncalibrated?: boolean; // vis "ukalibreret" i UI'et
@@ -80,11 +83,15 @@ export const SPOTS: Spot[] = [
     id: "faergehavnen",
     name: "Den gamle færgehavn (øst for Thyborøn by)",
     shortName: "Færgehavnen",
-    shoreNormal: 30, // DEFAULT-GÆT: lever af refrakteret energi ned gennem kanalen
+    // Kalibreret 28/07/2026 af brugerens foto-pile: bugten åbner mod NNØ,
+    // bølgerne refrakteres ned gennem kanalen og hooker ind. SPECIELT:
+    // vestenvind er offshore her (land mod vest), selvom bølgerne kommer
+    // nordfra — derfor egen offshoreDir i stedet for normal+180.
+    shoreNormal: 30,
+    offshoreDir: 270,
     lat: 56.6903646, // brugerens nål, 28/07/2026
     lon: 8.2265966,
-    adjustableNormal: true,
-    uncalibrated: true
+    adjustableNormal: true
   }
 ];
 

@@ -42,7 +42,7 @@ export function computeStats(rows: Row[], spot: Spot): HistoryStats {
   let roseTotal = 0;
 
   for (const row of rows) {
-    const score = adjustedScore(scoreSpot(row, normal), spot.id);
+    const score = adjustedScore(scoreSpot(row, normal, spot.offshoreDir), spot.id);
     const date = dateOf(row.time);
     let day = days.get(date);
     if (!day) {

@@ -84,7 +84,7 @@ export function createSession(
       : null,
     // ALTID modellens rå score — aldrig den justerede. Ellers ville
     // kalibreringen (lib/calibration.ts) fodre sig selv.
-    predicted: row ? scoreSpot(row, effectiveNormal(spot)) : null
+    predicted: row ? scoreSpot(row, effectiveNormal(spot), spot.offshoreDir) : null
   };
 }
 

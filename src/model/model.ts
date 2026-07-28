@@ -59,12 +59,16 @@ export function energy(
 // Svag vind trækker altid mod glat vand uanset retning.
 // N-kvadranten får bonus: efter et V/NV-blæsevejr drejer vinden nordi og høvler
 // den resterende dønning ren. Det er stedets bedste opskrift.
+// `offshore` kan overstyres pr. spot: ved refraktionsspots (Færgehavnen)
+// er den glattende vindretning IKKE bare kystnormal+180, fordi bølgerne
+// kommer bøjet ind fra en anden retning end den, land vender.
 export function windQuality(
   wdir: number,
   wspd: number,
-  normal = SHORE_NORMAL
+  normal = SHORE_NORMAL,
+  offshore = (normal + 180) % 360
 ): number {
-  let q = 1 - angDiff(wdir, (normal + 180) % 360) / 180;
+  let q = 1 - angDiff(wdir, offshore) / 180;
   // Kvadratisk glas-kurve (rekalibreret 28/07/2026, se ENERGY_NORM):
   // 2,6 m/s → 0,81, 4 m/s → 0,56, 6+ m/s → 0. Før: lineær med knæk ved 4.
   const calm = Math.max(0, 1 - (wspd / GLASS_WIND) ** 2);
@@ -76,9 +80,13 @@ export function windQuality(
 
 // Samme formel som scoreWest fra kalibreringen, men med kystnormalen som
 // parameter så hvert spot i config/spots.ts kan have sin egen eksponering.
-export function scoreSpot(r: Row, normal = SHORE_NORMAL): number {
+export function scoreSpot(
+  r: Row,
+  normal = SHORE_NORMAL,
+  offshore?: number
+): number {
   const e = energy(r.hs, r.tp, r.swdir, normal);
-  const wq = windQuality(r.wdir, r.wspd, normal);
+  const wq = windQuality(r.wdir, r.wspd, normal, offshore ?? (normal + 180) % 360);
   const eNorm = Math.min(1, e / ENERGY_NORM);
   const sizeGate = r.hs < SIZE_GATE_M ? r.hs / SIZE_GATE_M : 1;
   const gust = r.gust > GUST_LIMIT ? GUST_PENALTY : 1;

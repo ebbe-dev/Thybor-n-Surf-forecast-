@@ -34,7 +34,7 @@ export function buildDays(f: CachedForecast, spot: Spot): Day[] {
         time: t,
         row,
         // personlig korrektion fra loggede sessions oveni (lib/calibration.ts)
-        score: adjustedScore(scoreSpot(row, normal), spot.id),
+        score: adjustedScore(scoreSpot(row, normal, spot.offshoreDir), spot.id),
         side: moleSide(row.wdir)
       };
     })
