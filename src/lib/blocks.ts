@@ -4,8 +4,9 @@
 import type { CachedForecast } from "./storage";
 import { scoreSpot, moleSide, type Row } from "../model/model";
 import { effectiveNormal, type Spot } from "../config/spots";
-import { BLOCK_HOURS, dateOf } from "./time";
+import { BLOCK_HOURS, dateOf, hourOf } from "./time";
 import { adjustedScore } from "./calibration";
+import { sunTimes, daylightOverlap } from "./sun";
 
 export interface Block {
   time: string;
@@ -51,7 +52,15 @@ export function nowLocalIso(): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
-// Bedste kommende blok. Ved lighed vinder den tidligste (og rækkefølgen i SPOTS).
+// Mindst én times dagslys i blokken — ellers anbefaler vi den ikke.
+// (Barografen viser stadig alle blokke; kun anbefalinger filtreres.)
+export function isDaylightBlock(time: string, spot: Spot): boolean {
+  const st = sunTimes(dateOf(time), spot.lat, spot.lon);
+  return daylightOverlap(hourOf(time), st) >= 1;
+}
+
+// Bedste kommende blok i dagslys. Ved lighed vinder den tidligste
+// (og rækkefølgen i SPOTS).
 export function pickVerdict(f: CachedForecast, spots: Spot[]): VerdictPick | null {
   const now = nowLocalIso();
   let best: VerdictPick | null = null;
@@ -59,6 +68,7 @@ export function pickVerdict(f: CachedForecast, spots: Spot[]): VerdictPick | nul
     for (const day of buildDays(f, spot)) {
       for (const b of day.blocks) {
         if (!b || b.time < now) continue;
+        if (!isDaylightBlock(b.time, spot)) continue;
         if (!best || b.score > best.block.score) best = { spot, block: b };
       }
     }

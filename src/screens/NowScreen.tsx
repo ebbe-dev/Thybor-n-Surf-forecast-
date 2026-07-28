@@ -12,6 +12,7 @@ import { Verdict } from "../components/Verdict";
 import { Barograph } from "../components/Barograph";
 import { GroynePlan } from "../components/GroynePlan";
 import { Info, Legend } from "../components/Info";
+import { QuickPick } from "../components/QuickPick";
 import { correctionFor } from "../lib/calibration";
 
 function fmtFetched(iso: string): string {
@@ -172,6 +173,26 @@ export function NowScreen() {
           <span className="muted"> · {forecast.holes.length} timer mangler i kilden</span>
         )}
       </p>
+
+      <QuickPick forecast={forecast} />
+
+      <Info q="Hvordan læser jeg listen?">
+        <p>
+          Listen rangerer alle spots efter deres <strong>bedste vindue i dagslys i dag og i
+          morgen</strong> — tidspunktet ud for hvert spot er det bedste tidspunkt at gå ud dér.
+          Øverste række (grøn kant) er svaret på "hvor skal jeg hen?"; nederste (rød kant) er
+          dagens taber.
+        </p>
+        <p>
+          Grøn/rød er kun <strong>rangering</strong> — selve tallet har appens faste farver, så
+          et rødkantet spot godt kan have en okay score, og det bedste spot kan stadig være en
+          "bliv hjemme"-dag. Tallet afgør; kanten sammenligner.
+        </p>
+        <p>
+          Blokke uden mindst én times dagslys (solopgang/-nedgang beregnes for hver dag) er
+          sorteret fra — også i 7-døgns-dommen nedenfor.
+        </p>
+      </Info>
 
       <Verdict pick={verdict} />
 

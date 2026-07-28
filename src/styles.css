@@ -353,6 +353,48 @@ body {
   display: none;
 }
 
+/* ---- 2-døgns-listen ---- */
+.qp {
+  margin-bottom: 6px;
+}
+.qp-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 50px;
+  padding: 4px 10px;
+  border-left: 6px solid transparent;
+  border-bottom: 1px solid var(--line);
+}
+.qp-row.best {
+  border-left-color: #4c9a52;
+}
+.qp-row.best .qp-name {
+  color: #7fc57f;
+}
+.qp-row.worst {
+  border-left-color: #c0453c;
+}
+.qp-row.worst .qp-name {
+  color: #d97b6c;
+}
+.qp-name {
+  flex: 1;
+  font-size: 17px;
+  font-weight: 700;
+}
+.qp-when {
+  font-size: 14px;
+  color: var(--muted);
+}
+.qp-score {
+  font-size: 22px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  min-width: 46px;
+  text-align: right;
+}
+
 /* ---- info-bokse ---- */
 .info {
   margin: 8px 0 12px;
