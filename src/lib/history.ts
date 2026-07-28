@@ -4,6 +4,7 @@
 import { scoreSpot, type Row } from "../model/model";
 import { effectiveNormal, type Spot } from "../config/spots";
 import { dateOf, hourOf } from "./time";
+import { adjustedScore } from "./calibration";
 
 export interface HourScore {
   time: string;
@@ -41,7 +42,7 @@ export function computeStats(rows: Row[], spot: Spot): HistoryStats {
   let roseTotal = 0;
 
   for (const row of rows) {
-    const score = scoreSpot(row, normal);
+    const score = adjustedScore(scoreSpot(row, normal), spot.id);
     const date = dateOf(row.time);
     let day = days.get(date);
     if (!day) {

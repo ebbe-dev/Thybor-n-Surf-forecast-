@@ -12,6 +12,7 @@ import { Verdict } from "../components/Verdict";
 import { Barograph } from "../components/Barograph";
 import { GroynePlan } from "../components/GroynePlan";
 import { Info, Legend } from "../components/Info";
+import { correctionFor } from "../lib/calibration";
 
 function fmtFetched(iso: string): string {
   const d = new Date(iso);
@@ -58,6 +59,7 @@ function NormalSetting({ spot, onChange }: { spot: Spot; onChange: () => void })
 function BlockDetail({ block, spot }: { block: Block; spot: Spot }) {
   const r = block.row;
   const color = scoreColor(block.score);
+  const cal = correctionFor(spot.id);
   return (
     <section className="detail">
       <header className="detail-head">
@@ -68,6 +70,12 @@ function BlockDetail({ block, spot }: { block: Block; spot: Spot }) {
           {fmt(block.score)}
         </span>
       </header>
+      {Math.abs(cal.correction) >= 0.05 && (
+        <p className="cal-note">
+          inkl. {cal.correction >= 0 ? "+" : ""}
+          {fmt(cal.correction)} lært af dine {cal.n} sessions — kontakten sidder under LOG
+        </p>
+      )}
       <dl className="detail-grid">
         <div>
           <dt>Bølge</dt>

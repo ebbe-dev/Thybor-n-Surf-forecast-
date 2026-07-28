@@ -29,7 +29,8 @@ export interface Session {
   predicted: number | null; // modellens score på tidspunktet
 }
 
-const KEY = "bygtangen.sessions";
+export const SESSIONS_KEY = "bygtangen.sessions";
+const KEY = SESSIONS_KEY;
 
 export function loadSessions(): Session[] {
   try {
@@ -81,6 +82,8 @@ export function createSession(
     snapshot: row
       ? { hs: row.hs, tp: row.tp, swdir: row.swdir, wspd: row.wspd, wdir: row.wdir, gust: row.gust }
       : null,
+    // ALTID modellens rå score — aldrig den justerede. Ellers ville
+    // kalibreringen (lib/calibration.ts) fodre sig selv.
     predicted: row ? scoreSpot(row, effectiveNormal(spot)) : null
   };
 }

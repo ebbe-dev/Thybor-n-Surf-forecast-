@@ -5,6 +5,7 @@ import type { CachedForecast } from "./storage";
 import { scoreSpot, moleSide, type Row } from "../model/model";
 import { effectiveNormal, type Spot } from "../config/spots";
 import { BLOCK_HOURS, dateOf } from "./time";
+import { adjustedScore } from "./calibration";
 
 export interface Block {
   time: string;
@@ -28,7 +29,13 @@ export function buildDays(f: CachedForecast, spot: Spot): Day[] {
       const t = `${date}T${String(h).padStart(2, "0")}:00`;
       const row = byTime.get(t);
       if (!row) return null;
-      return { time: t, row, score: scoreSpot(row, normal), side: moleSide(row.wdir) };
+      return {
+        time: t,
+        row,
+        // personlig korrektion fra loggede sessions oveni (lib/calibration.ts)
+        score: adjustedScore(scoreSpot(row, normal), spot.id),
+        side: moleSide(row.wdir)
+      };
     })
   }));
 }

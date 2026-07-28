@@ -17,6 +17,12 @@ import { scoreColor } from "../lib/colors";
 import { fmt, compass } from "../lib/format";
 import { dayName, fmtClock, dateOf } from "../lib/time";
 import { Info } from "../components/Info";
+import {
+  calibrationEnabled,
+  setCalibrationEnabled,
+  correctionFor,
+  MIN_SPOT_SESSIONS
+} from "../lib/calibration";
 
 function nowLocal(): { date: string; hour: number } {
   const d = new Date();
@@ -36,8 +42,20 @@ export function LogScreen() {
   const [rating, setRating] = useState<Session["rating"] | 0>(0);
   const [note, setNote] = useState("");
   const [confirm, setConfirm] = useState<string | null>(null);
+  const [calOn, setCalOn] = useState(() => calibrationEnabled());
 
   const dev = useMemo(() => meanDeviation(sessions), [sessions]);
+
+  // Aktive korrektioner til visning (afhænger af sessions + kontakten)
+  const corrections = useMemo(() => {
+    void sessions;
+    void calOn;
+    const perSpot = SPOTS.map((s) => ({ spot: s, info: correctionFor(s.id) })).filter(
+      ({ info }) => info.basis === "spot"
+    );
+    const global = correctionFor("__global__"); // ukendt id → global fallback
+    return { perSpot, global };
+  }, [sessions, calOn]);
 
   function persist(next: Session[]) {
     setSessions(next);
@@ -72,6 +90,42 @@ export function LogScreen() {
         </section>
       )}
 
+      <label className="cal-toggle">
+        <input
+          type="checkbox"
+          checked={calOn}
+          onChange={(e) => {
+            setCalibrationEnabled(e.target.checked);
+            setCalOn(e.target.checked);
+          }}
+        />
+        <span>
+          <strong>Justér appens score efter mine sessions</strong>
+          {calOn ? (
+            corrections.perSpot.length > 0 || corrections.global.basis !== "none" ? (
+              <span className="cal-status">
+                {corrections.perSpot.map(({ spot, info }) => (
+                  <span key={spot.id}>
+                    {spot.shortName}: {info.correction >= 0 ? "+" : ""}
+                    {fmt(info.correction)} ({info.n} sessions) ·{" "}
+                  </span>
+                ))}
+                {corrections.global.basis !== "none" && (
+                  <span>
+                    øvrige spots: {corrections.global.correction >= 0 ? "+" : ""}
+                    {fmt(corrections.global.correction)} ({corrections.global.n} sessions)
+                  </span>
+                )}
+              </span>
+            ) : (
+              <span className="cal-status">ingen sessions med snapshot endnu — ingen justering</span>
+            )
+          ) : (
+            <span className="cal-status">slået fra — appen viser modellens rå score</span>
+          )}
+        </span>
+      </label>
+
       <Info q="Hvorfor logge — og hvad betyder tallet øverst?">
         <p>
           Hver gang du gemmer en session, gemmer appen samtidig et <strong>snapshot</strong> af
@@ -82,7 +136,15 @@ export function LogScreen() {
           Tallet øverst er den sammenligning: dine stjerner ganget med 2 (så 5★ = 10, samme
           skala som scoren) minus modellens score, i snit. <strong>Minus</strong> betyder, at
           modellen lover mere, end stedet holder; <strong>plus</strong>, at den undervurderer
-          det. Når du har logget en håndfuld sessions, bruger vi tallet til at justere modellen.
+          det.
+        </p>
+        <p>
+          Med kontakten ovenfor slået til <strong>lærer appen af det</strong>: den lægger en
+          forsigtig korrektion oven på scoren alle steder — dom, søjler, kort og kalender. Få
+          sessions flytter kun lidt, flere flytter mere, og den kan aldrig flytte mere end ±2
+          point. Et spot med mindst {MIN_SPOT_SESSIONS} egne sessions får sin egen korrektion;
+          resten deler en fælles. Snapshots gemmes altid som modellens rå tal, så justeringen
+          ikke forstærker sig selv.
         </p>
         <p>
           Loggen ligger <strong>kun på denne telefon</strong>. CSV-knappen gemmer en
