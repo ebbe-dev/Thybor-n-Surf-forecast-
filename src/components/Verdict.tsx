@@ -26,6 +26,7 @@ export function Verdict({ pick }: { pick: VerdictPick | null }) {
           {when} kl. {fmtClock(block.time)}
         </strong>{" "}
         · {spot.shortName} · læ på <strong>{block.side}siden</strong>
+        {spot.uncalibrated && <span className="uncal-inline"> · UKALIBRERET</span>}
       </p>
       <p className="verdict-score">
         <span style={{ color }}>{fmt(block.score)}</span>

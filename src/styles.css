@@ -97,6 +97,11 @@ body {
   border-color: var(--fg);
   color: var(--fg);
 }
+.uncal-inline {
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
 .uncal {
   display: block;
   font-size: 10px;
