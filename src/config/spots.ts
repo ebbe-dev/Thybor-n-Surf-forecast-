@@ -52,8 +52,8 @@ export const SPOTS: Spot[] = [
     name: "Udkigsposten (mellem Langerhuse og Thyborøn)",
     shortName: "Udkigsposten",
     shoreNormal: 285, // skøn: kysten er begyndt at dreje mod NV her
-    lat: 56.6926259, // brugerens nål, 28/07/2026
-    lon: 8.1969374,
+    lat: 56.6936676, // brugerens opdaterede nål, 28/07/2026
+    lon: 8.1934475,
     groynes: { count: 5, spacingM: 250, lengthM: 130 }
   },
   {
@@ -61,8 +61,8 @@ export const SPOTS: Spot[] = [
     name: "Sneglehuset (NV-stranden ved Thyborøn by)",
     shortName: "Sneglehuset",
     shoreNormal: 300, // NV-vendt bue før kanalmundingen
-    lat: 56.7005,
-    lon: 8.2035,
+    lat: 56.697106, // brugerens nål, 28/07/2026
+    lon: 8.1969682,
     groynes: { count: 5, spacingM: 220, lengthM: 120 }
   },
   {

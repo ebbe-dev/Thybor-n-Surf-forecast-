@@ -8,8 +8,15 @@
 export const SHORE_NORMAL = 275; // stranden vender V/VNV
 export const OFFSHORE = 95; // ØSØ
 
-// Energi-normalisering: e/250 klippes til 1 før potensen.
-export const ENERGY_NORM = 250;
+// Energi-normalisering: e/ENERGY_NORM klippes til 1 før potensen.
+// Rekalibreret 28/07/2026 mod brugerens anker: søndag 26/7 kl. 17 ved
+// Sneglehuset (1,3 m / 6,7 s NV ret på kysten, vind V 2,6 m/s) var en
+// 10'er i virkeligheden. 1,3²·6,7·15 ≈ 169 → loftet sænket 250 → 170,
+// så en ren mellemstor dag kan nå fuld energi.
+export const ENERGY_NORM = 170;
+// Vind under denne grænse (m/s) regnes gradvist som glas — kvadratisk,
+// så 2-3 m/s næsten ikke straffer uanset retning (samme anker som ovenfor).
+export const GLASS_WIND = 6;
 // Under 0,5 m er det en gåtur — lineær gate op til denne højde.
 export const SIZE_GATE_M = 0.5;
 // Stød over denne grænse (m/s) koster 15 %.
@@ -58,7 +65,9 @@ export function windQuality(
   normal = SHORE_NORMAL
 ): number {
   let q = 1 - angDiff(wdir, (normal + 180) % 360) / 180;
-  const calm = Math.max(0, 1 - wspd / 4);
+  // Kvadratisk glas-kurve (rekalibreret 28/07/2026, se ENERGY_NORM):
+  // 2,6 m/s → 0,81, 4 m/s → 0,56, 6+ m/s → 0. Før: lineær med knæk ved 4.
+  const calm = Math.max(0, 1 - (wspd / GLASS_WIND) ** 2);
   q = q + (1 - q) * calm;
   const north = angDiff(wdir, 350);
   if (north < 45 && wspd < 9) q += 0.15 * (1 - north / 45);
