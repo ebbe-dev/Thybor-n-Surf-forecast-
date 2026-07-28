@@ -33,13 +33,23 @@ const KANAL_WARNING =
 
 export const SPOTS: Spot[] = [
   {
+    // Historisk id "vestkysten" — brugerens tidlige sessions peger på det.
     id: "vestkysten",
-    name: "Langerhuse — høfderækken (Rønlanger)",
-    shortName: "Langerhuse",
+    name: "Langerhuse Højre — høfden ved fiskemolen",
+    shortName: "Langerhuse H",
     shoreNormal: 275, // kalibreret mod faktiske sessions
-    lat: 56.6605,
+    lat: 56.6605, // = den bekræftede Langerhuse-nål (fiskemole-området)
     lon: 8.1695,
-    groynes: { count: 7, spacingM: 250, lengthM: 130 }
+    groynes: { count: 3, spacingM: 250, lengthM: 130 }
+  },
+  {
+    id: "langerhuse-venstre",
+    name: "Langerhuse Venstre — høfden ved Flyvholm Redningsstation",
+    shortName: "Langerhuse V",
+    shoreNormal: 275, // samme kyststrækning, samme kalibrering
+    lat: 56.656, // ~500 m syd for fiskemolen, aflæst af brugerens luftfotos
+    lon: 8.1688,
+    groynes: { count: 3, spacingM: 250, lengthM: 130 }
   },
   {
     id: "udkigsposten",
