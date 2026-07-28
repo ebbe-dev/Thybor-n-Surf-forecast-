@@ -44,9 +44,9 @@ export const SPOTS: Spot[] = [
     id: "udkigsposten",
     name: "Udkigsposten (mellem Langerhuse og Thyborøn)",
     shortName: "Udkigsposten",
-    shoreNormal: 280, // kysten drejer svagt nordover her
-    lat: 56.679,
-    lon: 8.181,
+    shoreNormal: 285, // skøn: kysten er begyndt at dreje mod NV her
+    lat: 56.6926259, // brugerens nål, 28/07/2026
+    lon: 8.1969374,
     groynes: { count: 5, spacingM: 250, lengthM: 130 }
   },
   {
