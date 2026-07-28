@@ -14,8 +14,9 @@ export interface Spot {
   warning?: string; // fast advarsel, vises altid på spottet
 }
 
-// Gridpunkter til Open-Meteo. Bølgepunktet SKAL være en våd gridcelle
-// i bølgemodellen — verificeret med rå kald, se README/commits.
+// Gridpunkter til Open-Meteo. UBEKRÆFTEDE: bølgepunktet skal være en våd
+// gridcelle i bølgemodellen — rammer det land, svarer API'et kun null, og
+// appen viser en fejl i stedet for data. Verificér i browseren og ret her.
 export const WAVE_POINT = { lat: 56.66, lon: 8.13 };
 export const WIND_POINT = { lat: 56.68, lon: 8.2 };
 
