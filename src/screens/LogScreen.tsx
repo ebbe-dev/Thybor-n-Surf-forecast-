@@ -11,7 +11,8 @@ import {
   meanDeviation,
   saveSessions,
   toCsv,
-  type Session
+  type Session,
+  type SessionParams
 } from "../lib/sessions";
 import { scoreColor } from "../lib/colors";
 import { fmt, compass } from "../lib/format";
@@ -23,6 +24,46 @@ import {
   correctionFor,
   MIN_SPOT_SESSIONS
 } from "../lib/calibration";
+
+// Én delvurderings-række: fem felter med endepunkts-ord.
+function ParamRow({
+  label,
+  low,
+  high,
+  value,
+  onChange,
+  centerBest
+}: {
+  label: string;
+  low: string;
+  high: string;
+  value: number; // 0 = ikke sat
+  onChange: (v: number) => void;
+  centerBest?: boolean;
+}) {
+  return (
+    <div className="param">
+      <div className="param-head">
+        <span className="param-label">{label}</span>
+        <span className="param-ends">
+          {low} ↔ {high}
+          {centerBest && " · 3 = perfekt"}
+        </span>
+      </div>
+      <div className="param-btns">
+        {[1, 2, 3, 4, 5].map((v) => (
+          <button
+            key={v}
+            className={"param-btn" + (value === v ? " on" : "")}
+            onClick={() => onChange(value === v ? 0 : v)}
+          >
+            {v}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function nowLocal(): { date: string; hour: number } {
   const d = new Date();
@@ -40,6 +81,9 @@ export function LogScreen() {
   const [hour, setHour] = useState(init.hour);
   const [spotId, setSpotId] = useState(SPOTS[0].id);
   const [rating, setRating] = useState<Session["rating"] | 0>(0);
+  const [size, setSize] = useState(0);
+  const [shape, setShape] = useState(0);
+  const [surface, setSurface] = useState(0);
   const [note, setNote] = useState("");
   const [confirm, setConfirm] = useState<string | null>(null);
   const [calOn, setCalOn] = useState(() => calibrationEnabled());
@@ -66,10 +110,23 @@ export function LogScreen() {
     if (rating === 0) return;
     const spot = SPOTS.find((s) => s.id === spotId) ?? SPOTS[0];
     const timeIso = `${date}T${String(hour).padStart(2, "0")}:00`;
-    const s = createSession(timeIso, spot, rating, note.trim());
+    const params: SessionParams = {};
+    if (size > 0) params.size = size;
+    if (shape > 0) params.shape = shape;
+    if (surface > 0) params.surface = surface;
+    const s = createSession(
+      timeIso,
+      spot,
+      rating,
+      note.trim(),
+      Object.keys(params).length > 0 ? params : undefined
+    );
     persist([s, ...sessions]);
     setNote("");
     setRating(0);
+    setSize(0);
+    setShape(0);
+    setSurface(0);
     setConfirm(
       s.predicted === null
         ? "Gemt — men ingen forecast-data for tidspunktet, så snapshot mangler."
@@ -147,6 +204,13 @@ export function LogScreen() {
           ikke forstærker sig selv.
         </p>
         <p>
+          <strong>Delvurderingerne</strong> (valgfri) løser problemet med, at én karakter kan
+          dække over modsatte fejl — 1 stjerne kan jo både være "for småt" og "kæmpe closeouts".
+          STØRRELSE (3 = perfekt) tjekker modellens energiled, FORM afslører hvad bankerne gør,
+          og OVERFLADE tjekker vindleddet. Når loggen er stor nok, viser de præcis hvilken del
+          af modellen, der skyder forkert.
+        </p>
+        <p>
           Loggen ligger <strong>kun på denne telefon</strong>. CSV-knappen gemmer en
           regnearksfil som backup — gør det i ny og næ.
         </p>
@@ -174,7 +238,21 @@ export function LogScreen() {
           </button>
         ))}
       </div>
-      <div className="rating-row" role="radiogroup" aria-label="karakter">
+      <ParamRow
+        label="STØRRELSE"
+        low="for småt"
+        high="for stort"
+        centerBest
+        value={size}
+        onChange={setSize}
+      />
+      <ParamRow label="FORM" low="closeouts" high="perfekt væg" value={shape} onChange={setShape} />
+      <ParamRow label="OVERFLADE" low="rodet" high="glas" value={surface} onChange={setSurface} />
+      <div className="param-head">
+        <span className="param-label">SAMLET</span>
+        <span className="param-ends">din dom — den eneste, der SKAL sættes</span>
+      </div>
+      <div className="rating-row" role="radiogroup" aria-label="samlet karakter">
         {([1, 2, 3, 4, 5] as const).map((r) => (
           <button
             key={r}
@@ -234,6 +312,13 @@ export function LogScreen() {
               </span>
               <span className="session-stars">{"★".repeat(s.rating)}</span>
             </header>
+            {s.params && (
+              <p className="session-params">
+                {s.params.size !== undefined && <span>størrelse {s.params.size}/5</span>}
+                {s.params.shape !== undefined && <span>form {s.params.shape}/5</span>}
+                {s.params.surface !== undefined && <span>overflade {s.params.surface}/5</span>}
+              </p>
+            )}
             {s.note && <p className="session-note">{s.note}</p>}
             <p className="session-snap">
               {s.snapshot ? (

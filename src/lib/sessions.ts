@@ -10,11 +10,23 @@ import { loadForecast } from "./storage";
 import { loadCachedHistory } from "../api/archive";
 import { dateOf } from "./time";
 
+// Delvurderinger 1-5, alle valgfri. De spejler modellens komponenter, så
+// en skæv forudsigelse kan diagnosticeres:
+//   size: 1 = for småt … 3 = perfekt størrelse … 5 = for stort  (energiled)
+//   shape: 1 = closeouts … 5 = perfekt væg der peeler  (periode/vinkel/banker)
+//   surface: 1 = rodet … 5 = glas  (vindled)
+export interface SessionParams {
+  size?: number;
+  shape?: number;
+  surface?: number;
+}
+
 export interface Session {
   id: string;
   time: string; // ISO lokal, fx 2026-07-28T17:00
   spotId: string;
-  rating: 1 | 2 | 3 | 4 | 5;
+  rating: 1 | 2 | 3 | 4 | 5; // SAMLET — kalibreringssignalet
+  params?: SessionParams;
   note: string;
   // Snapshot af de forhold modellen forudsagde — null hvis ingen data fandtes
   // for tidspunktet. Vi digter aldrig et snapshot.
@@ -71,7 +83,8 @@ export function createSession(
   timeIso: string,
   spot: Spot,
   rating: Session["rating"],
-  note: string
+  note: string,
+  params?: SessionParams
 ): Session {
   const row = findRowAt(timeIso, spot.area);
   return {
@@ -79,6 +92,7 @@ export function createSession(
     time: timeIso,
     spotId: spot.id,
     rating,
+    params,
     note,
     snapshot: row
       ? { hs: row.hs, tp: row.tp, swdir: row.swdir, wspd: row.wspd, wdir: row.wdir, gust: row.gust }
@@ -103,8 +117,10 @@ export function sessionsOnDate(list: Session[], date: string): Session[] {
 
 // CSV med præcis spec'ens kolonner og rækkefølge.
 export function toCsv(list: Session[]): string {
+  // De oprindelige 11 kolonner først (kompatibilitet), delvurderinger sidst.
   const header =
-    "timestamp,spot,rating,note,hs,tp,swell_dir,wind_spd,wind_dir,gust,predicted_score";
+    "timestamp,spot,rating,note,hs,tp,swell_dir,wind_spd,wind_dir,gust,predicted_score," +
+    "size,shape,surface";
   const esc = (s: string) => '"' + s.replaceAll('"', '""') + '"';
   const lines = list.map((s) => {
     const spot = SPOTS.find((x) => x.id === s.spotId)?.shortName ?? s.spotId;
@@ -120,7 +136,10 @@ export function toCsv(list: Session[]): string {
       snap?.wspd ?? "",
       snap?.wdir ?? "",
       snap?.gust ?? "",
-      s.predicted?.toFixed(2) ?? ""
+      s.predicted?.toFixed(2) ?? "",
+      s.params?.size ?? "",
+      s.params?.shape ?? "",
+      s.params?.surface ?? ""
     ].join(",");
   });
   return [header, ...lines].join("\n");
