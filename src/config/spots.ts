@@ -74,9 +74,10 @@ export const SPOTS: Spot[] = [
     groynes: { count: 3, spacingM: 250, lengthM: 130 }
   },
   {
+    // id bevares af hensyn til sessions/localStorage — kun navnet er ændret.
     id: "udkigsposten",
-    name: "Udkigsposten (mellem Langerhuse og Thyborøn)",
-    shortName: "Udkigsposten",
+    name: "Terrassen (mellem Langerhuse og Thyborøn)",
+    shortName: "Terrassen",
     area: "thyboroen",
     shoreNormal: 285, // skøn: kysten er begyndt at dreje mod NV her
     lat: 56.6936676, // brugerens opdaterede nål, 28/07/2026
