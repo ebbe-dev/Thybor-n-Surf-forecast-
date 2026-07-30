@@ -12,6 +12,9 @@ export interface Spot {
   // Glattende vindretning hvis den afviger fra kystnormal+180 —
   // refraktionsspots hvor bølger og vind har forskellig geometri.
   offshoreDir?: number;
+  // Spottet surfes kun på denne side af høfden/molen (se model.ts,
+  // SIDE_SHELTER/SIDE_MISMATCH).
+  fixedSide?: "nord" | "syd";
   // Orienteringen kan overstyres i UI'et (gemmes i localStorage).
   adjustableNormal?: boolean;
   uncalibrated?: boolean; // vis "ukalibreret" i UI'et
@@ -136,6 +139,7 @@ export const SPOTS: Spot[] = [
     lat: 56.4762505, // brugerens nål, 28/07/2026
     lon: 8.1215395,
     adjustableNormal: true,
+    fixedSide: "syd", // surfes KUN syd for høfden
     groynes: { count: 4, spacingM: 250, lengthM: 150 }
   },
   {
@@ -148,7 +152,8 @@ export const SPOTS: Spot[] = [
     shoreNormal: 270, // kysten løber ret N-S her
     lat: 56.3704838, // brugerens nål, 28/07/2026
     lon: 8.1142532,
-    adjustableNormal: true
+    adjustableNormal: true,
+    fixedSide: "syd" // surfes langs den store mole, mod syd
   }
 ];
 

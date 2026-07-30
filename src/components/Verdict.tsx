@@ -25,7 +25,16 @@ export function Verdict({ pick }: { pick: VerdictPick | null }) {
         <strong>
           {when} kl. {fmtClock(block.time)}
         </strong>{" "}
-        · {spot.shortName} · læ på <strong>{block.side}siden</strong>
+        · {spot.shortName} ·{" "}
+        {spot.fixedSide ? (
+          <>
+            surfes på <strong>{block.side}siden</strong>
+          </>
+        ) : (
+          <>
+            læ på <strong>{block.side}siden</strong>
+          </>
+        )}
         {spot.uncalibrated && <span className="uncal-inline"> · UKALIBRERET</span>}
       </p>
       <p className="verdict-score">

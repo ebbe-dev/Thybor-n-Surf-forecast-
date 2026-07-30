@@ -36,8 +36,12 @@ export function buildDays(f: CachedForecast, spot: Spot): Day[] {
         time: t,
         row,
         // personlig korrektion fra loggede sessions oveni (lib/calibration.ts)
-        score: adjustedScore(scoreSpot(row, normal, spot.offshoreDir), spot.id),
-        side: moleSide(row.wdir)
+        score: adjustedScore(
+          scoreSpot(row, normal, { offshore: spot.offshoreDir, fixedSide: spot.fixedSide }),
+          spot.id
+        ),
+        // enkeltsidede spots viser altid deres side; ellers vind-læsiden
+        side: spot.fixedSide ?? moleSide(row.wdir)
       };
     })
   }));

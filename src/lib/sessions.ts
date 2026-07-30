@@ -99,8 +99,31 @@ export function createSession(
       : null,
     // ALTID modellens rå score — aldrig den justerede. Ellers ville
     // kalibreringen (lib/calibration.ts) fodre sig selv.
-    predicted: row ? scoreSpot(row, effectiveNormal(spot), spot.offshoreDir) : null
+    predicted: row
+      ? scoreSpot(row, effectiveNormal(spot), {
+          offshore: spot.offshoreDir,
+          fixedSide: spot.fixedSide
+        })
+      : null
   };
+}
+
+// Ret en eksisterende session. Ændres tid eller spot, findes et nyt
+// snapshot; ellers bevares det gamle (det kan stamme fra data, der ikke
+// længere er i cachen).
+export function updateSession(
+  orig: Session,
+  timeIso: string,
+  spot: Spot,
+  rating: Session["rating"],
+  note: string,
+  params?: SessionParams
+): Session {
+  if (orig.time === timeIso && orig.spotId === spot.id) {
+    return { ...orig, rating, note, params };
+  }
+  const fresh = createSession(timeIso, spot, rating, note, params);
+  return { ...fresh, id: orig.id };
 }
 
 // Løbende gennemsnit af (karakter × 2 − modellens score).

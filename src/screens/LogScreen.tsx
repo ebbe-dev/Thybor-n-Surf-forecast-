@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { SPOTS } from "../config/spots";
 import {
   createSession,
+  updateSession,
   download,
   loadSessions,
   meanDeviation,
@@ -86,6 +87,7 @@ export function LogScreen() {
   const [surface, setSurface] = useState(0);
   const [note, setNote] = useState("");
   const [confirm, setConfirm] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [calOn, setCalOn] = useState(() => calibrationEnabled());
 
   const dev = useMemo(() => meanDeviation(sessions), [sessions]);
@@ -106,6 +108,28 @@ export function LogScreen() {
     saveSessions(next);
   }
 
+  function clearForm() {
+    setNote("");
+    setRating(0);
+    setSize(0);
+    setShape(0);
+    setSurface(0);
+    setEditingId(null);
+  }
+
+  function startEdit(s: Session) {
+    setEditingId(s.id);
+    setDate(s.time.slice(0, 10));
+    setHour(Number(s.time.slice(11, 13)));
+    setSpotId(SPOTS.some((x) => x.id === s.spotId) ? s.spotId : SPOTS[0].id);
+    setRating(s.rating);
+    setSize(s.params?.size ?? 0);
+    setShape(s.params?.shape ?? 0);
+    setSurface(s.params?.surface ?? 0);
+    setNote(s.note);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   function addSession() {
     if (rating === 0) return;
     const spot = SPOTS.find((s) => s.id === spotId) ?? SPOTS[0];
@@ -114,23 +138,26 @@ export function LogScreen() {
     if (size > 0) params.size = size;
     if (shape > 0) params.shape = shape;
     if (surface > 0) params.surface = surface;
-    const s = createSession(
-      timeIso,
-      spot,
-      rating,
-      note.trim(),
-      Object.keys(params).length > 0 ? params : undefined
-    );
-    persist([s, ...sessions]);
-    setNote("");
-    setRating(0);
-    setSize(0);
-    setShape(0);
-    setSurface(0);
+    const p = Object.keys(params).length > 0 ? params : undefined;
+
+    const wasEditing = editingId !== null;
+    let saved: Session;
+    if (editingId) {
+      const orig = sessions.find((s) => s.id === editingId);
+      if (!orig) return;
+      saved = updateSession(orig, timeIso, spot, rating, note.trim(), p);
+      persist(sessions.map((s) => (s.id === editingId ? saved : s)));
+    } else {
+      saved = createSession(timeIso, spot, rating, note.trim(), p);
+      persist([saved, ...sessions]);
+    }
+    clearForm();
     setConfirm(
-      s.predicted === null
+      saved.predicted === null
         ? "Gemt — men ingen forecast-data for tidspunktet, så snapshot mangler."
-        : "Gemt."
+        : wasEditing
+          ? "Rettelse gemt."
+          : "Gemt."
     );
     setTimeout(() => setConfirm(null), 4000);
   }
@@ -273,8 +300,13 @@ export function LogScreen() {
         rows={2}
       />
       <button className="btn btn-wide" onClick={addSession} disabled={rating === 0}>
-        GEM SESSION
+        {editingId ? "GEM RETTELSE" : "GEM SESSION"}
       </button>
+      {editingId && (
+        <button className="linkbtn" onClick={clearForm}>
+          annullér rettelse
+        </button>
+      )}
       {confirm && <p className="statusline">{confirm}</p>}
 
       <h3 className="section-h">
@@ -331,16 +363,21 @@ export function LogScreen() {
                 <span className="muted">intet forecast-snapshot for tidspunktet</span>
               )}
             </p>
-            <button
-              className="linkbtn session-del"
-              onClick={() => {
-                if (window.confirm(`Slet sessionen ${dateOf(s.time)}?`)) {
-                  persist(sessions.filter((x) => x.id !== s.id));
-                }
-              }}
-            >
-              slet
-            </button>
+            <span className="session-actions">
+              <button className="linkbtn" onClick={() => startEdit(s)}>
+                ret
+              </button>
+              <button
+                className="linkbtn"
+                onClick={() => {
+                  if (window.confirm(`Slet sessionen ${dateOf(s.time)}?`)) {
+                    persist(sessions.filter((x) => x.id !== s.id));
+                  }
+                }}
+              >
+                slet
+              </button>
+            </span>
           </article>
         );
       })}

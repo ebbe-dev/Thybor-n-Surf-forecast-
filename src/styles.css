@@ -810,7 +810,7 @@ body {
 .session-snap strong {
   font-size: 15px;
 }
-.session-del {
+.session-actions {
   position: absolute;
   right: 0;
   bottom: 2px;

@@ -78,15 +78,36 @@ export function windQuality(
   return Math.max(0, Math.min(1, q));
 }
 
+// Enkeltsidede spots (surfes kun på én side af høfden/molen, fx Høfde Q
+// og Thorsminde — begge sydsiden):
+// - Lægger vinden læ på spottets side, arbejder høfden FOR dig →
+//   vindkvaliteten løftes til mindst SIDE_SHELTER_MIN (op til
+//   SIDE_SHELTER_MAX_WIND m/s — derover hjælper læet ikke nok).
+// - Lægger vinden læ på den FORKERTE side, står du i vinden på den side
+//   der surfes → vindkvaliteten ganges med SIDE_MISMATCH.
+// Indført 28/07/2026 efter brugerens observation: appen anbefalede
+// Høfde Q "på nordsiden", som aldrig surfes.
+export const SIDE_SHELTER_MIN = 0.75;
+export const SIDE_MISMATCH = 0.5;
+export const SIDE_SHELTER_MAX_WIND = 12;
+
+export interface SpotOpts {
+  offshore?: number; // se windQuality
+  fixedSide?: "nord" | "syd"; // spottet surfes kun på denne side
+}
+
 // Samme formel som scoreWest fra kalibreringen, men med kystnormalen som
 // parameter så hvert spot i config/spots.ts kan have sin egen eksponering.
-export function scoreSpot(
-  r: Row,
-  normal = SHORE_NORMAL,
-  offshore?: number
-): number {
+export function scoreSpot(r: Row, normal = SHORE_NORMAL, opts?: SpotOpts): number {
   const e = energy(r.hs, r.tp, r.swdir, normal);
-  const wq = windQuality(r.wdir, r.wspd, normal, offshore ?? (normal + 180) % 360);
+  let wq = windQuality(r.wdir, r.wspd, normal, opts?.offshore ?? (normal + 180) % 360);
+  if (opts?.fixedSide) {
+    if (moleSide(r.wdir) === opts.fixedSide) {
+      if (r.wspd <= SIDE_SHELTER_MAX_WIND) wq = Math.max(wq, SIDE_SHELTER_MIN);
+    } else {
+      wq = wq * SIDE_MISMATCH;
+    }
+  }
   const eNorm = Math.min(1, e / ENERGY_NORM);
   const sizeGate = r.hs < SIZE_GATE_M ? r.hs / SIZE_GATE_M : 1;
   const gust = r.gust > GUST_LIMIT ? GUST_PENALTY : 1;
