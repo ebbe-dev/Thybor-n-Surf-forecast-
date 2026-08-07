@@ -432,6 +432,24 @@ body {
 .leaflet-container a {
   color: var(--muted);
 }
+/* målings-pletter i vandet */
+.wave-tip {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  color: #0b1917;
+}
+.wave-tip::before {
+  display: none;
+}
+.wave-arrow {
+  background: none;
+  border: none;
+}
+
 /* score-tal oven på markørerne */
 .score-tip {
   background: transparent;

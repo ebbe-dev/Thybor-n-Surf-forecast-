@@ -15,6 +15,26 @@ import { Info } from "../components/Info";
 import { WindArrow } from "../components/WindArrow";
 import type { Row } from "../model/model";
 
+// Vandfarve efter bølgehøjde — blå (småt) mod hvidligt skum (stort).
+// Egen skala, adskilt fra scorefarverne (samme farve = samme betydning
+// gælder stadig for score).
+function waveColor(hs: number): string {
+  if (hs >= 2.5) return "#EAF5F2";
+  if (hs >= 1.5) return "#7ED4C9";
+  if (hs >= 1.0) return "#37B6C4";
+  if (hs >= 0.5) return "#3E9BC0";
+  return "#4A7FB5";
+}
+
+// Pil (SVG) der peger derhen bølgerne løber (swdir + 180), til divIcon.
+function waveArrowHtml(swdir: number): string {
+  return (
+    `<svg width="26" height="26" viewBox="0 0 16 16" style="transform:rotate(${swdir + 180}deg)">` +
+    `<line x1="8" y1="14" x2="8" y2="4" stroke="#0B1917" stroke-width="2"/>` +
+    `<path d="M8 1 L4.4 6.6 L8 5 L11.6 6.6 Z" fill="#0B1917"/></svg>`
+  );
+}
+
 // Flyt et punkt distM meter i kompasretning bearing. Rigeligt præcist
 // til høfde-streger på dette zoomniveau.
 function dest(lat: number, lon: number, bearing: number, distM: number): [number, number] {
@@ -47,6 +67,7 @@ export function MapScreen() {
   const mapEl = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<Map<string, L.CircleMarker>>(new Map());
+  const patchesRef = useRef<Map<string, { circle: L.Circle; arrows: L.Marker[] }>>(new Map());
 
   // Timescorer pr. spot + fælles timevis tidslinje (skyderen kører 1 time
   // pr. skridt hen over alle 14 dage)
@@ -113,10 +134,49 @@ export function MapScreen() {
   useEffect(() => {
     if (!mapEl.current || mapRef.current) return;
     const map = L.map(mapEl.current, { zoomControl: true, attributionControl: true });
-    // Indram alle spots uanset hvor langt de spreder sig ned langs tangen
+
+    // Målings-pletter ude i vandet: ~2,5 km vest for områdets spots.
+    const anchors = new Map<string, [number, number]>();
+    for (const a of AREAS) {
+      const areaSpots = SPOTS.filter((s) => s.area === a.id);
+      if (areaSpots.length === 0) continue;
+      const lat = areaSpots.reduce((acc, s) => acc + s.lat, 0) / areaSpots.length;
+      const lon = areaSpots.reduce((acc, s) => acc + s.lon, 0) / areaSpots.length - 0.09;
+      anchors.set(a.id, [lat, lon]);
+    }
+
+    // Indram alle spots + målings-pletter
     map.fitBounds(
-      L.latLngBounds(SPOTS.map((s) => [s.lat, s.lon] as [number, number])).pad(0.12)
+      L.latLngBounds([
+        ...SPOTS.map((s) => [s.lat, s.lon] as [number, number]),
+        ...anchors.values()
+      ]).pad(0.1)
     );
+
+    for (const a of AREAS) {
+      const anchor = anchors.get(a.id);
+      if (!anchor) continue;
+      const circle = L.circle(anchor, {
+        radius: 2200,
+        color: "#0B1917",
+        weight: 1,
+        opacity: 0.5,
+        fillColor: "#4A7FB5",
+        fillOpacity: 0.55
+      }).addTo(map);
+      circle.bindTooltip("", { permanent: true, direction: "center", className: "wave-tip" });
+      const arrows = [
+        [0.010, 0.013],
+        [-0.011, -0.010]
+      ].map(([dlat, dlon]) =>
+        L.marker([anchor[0] + dlat, anchor[1] + dlon], {
+          icon: L.divIcon({ html: "", className: "wave-arrow", iconSize: [26, 26] }),
+          interactive: false,
+          keyboard: false
+        }).addTo(map)
+      );
+      patchesRef.current.set(a.id, { circle, arrows });
+    }
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 17,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -152,8 +212,37 @@ export function MapScreen() {
       map.remove();
       mapRef.current = null;
       markersRef.current.clear();
+      patchesRef.current.clear();
     };
   }, []);
+
+  // Målings-pletterne følger tidsskyderen: vandfarve = bølgehøjde,
+  // pile = bølgeretning, tallet = højden.
+  useEffect(() => {
+    if (!forecast || !time) return;
+    for (const a of AREAS) {
+      const patch = patchesRef.current.get(a.id);
+      if (!patch) continue;
+      const row = forecast.areas[a.id]?.rows.find((r) => r.time === time) ?? null;
+      if (!row) {
+        patch.circle.setStyle({ fillColor: "#888888", fillOpacity: 0.15, opacity: 0.25 });
+        patch.circle.setTooltipContent("–");
+        for (const ar of patch.arrows)
+          ar.setIcon(L.divIcon({ html: "", className: "wave-arrow", iconSize: [26, 26] }));
+        continue;
+      }
+      patch.circle.setStyle({
+        fillColor: waveColor(row.hs),
+        fillOpacity: 0.55,
+        opacity: 0.5
+      });
+      patch.circle.setTooltipContent(`${fmt(row.hs)} m`);
+      for (const ar of patch.arrows)
+        ar.setIcon(
+          L.divIcon({ html: waveArrowHtml(row.swdir), className: "wave-arrow", iconSize: [26, 26] })
+        );
+    }
+  }, [forecast, time]);
 
   // Farver og popups følger tidsskyderen
   useEffect(() => {
@@ -216,6 +305,12 @@ export function MapScreen() {
             <strong>Tallet i prikken</strong> er spottets score (0–10) på det valgte tidspunkt,
             med samme farver som alle andre steder i appen. <strong>Tryk på en prik</strong> for
             dom, læside og bølgetal.
+          </p>
+          <p>
+            <strong>Pletterne ude i vandet</strong> er områdets bølgemåling: vandfarven viser
+            højden (blå = småt, lysere mod hvidt = større), pilene viser hvilken vej bølgerne
+            løber, og tallet er højden i meter. Én plet pr. vejr-område — det er dér, tallene
+            måles, ikke et kort over hele havet.
           </p>
           <p>
             En <strong>stiplet ring</strong> betyder ukalibreret spot — retningen er et gæt
