@@ -7,7 +7,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useForecast } from "../hooks/useForecast";
 import { SPOTS, AREAS, type Spot } from "../config/spots";
-import { buildDays, nowLocalIso, type Block } from "../lib/blocks";
+import { hourlyBlocks, nowLocalIso, type Block } from "../lib/blocks";
 import { scoreColor, scoreLabel, BG, FG, MUTED } from "../lib/colors";
 import { fmtDayLabel, fmtClock } from "../lib/time";
 import { fmt, compass } from "../lib/format";
@@ -48,16 +48,12 @@ export function MapScreen() {
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<Map<string, L.CircleMarker>>(new Map());
 
-  // Blokke pr. spot + fælles tidslinje
+  // Timescorer pr. spot + fælles timevis tidslinje (skyderen kører 1 time
+  // pr. skridt hen over alle 14 dage)
   const perSpot = useMemo(() => {
     if (!forecast) return new Map<string, Map<string, Block>>();
     const m = new Map<string, Map<string, Block>>();
-    for (const spot of SPOTS) {
-      const bm = new Map<string, Block>();
-      for (const day of buildDays(forecast, spot))
-        for (const b of day.blocks) if (b) bm.set(b.time, b);
-      m.set(spot.id, bm);
-    }
+    for (const spot of SPOTS) m.set(spot.id, hourlyBlocks(forecast, spot));
     return m;
   }, [forecast]);
 
@@ -211,9 +207,10 @@ export function MapScreen() {
         />
         <Info q="Sådan bruger du kortet">
           <p>
-            <strong>Træk i skyderen</strong> for at spole gennem de næste 7 døgn — dagen og
-            klokkeslættet står ovenover, og prikkerne skifter tal og farve med. I en flad uge
-            rykker tallene sig kun lidt; det er havet, ikke kortet, der står stille.
+            <strong>Træk i skyderen</strong> for at spole <strong>time for time</strong> gennem
+            7 døgn frem og 7 tilbage — dagen og klokkeslættet står ovenover, og prikkerne
+            skifter tal og farve med. I en flad uge rykker tallene sig kun lidt; det er havet,
+            ikke kortet, der står stille.
           </p>
           <p>
             <strong>Tallet i prikken</strong> er spottets score (0–10) på det valgte tidspunkt,

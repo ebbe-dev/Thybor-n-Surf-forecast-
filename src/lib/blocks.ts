@@ -20,30 +20,39 @@ export interface Day {
   blocks: (Block | null)[]; // null = hul i data
 }
 
+// Alle timer scoret for ét spot — kortets skyder kører time for time.
+export function hourlyBlocks(f: CachedForecast, spot: Spot): Map<string, Block> {
+  const m = new Map<string, Block>();
+  const ar = f.areas[spot.area];
+  if (!ar || ar.dry) return m;
+  const normal = effectiveNormal(spot);
+  for (const row of ar.rows) {
+    m.set(row.time, {
+      time: row.time,
+      row,
+      // personlig korrektion fra loggede sessions oveni (lib/calibration.ts)
+      score: adjustedScore(
+        scoreSpot(row, normal, { offshore: spot.offshoreDir, fixedSide: spot.fixedSide }),
+        spot.id
+      ),
+      // enkeltsidede spots viser altid deres side; ellers vind-læsiden
+      side: spot.fixedSide ?? moleSide(row.wdir)
+    });
+  }
+  return m;
+}
+
+// Barografens 3-timers blokke (05–20) — udpluk af timescorerne.
 export function buildDays(f: CachedForecast, spot: Spot): Day[] {
   const ar = f.areas[spot.area];
   if (!ar || ar.dry) return [];
-  const normal = effectiveNormal(spot);
-  const byTime = new Map(ar.rows.map((r) => [r.time, r]));
+  const byTime = hourlyBlocks(f, spot);
   const dates = [...new Set(ar.rows.map((r) => dateOf(r.time)))].sort();
   return dates.map((date) => ({
     date,
-    blocks: BLOCK_HOURS.map((h) => {
-      const t = `${date}T${String(h).padStart(2, "0")}:00`;
-      const row = byTime.get(t);
-      if (!row) return null;
-      return {
-        time: t,
-        row,
-        // personlig korrektion fra loggede sessions oveni (lib/calibration.ts)
-        score: adjustedScore(
-          scoreSpot(row, normal, { offshore: spot.offshoreDir, fixedSide: spot.fixedSide }),
-          spot.id
-        ),
-        // enkeltsidede spots viser altid deres side; ellers vind-læsiden
-        side: spot.fixedSide ?? moleSide(row.wdir)
-      };
-    })
+    blocks: BLOCK_HOURS.map(
+      (h) => byTime.get(`${date}T${String(h).padStart(2, "0")}:00`) ?? null
+    )
   }));
 }
 
