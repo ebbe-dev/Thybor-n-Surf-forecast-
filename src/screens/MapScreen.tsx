@@ -277,22 +277,24 @@ export function MapScreen() {
   return (
     <div className="map-screen">
       <div className="timeslider">
-        <a
-          className="fcoo-link"
-          href="https://app.fcoo.dk/ifm-maps/"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          FCOO-søkort ↗
-        </a>
-        <div className="timeslider-label">
-          {time ? (
-            <>
-              <strong>{fmtDayLabel(time)}</strong> kl. {fmtClock(time)}
-            </>
-          ) : (
-            "—"
-          )}
+        <div className="timeslider-head">
+          <div className="timeslider-label">
+            {time ? (
+              <>
+                <strong>{fmtDayLabel(time)}</strong> kl. {fmtClock(time)}
+              </>
+            ) : (
+              "—"
+            )}
+          </div>
+          <a
+            className="fcoo-link"
+            href="https://app.fcoo.dk/ifm-maps/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            FCOO-søkort ↗
+          </a>
         </div>
         <div className="slider-row">
           <button
