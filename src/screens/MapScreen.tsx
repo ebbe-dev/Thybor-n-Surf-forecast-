@@ -294,14 +294,32 @@ export function MapScreen() {
             "—"
           )}
         </div>
-        <input
-          type="range"
-          min={0}
-          max={Math.max(0, timeline.length - 1)}
-          value={Math.max(0, idx)}
-          onChange={(e) => setIdx(Number(e.target.value))}
-          aria-label="tidsskyder over 7 døgn"
-        />
+        <div className="slider-row">
+          <button
+            className="step-btn"
+            onClick={() => setIdx((i) => Math.max(0, i - 1))}
+            disabled={idx <= 0}
+            aria-label="én time tilbage"
+          >
+            ‹
+          </button>
+          <input
+            type="range"
+            min={0}
+            max={Math.max(0, timeline.length - 1)}
+            value={Math.max(0, idx)}
+            onChange={(e) => setIdx(Number(e.target.value))}
+            aria-label="tidsskyder, time for time"
+          />
+          <button
+            className="step-btn"
+            onClick={() => setIdx((i) => Math.min(timeline.length - 1, i + 1))}
+            disabled={idx >= timeline.length - 1}
+            aria-label="én time frem"
+          >
+            ›
+          </button>
+        </div>
         <Info q="Sådan bruger du kortet">
           <p>
             <strong>Træk i skyderen</strong> for at spole <strong>time for time</strong> gennem

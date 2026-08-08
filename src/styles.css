@@ -323,12 +323,33 @@ body {
   text-decoration: underline;
   padding: 2px 0 8px 12px;
 }
+.slider-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
 .timeslider input[type="range"] {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   height: 44px; /* stor trykflade */
   accent-color: var(--fg);
   background: transparent;
   touch-action: none;
+}
+.step-btn {
+  flex: 0 0 auto;
+  width: 46px;
+  height: 46px;
+  background: none;
+  border: 2px solid var(--line);
+  color: var(--fg);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+.step-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
 }
 .map-body {
   flex: 1;
