@@ -1,5 +1,5 @@
 // Personlig kalibrering: en korrektion oven på modellens score, lært af
-// loggede sessions (karakter × 2 minus modellens RÅ score).
+// loggede sessions (karakter 0–10 minus modellens RÅ score — samme skala).
 //
 // Bevidst forsigtig:
 // - Dæmpet ("shrinkage"): korrektion = sum(afvigelser) / (antal + SHRINK_K).
@@ -15,7 +15,7 @@
 // kan slås fra med kontakten i LOG.
 
 import type { Session } from "./sessions";
-import { SESSIONS_KEY } from "./sessions";
+import { SESSIONS_KEY, loadSessions } from "./sessions";
 
 export const SHRINK_K = 6; // prior-vægt: så mange "neutrale" sessions vejer imod
 export const MAX_CORRECTION = 2;
@@ -53,16 +53,12 @@ function calc(): CalcResult {
   const raw = localStorage.getItem(SESSIONS_KEY) ?? "[]";
   if (raw === cachedRaw && cached) return cached;
 
-  let list: Session[] = [];
-  try {
-    const parsed = JSON.parse(raw) as Session[];
-    if (Array.isArray(parsed)) list = parsed;
-  } catch {
-    // ulæselig log → ingen korrektion
-  }
+  // loadSessions håndterer også stjerne→0-10-migreringen, så afvigelserne
+  // altid regnes på samme skala.
+  const list: Session[] = loadSessions();
 
   const scored = list.filter((s) => s.predicted !== null);
-  const sumAll = scored.reduce((a, s) => a + (s.rating * 2 - (s.predicted as number)), 0);
+  const sumAll = scored.reduce((a, s) => a + (s.rating - (s.predicted as number)), 0);
   const global: CorrectionInfo =
     scored.length === 0
       ? { correction: 0, n: 0, basis: "none" }
@@ -77,7 +73,7 @@ function calc(): CalcResult {
   }
   for (const [spotId, arr] of bySpot) {
     if (arr.length >= MIN_SPOT_SESSIONS) {
-      const sum = arr.reduce((a, s) => a + (s.rating * 2 - (s.predicted as number)), 0);
+      const sum = arr.reduce((a, s) => a + (s.rating - (s.predicted as number)), 0);
       perSpot.set(spotId, {
         correction: clamp(sum / (arr.length + SHRINK_K)),
         n: arr.length,

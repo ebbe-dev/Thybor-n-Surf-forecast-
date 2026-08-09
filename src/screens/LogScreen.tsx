@@ -81,7 +81,7 @@ export function LogScreen() {
   const [date, setDate] = useState(init.date);
   const [hour, setHour] = useState(init.hour);
   const [spotId, setSpotId] = useState(SPOTS[0].id);
-  const [rating, setRating] = useState<Session["rating"] | 0>(0);
+  const [rating, setRating] = useState(-1); // -1 = ikke sat, ellers 0–10
   const [size, setSize] = useState(0);
   const [shape, setShape] = useState(0);
   const [surface, setSurface] = useState(0);
@@ -110,7 +110,7 @@ export function LogScreen() {
 
   function clearForm() {
     setNote("");
-    setRating(0);
+    setRating(-1);
     setSize(0);
     setShape(0);
     setSurface(0);
@@ -131,7 +131,7 @@ export function LogScreen() {
   }
 
   function addSession() {
-    if (rating === 0) return;
+    if (rating < 0) return;
     const spot = SPOTS.find((s) => s.id === spotId) ?? SPOTS[0];
     const timeIso = `${date}T${String(hour).padStart(2, "0")}:00`;
     const params: SessionParams = {};
@@ -166,7 +166,7 @@ export function LogScreen() {
     <div className="screen">
       {dev && (
         <section className="dev-box">
-          <span className="dev-label">Din karakter ×2 minus modellens score, snit af {dev.n}:</span>
+          <span className="dev-label">Din karakter minus modellens score, snit af {dev.n}:</span>
           <span className="dev-value">
             {dev.mean >= 0 ? "+" : ""}
             {fmt(dev.mean)}
@@ -217,10 +217,10 @@ export function LogScreen() {
           bagefter sammenligne, hvad modellen <em>troede</em>, med hvad du <em>oplevede</em>.
         </p>
         <p>
-          Tallet øverst er den sammenligning: dine stjerner ganget med 2 (så 5★ = 10, samme
-          skala som scoren) minus modellens score, i snit. <strong>Minus</strong> betyder, at
-          modellen lover mere, end stedet holder; <strong>plus</strong>, at den undervurderer
-          det.
+          Tallet øverst er den sammenligning: din karakter minus modellens score, i snit —
+          begge på samme 0–10-skala, så de kan sammenlignes direkte. <strong>Minus</strong>{" "}
+          betyder, at modellen lover mere, end stedet holder; <strong>plus</strong>, at den
+          undervurderer det.
         </p>
         <p>
           Med kontakten ovenfor slået til <strong>lærer appen af det</strong>: den lægger en
@@ -277,20 +277,24 @@ export function LogScreen() {
       <ParamRow label="OVERFLADE" low="rodet" high="glas" value={surface} onChange={setSurface} />
       <div className="param-head">
         <span className="param-label">SAMLET</span>
-        <span className="param-ends">din dom — den eneste, der SKAL sættes</span>
+        <span className="param-ends">0–10, samme skala som appens score — SKAL sættes</span>
       </div>
-      <div className="rating-row" role="radiogroup" aria-label="samlet karakter">
-        {([1, 2, 3, 4, 5] as const).map((r) => (
-          <button
-            key={r}
-            className={"rating-btn" + (rating >= r ? " on" : "")}
-            onClick={() => setRating(r)}
-            role="radio"
-            aria-checked={rating === r}
-          >
-            ★
-          </button>
-        ))}
+      <div className="rate10-row">
+        <input
+          type="range"
+          min={0}
+          max={10}
+          step={0.5}
+          value={rating < 0 ? 5 : rating}
+          onChange={(e) => setRating(Number(e.target.value))}
+          aria-label="samlet karakter 0-10"
+        />
+        <span
+          className="rate10-value"
+          style={{ color: rating < 0 ? "var(--muted)" : scoreColor(rating) }}
+        >
+          {rating < 0 ? "–" : fmt(rating)}
+        </span>
       </div>
       <textarea
         className="note-input"
@@ -299,7 +303,7 @@ export function LogScreen() {
         onChange={(e) => setNote(e.target.value)}
         rows={2}
       />
-      <button className="btn btn-wide" onClick={addSession} disabled={rating === 0}>
+      <button className="btn btn-wide" onClick={addSession} disabled={rating < 0}>
         {editingId ? "GEM RETTELSE" : "GEM SESSION"}
       </button>
       {editingId && (
@@ -342,7 +346,9 @@ export function LogScreen() {
                 </strong>{" "}
                 kl. {fmtClock(s.time)} · {spot?.shortName ?? s.spotId}
               </span>
-              <span className="session-stars">{"★".repeat(s.rating)}</span>
+              <span className="session-rate" style={{ color: scoreColor(s.rating) }}>
+                {fmt(s.rating)}
+              </span>
             </header>
             {s.params && (
               <p className="session-params">

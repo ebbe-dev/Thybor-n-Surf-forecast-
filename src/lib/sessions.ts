@@ -25,7 +25,8 @@ export interface Session {
   id: string;
   time: string; // ISO lokal, fx 2026-07-28T17:00
   spotId: string;
-  rating: 1 | 2 | 3 | 4 | 5; // SAMLET — kalibreringssignalet
+  rating: number; // SAMLET 0–10 (én decimal) — samme skala som appens score
+  scale10?: true; // migreringsmarkør: gamle sessions var 1–5 stjerner (×2)
   params?: SessionParams;
   note: string;
   // Snapshot af de forhold modellen forudsagde — null hvis ingen data fandtes
@@ -49,7 +50,18 @@ export function loadSessions(): Session[] {
     const raw = localStorage.getItem(KEY);
     if (!raw) return [];
     const list = JSON.parse(raw) as Session[];
-    return Array.isArray(list) ? list : [];
+    if (!Array.isArray(list)) return [];
+    // Éngangsmigrering: stjerne-sessions (1–5) løftes til 0–10-skalaen.
+    let changed = false;
+    for (const s of list) {
+      if (!s.scale10) {
+        s.rating = Math.min(10, s.rating * 2);
+        s.scale10 = true;
+        changed = true;
+      }
+    }
+    if (changed) saveSessions(list);
+    return list;
   } catch {
     return [];
   }
@@ -82,7 +94,7 @@ export function findRowAt(timeIso: string, areaId: string): Row | null {
 export function createSession(
   timeIso: string,
   spot: Spot,
-  rating: Session["rating"],
+  rating: number,
   note: string,
   params?: SessionParams
 ): Session {
@@ -92,6 +104,7 @@ export function createSession(
     time: timeIso,
     spotId: spot.id,
     rating,
+    scale10: true,
     params,
     note,
     snapshot: row
@@ -115,7 +128,7 @@ export function updateSession(
   orig: Session,
   timeIso: string,
   spot: Spot,
-  rating: Session["rating"],
+  rating: number,
   note: string,
   params?: SessionParams
 ): Session {
@@ -126,11 +139,11 @@ export function updateSession(
   return { ...fresh, id: orig.id };
 }
 
-// Løbende gennemsnit af (karakter × 2 − modellens score).
+// Løbende gennemsnit af (karakter − modellens score) — samme skala nu.
 export function meanDeviation(list: Session[]): { mean: number; n: number } | null {
   const scored = list.filter((s) => s.predicted !== null);
   if (scored.length === 0) return null;
-  const sum = scored.reduce((acc, s) => acc + (s.rating * 2 - (s.predicted as number)), 0);
+  const sum = scored.reduce((acc, s) => acc + (s.rating - (s.predicted as number)), 0);
   return { mean: sum / scored.length, n: scored.length };
 }
 

@@ -56,13 +56,13 @@ export function DayTimeline({ day, sessions = [] }: { day: DayStat; sessions?: S
             fill={FG}
             textAnchor="middle"
           >
-            ★{s.rating}
+            ▾{fmt(s.rating)}
           </text>
         ))}
       </svg>
       {sessions.length > 0 && (
         <p className="muted daytimeline-note">
-          ★ = logget session med din karakter. Detaljer under LOG.
+          ▾ = logget session med din karakter (0–10). Detaljer under LOG.
         </p>
       )}
     </section>
