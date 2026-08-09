@@ -10,11 +10,11 @@ import { loadForecast } from "./storage";
 import { loadCachedHistory } from "../api/archive";
 import { dateOf } from "./time";
 
-// Delvurderinger 1-5, alle valgfri. De spejler modellens komponenter, så
-// en skæv forudsigelse kan diagnosticeres:
-//   size: 1 = for småt … 3 = perfekt størrelse … 5 = for stort  (energiled)
-//   shape: 1 = closeouts … 5 = perfekt væg der peeler  (periode/vinkel/banker)
-//   surface: 1 = rodet … 5 = glas  (vindled)
+// Delvurderinger 0–10 (halve trin), alle valgfri. De spejler modellens
+// komponenter, så en skæv forudsigelse kan diagnosticeres:
+//   size: 0 = for småt … 5 = perfekt størrelse … 10 = for stort  (energiled)
+//   shape: 0 = closeouts … 10 = perfekt væg der peeler  (periode/vinkel/banker)
+//   surface: 0 = rodet … 10 = glas  (vindled)
 export interface SessionParams {
   size?: number;
   shape?: number;
@@ -27,6 +27,7 @@ export interface Session {
   spotId: string;
   rating: number; // SAMLET 0–10 (én decimal) — samme skala som appens score
   scale10?: true; // migreringsmarkør: gamle sessions var 1–5 stjerner (×2)
+  params10?: true; // migreringsmarkør: gamle delvurderinger var 1–5
   params?: SessionParams;
   note: string;
   // Snapshot af de forhold modellen forudsagde — null hvis ingen data fandtes
@@ -51,12 +52,25 @@ export function loadSessions(): Session[] {
     if (!raw) return [];
     const list = JSON.parse(raw) as Session[];
     if (!Array.isArray(list)) return [];
-    // Éngangsmigrering: stjerne-sessions (1–5) løftes til 0–10-skalaen.
+    // Éngangsmigreringer til 0–10-skalaerne.
     let changed = false;
     for (const s of list) {
       if (!s.scale10) {
+        // stjerner 1–5 → 2–10
         s.rating = Math.min(10, s.rating * 2);
         s.scale10 = true;
+        changed = true;
+      }
+      if (!s.params10) {
+        // delvurderinger 1–5 → 0–10 med bevaret midte: (v-1)·2,5
+        // (1→0, 3→5, 5→10 — så "3 = perfekt størrelse" bliver "5 = perfekt")
+        if (s.params) {
+          for (const k of ["size", "shape", "surface"] as const) {
+            const v = s.params[k];
+            if (v !== undefined) s.params[k] = Math.round((v - 1) * 2.5 * 2) / 2;
+          }
+        }
+        s.params10 = true;
         changed = true;
       }
     }
@@ -105,6 +119,7 @@ export function createSession(
     spotId: spot.id,
     rating,
     scale10: true,
+    params10: true,
     params,
     note,
     snapshot: row

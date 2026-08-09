@@ -26,41 +26,45 @@ import {
   MIN_SPOT_SESSIONS
 } from "../lib/calibration";
 
-// Én delvurderings-række: fem felter med endepunkts-ord.
+// Én delvurderings-række: 0–10-skyder med halve trin. -1 = ikke sat.
 function ParamRow({
   label,
-  low,
-  high,
+  ends,
   value,
-  onChange,
-  centerBest
+  onChange
 }: {
   label: string;
-  low: string;
-  high: string;
-  value: number; // 0 = ikke sat
+  ends: string;
+  value: number;
   onChange: (v: number) => void;
-  centerBest?: boolean;
 }) {
   return (
     <div className="param">
       <div className="param-head">
         <span className="param-label">{label}</span>
-        <span className="param-ends">
-          {low} ↔ {high}
-          {centerBest && " · 3 = perfekt"}
-        </span>
+        <span className="param-ends">{ends}</span>
       </div>
-      <div className="param-btns">
-        {[1, 2, 3, 4, 5].map((v) => (
-          <button
-            key={v}
-            className={"param-btn" + (value === v ? " on" : "")}
-            onClick={() => onChange(value === v ? 0 : v)}
-          >
-            {v}
-          </button>
-        ))}
+      <div className="rate10-row">
+        <input
+          type="range"
+          min={0}
+          max={10}
+          step={0.5}
+          value={value < 0 ? 5 : value}
+          onChange={(e) => onChange(Number(e.target.value))}
+          aria-label={label}
+        />
+        <span className={"rate10-value param-value" + (value < 0 ? " unset" : "")}>
+          {value < 0 ? "–" : fmt(value)}
+        </span>
+        <button
+          className="linkbtn param-clear"
+          onClick={() => onChange(-1)}
+          disabled={value < 0}
+          aria-label={"nulstil " + label}
+        >
+          ×
+        </button>
       </div>
     </div>
   );
@@ -82,9 +86,9 @@ export function LogScreen() {
   const [hour, setHour] = useState(init.hour);
   const [spotId, setSpotId] = useState(SPOTS[0].id);
   const [rating, setRating] = useState(-1); // -1 = ikke sat, ellers 0–10
-  const [size, setSize] = useState(0);
-  const [shape, setShape] = useState(0);
-  const [surface, setSurface] = useState(0);
+  const [size, setSize] = useState(-1);
+  const [shape, setShape] = useState(-1);
+  const [surface, setSurface] = useState(-1);
   const [note, setNote] = useState("");
   const [confirm, setConfirm] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -111,9 +115,9 @@ export function LogScreen() {
   function clearForm() {
     setNote("");
     setRating(-1);
-    setSize(0);
-    setShape(0);
-    setSurface(0);
+    setSize(-1);
+    setShape(-1);
+    setSurface(-1);
     setEditingId(null);
   }
 
@@ -123,9 +127,9 @@ export function LogScreen() {
     setHour(Number(s.time.slice(11, 13)));
     setSpotId(SPOTS.some((x) => x.id === s.spotId) ? s.spotId : SPOTS[0].id);
     setRating(s.rating);
-    setSize(s.params?.size ?? 0);
-    setShape(s.params?.shape ?? 0);
-    setSurface(s.params?.surface ?? 0);
+    setSize(s.params?.size ?? -1);
+    setShape(s.params?.shape ?? -1);
+    setSurface(s.params?.surface ?? -1);
     setNote(s.note);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -135,9 +139,9 @@ export function LogScreen() {
     const spot = SPOTS.find((s) => s.id === spotId) ?? SPOTS[0];
     const timeIso = `${date}T${String(hour).padStart(2, "0")}:00`;
     const params: SessionParams = {};
-    if (size > 0) params.size = size;
-    if (shape > 0) params.shape = shape;
-    if (surface > 0) params.surface = surface;
+    if (size >= 0) params.size = size;
+    if (shape >= 0) params.shape = shape;
+    if (surface >= 0) params.surface = surface;
     const p = Object.keys(params).length > 0 ? params : undefined;
 
     const wasEditing = editingId !== null;
@@ -231,11 +235,12 @@ export function LogScreen() {
           ikke forstærker sig selv.
         </p>
         <p>
-          <strong>Delvurderingerne</strong> (valgfri) løser problemet med, at én karakter kan
-          dække over modsatte fejl — 1 stjerne kan jo både være "for småt" og "kæmpe closeouts".
-          STØRRELSE (3 = perfekt) tjekker modellens energiled, FORM afslører hvad bankerne gør,
-          og OVERFLADE tjekker vindleddet. Når loggen er stor nok, viser de præcis hvilken del
-          af modellen, der skyder forkert.
+          <strong>Delvurderingerne</strong> (valgfri, 0–10) løser problemet med, at én karakter
+          kan dække over modsatte fejl — en lav karakter kan jo både være "for småt" og "kæmpe
+          closeouts". STØRRELSE (5 = perfekt) tjekker modellens energiled, FORM afslører hvad
+          bankerne gør, og OVERFLADE tjekker vindleddet. Når loggen er stor nok, viser de
+          præcis hvilken del af modellen, der skyder forkert. ×-knappen nulstiller en
+          delvurdering, du ikke vil sætte.
         </p>
         <p>
           Loggen ligger <strong>kun på denne telefon</strong>. CSV-knappen gemmer en
@@ -267,14 +272,12 @@ export function LogScreen() {
       </div>
       <ParamRow
         label="STØRRELSE"
-        low="for småt"
-        high="for stort"
-        centerBest
+        ends="0 = for småt · 5 = perfekt · 10 = for stort"
         value={size}
         onChange={setSize}
       />
-      <ParamRow label="FORM" low="closeouts" high="perfekt væg" value={shape} onChange={setShape} />
-      <ParamRow label="OVERFLADE" low="rodet" high="glas" value={surface} onChange={setSurface} />
+      <ParamRow label="FORM" ends="0 = closeouts · 10 = perfekt væg" value={shape} onChange={setShape} />
+      <ParamRow label="OVERFLADE" ends="0 = rodet · 10 = glas" value={surface} onChange={setSurface} />
       <div className="param-head">
         <span className="param-label">SAMLET</span>
         <span className="param-ends">0–10, samme skala som appens score — SKAL sættes</span>
@@ -352,9 +355,9 @@ export function LogScreen() {
             </header>
             {s.params && (
               <p className="session-params">
-                {s.params.size !== undefined && <span>størrelse {s.params.size}/5</span>}
-                {s.params.shape !== undefined && <span>form {s.params.shape}/5</span>}
-                {s.params.surface !== undefined && <span>overflade {s.params.surface}/5</span>}
+                {s.params.size !== undefined && <span>størrelse {fmt(s.params.size)}</span>}
+                {s.params.shape !== undefined && <span>form {fmt(s.params.shape)}</span>}
+                {s.params.surface !== undefined && <span>overflade {fmt(s.params.surface)}</span>}
               </p>
             )}
             {s.note && <p className="session-note">{s.note}</p>}
