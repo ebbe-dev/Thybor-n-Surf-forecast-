@@ -40,13 +40,13 @@ export default defineConfig({
         // navigateFallback sættes af pluginet ud fra base
         globPatterns: ["**/*.{js,css,html,png,svg,ico}"],
         // Senest sete kortfliser virker offline; beskeden grænse af hensyn
-        // til OSM's tileserver og telefonens lager.
+        // til CARTO's tileserver og telefonens lager.
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/tile\.openstreetmap\.org\/.*/i,
+            urlPattern: /^https:\/\/[abcd]\.basemaps\.cartocdn\.com\/.*/i,
             handler: "CacheFirst",
             options: {
-              cacheName: "osm-tiles",
+              cacheName: "carto-tiles",
               expiration: { maxEntries: 300, maxAgeSeconds: 60 * 60 * 24 * 30 }
             }
           }
