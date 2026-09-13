@@ -20,15 +20,33 @@ export function dayName(iso: string, short = false): string {
   return (short ? DAYS_SHORT : DAYS)[d.getDay()];
 }
 
-export function isToday(iso: string): boolean {
+const p = (n: number) => String(n).padStart(2, "0");
+
+// Dags dato som "2026-09-13" i telefonens lokale tid.
+export function todayIso(): string {
   const now = new Date();
-  const today =
-    now.getFullYear() +
-    "-" +
-    String(now.getMonth() + 1).padStart(2, "0") +
-    "-" +
-    String(now.getDate()).padStart(2, "0");
-  return dateOf(iso) === today;
+  return `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}`;
+}
+
+// Dagen efter en "YYYY-MM-DD"-dato. Regner fra middag, så skift til/fra
+// sommertid ikke kan skubbe datoen.
+export function nextDate(date: string): string {
+  const d = new Date(date + "T12:00");
+  d.setDate(d.getDate() + 1);
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+export function isToday(iso: string): boolean {
+  return dateOf(iso) === todayIso();
+}
+
+// "i dag" / "i morgen" / ugedag. Dommen og forsidelisten bruger den samme,
+// så den samme blok hedder det samme begge steder.
+export function relativeDayLabel(iso: string, today = todayIso()): string {
+  const date = dateOf(iso);
+  if (date === today) return "i dag";
+  if (date === nextDate(today)) return "i morgen";
+  return dayName(iso);
 }
 
 export function fmtClock(iso: string): string {

@@ -1,10 +1,11 @@
-// Bygger 3-timers blokke pr. dag pr. spot og finder dommen
-// (bedste kommende blok på tværs af spots).
+// Bygger 3-timers blokke pr. dag pr. spot og rangerer spots efter deres
+// bedste kommende blok inden for forsidens horisont (i dag + i morgen).
+// Dommen er toppen af den rangering — aldrig noget listen ikke viser.
 
 import type { CachedForecast } from "./storage";
 import { scoreSpot, moleSide, type Row } from "../model/model";
 import { effectiveNormal, type Spot } from "../config/spots";
-import { BLOCK_HOURS, dateOf, hourOf } from "./time";
+import { BLOCK_HOURS, dateOf, hourOf, nextDate } from "./time";
 import { adjustedScore } from "./calibration";
 import { sunTimes, daylightOverlap } from "./sun";
 
@@ -74,19 +75,46 @@ export function isDaylightBlock(time: string, spot: Spot): boolean {
   return daylightOverlap(hourOf(time), st) >= 1;
 }
 
-// Bedste kommende blok i dagslys. Ved lighed vinder den tidligste
-// (og rækkefølgen i SPOTS).
-export function pickVerdict(f: CachedForecast, spots: Spot[]): VerdictPick | null {
-  const now = nowLocalIso();
-  let best: VerdictPick | null = null;
-  for (const spot of spots) {
-    for (const day of buildDays(f, spot)) {
-      for (const b of day.blocks) {
-        if (!b || b.time < now) continue;
-        if (!isDaylightBlock(b.time, spot)) continue;
-        if (!best || b.score > best.block.score) best = { spot, block: b };
-      }
+// Forsidens horisont — "næste 2 døgn": resten af i dag + hele i morgen.
+// Listen og dommen deler den, så dommen aldrig peger længere frem end
+// listen (den pegede før 7 døgn frem og kunne sige "torsdag" om søndagen).
+export function horizonDates(now: string): string[] {
+  const today = dateOf(now);
+  return [today, nextDate(today)];
+}
+
+// Bedste kommende dagslys-blok for ét spot inden for horisonten.
+// Ved lighed vinder den tidligste.
+function bestBlock(f: CachedForecast, spot: Spot, now: string): Block | null {
+  const dates = horizonDates(now);
+  let best: Block | null = null;
+  for (const day of buildDays(f, spot)) {
+    if (!dates.includes(day.date)) continue;
+    for (const b of day.blocks) {
+      if (!b || b.time < now) continue;
+      if (!isDaylightBlock(b.time, spot)) continue;
+      if (!best || b.score > best.score) best = b;
     }
   }
   return best;
+}
+
+// Alle spots med deres bedste blok, bedste først. Spots uden en brugbar
+// blok udelades. Ved lighed vinder rækkefølgen i `spots` (sort er stabil).
+export function rankSpots(
+  f: CachedForecast,
+  spots: Spot[],
+  now = nowLocalIso()
+): VerdictPick[] {
+  const picks: VerdictPick[] = [];
+  for (const spot of spots) {
+    const block = bestBlock(f, spot, now);
+    if (block) picks.push({ spot, block });
+  }
+  return picks.sort((a, b) => b.block.score - a.block.score);
+}
+
+// Dommen: listens øverste række.
+export function pickVerdict(f: CachedForecast, spots: Spot[]): VerdictPick | null {
+  return rankSpots(f, spots)[0] ?? null;
 }

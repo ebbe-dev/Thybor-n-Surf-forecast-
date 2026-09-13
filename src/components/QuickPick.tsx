@@ -2,52 +2,23 @@
 // dagslys-vindue de næste 2 døgn. Bedste spot grønt, dårligste rødt —
 // det er en RANGERING (hvis du skal ud, hvor så?); selve score-tallet
 // beholder appens faste farveskala, så tallene aldrig lyver.
+// Selve rangeringen bor i lib/blocks.ts (rankSpots) og deles med dommen.
 
 import { useMemo } from "react";
 import type { CachedForecast } from "../lib/storage";
-import { SPOTS, type Spot } from "../config/spots";
-import { buildDays, nowLocalIso, isDaylightBlock, type Block } from "../lib/blocks";
+import { SPOTS } from "../config/spots";
+import { rankSpots } from "../lib/blocks";
 import { scoreColor } from "../lib/colors";
-import { dateOf, fmtClock } from "../lib/time";
+import { fmtClock, relativeDayLabel, todayIso } from "../lib/time";
 import { fmt } from "../lib/format";
 import { sunTimes, fmtSunHour } from "../lib/sun";
 
-interface Entry {
-  spot: Spot;
-  best: Block;
-}
-
-function nextDate(date: string): string {
-  const d = new Date(date + "T12:00");
-  d.setDate(d.getDate() + 1);
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-}
-
 export function QuickPick({ forecast }: { forecast: CachedForecast }) {
-  const entries = useMemo<Entry[]>(() => {
-    const now = nowLocalIso();
-    const today = dateOf(now);
-    const tomorrow = nextDate(today);
-    const list: Entry[] = [];
-    for (const spot of SPOTS) {
-      let best: Block | null = null;
-      for (const day of buildDays(forecast, spot)) {
-        if (day.date !== today && day.date !== tomorrow) continue;
-        for (const b of day.blocks) {
-          if (!b || b.time < now) continue;
-          if (!isDaylightBlock(b.time, spot)) continue;
-          if (!best || b.score > best.score) best = b;
-        }
-      }
-      if (best) list.push({ spot, best });
-    }
-    return list.sort((a, b) => b.best.score - a.best.score);
-  }, [forecast]);
+  const entries = useMemo(() => rankSpots(forecast, SPOTS), [forecast]);
 
   if (entries.length === 0) return null;
 
-  const today = dateOf(nowLocalIso());
+  const today = todayIso();
   const st = sunTimes(today, SPOTS[0].lat, SPOTS[0].lon);
   const sunLine =
     typeof st === "object" ? `sol ${fmtSunHour(st.sunrise)}–${fmtSunHour(st.sunset)}` : null;
@@ -58,12 +29,11 @@ export function QuickPick({ forecast }: { forecast: CachedForecast }) {
         Næste 2 døgn — hvor og hvornår
         {sunLine && <span className="muted"> · {sunLine}</span>}
       </h3>
-      {entries.map(({ spot, best }, i) => {
+      {entries.map(({ spot, block }, i) => {
         const cls =
           "qp-row" +
           (i === 0 ? " best" : "") +
           (i === entries.length - 1 && entries.length > 1 ? " worst" : "");
-        const dayLabel = dateOf(best.time) === today ? "i dag" : "i morgen";
         return (
           <div className={cls} key={spot.id}>
             <span className="qp-name">
@@ -71,10 +41,10 @@ export function QuickPick({ forecast }: { forecast: CachedForecast }) {
               {spot.uncalibrated && <span className="uncal-inline"> ukal.</span>}
             </span>
             <span className="qp-when">
-              {dayLabel} kl. {fmtClock(best.time)}
+              {relativeDayLabel(block.time, today)} kl. {fmtClock(block.time)}
             </span>
-            <span className="qp-score" style={{ color: scoreColor(best.score) }}>
-              {fmt(best.score)}
+            <span className="qp-score" style={{ color: scoreColor(block.score) }}>
+              {fmt(block.score)}
             </span>
           </div>
         );
