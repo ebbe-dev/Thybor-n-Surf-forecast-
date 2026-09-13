@@ -39,6 +39,20 @@ punktet til en tør celle, viser appen en fejl i stedet for tomme tal.
 Appen er live på https://ebbe-dev.github.io/Thybor-n-Surf-forecast-/
 og udgives automatisk ved hvert push (`.github/workflows/deploy.yml`).
 
+## Design
+
+Mørkt, høj kontrast, store trykflader — læses i sollys på stranden.
+Hierarki via flader og runde hjørner, ikke via kanter:
+
+- **Dommen øverst** som helte-kort; det eneste sted en kant bærer bandfarve.
+- **Rangeringen** af alle spots nedenunder. Rækkefølgen er rangeringen,
+  scoren står i en pille (`ScorePill`) med tekstfarve efter kontrast, så
+  tallet altid kan læses.
+- **Chips** (`SpotChips`) til spot-valg på NU, HISTORIK og LOG.
+- **Én ?-knap pr. skærm** (`ScreenHeader`) folder forklaringerne ud.
+- Kortet kører på CARTO's mørke fliser (gratis med kildeangivelse, som
+  vises på kortet). Spot-navne vises fra zoom 12.
+
 ## Arkitektur
 
 - `src/model/model.ts` — **alle** scoringskonstanter og -funktioner.
