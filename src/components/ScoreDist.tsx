@@ -22,7 +22,7 @@ export function ScoreDist({ bins, daysOver, totalDays }: Props) {
           const x = 8 + i * 33;
           return (
             <g key={i}>
-              <rect x={x} y={92 - h} width={26} height={h} fill={scoreColor(i + 0.5)} />
+              <rect x={x} y={92 - h} width={26} height={h} rx={3} fill={scoreColor(i + 0.5)} />
               {n > 0 && (
                 <text x={x + 13} y={88 - h} fontSize="8" fill={MUTED} textAnchor="middle">
                   {n}
@@ -35,21 +35,21 @@ export function ScoreDist({ bins, daysOver, totalDays }: Props) {
           );
         })}
       </svg>
-      <table className="threshold-table">
-        <tbody>
-          {daysOver.map(({ threshold, days }) => (
-            <tr key={threshold}>
-              <td>
-                <span className="dot" style={{ background: scoreColor(threshold) }} />
-                maks ≥ {fmt(threshold)} <span className="muted">({scoreLabel(threshold)})</span>
-              </td>
-              <td>
-                <strong>{days}</strong> <span className="muted">af {totalDays} dage</span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <p className="thr-cap">Dage, hvor den bedste time nåede mindst …</p>
+      <div className="thr-list">
+        {daysOver.map(({ threshold, days }) => (
+          <div className="thr-row" key={threshold}>
+            <span className="thr-l">
+              <span className="dot" style={{ background: scoreColor(threshold) }} />
+              {scoreLabel(threshold)} <span className="muted">≥ {fmt(threshold)}</span>
+            </span>
+            <span className="n">
+              {days}
+              <span>af {totalDays} dage</span>
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

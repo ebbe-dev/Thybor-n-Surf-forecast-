@@ -4,7 +4,7 @@
 import type { DayStat } from "../lib/history";
 import { hoursOfDay } from "../lib/history";
 import { scoreColor, FG } from "../lib/colors";
-import { dayName, fmtClock, hourOf } from "../lib/time";
+import { dayName, fmtClock, fmtDateDa, hourOf } from "../lib/time";
 import { fmt, compass } from "../lib/format";
 import type { Session } from "../lib/sessions";
 
@@ -12,11 +12,10 @@ export function DayTimeline({ day, sessions = [] }: { day: DayStat; sessions?: S
   const hours = hoursOfDay(day);
   const best = day.hours.find((h) => h.time === day.bestTime);
   return (
-    <section className="daytimeline">
+    <section className="card daytimeline">
       <header className="detail-head">
         <span>
-          {dayName(day.date + "T12:00")} {Number(day.date.slice(8, 10))}/{Number(day.date.slice(5, 7))}{" "}
-          {day.date.slice(0, 4)}
+          {dayName(day.date + "T12:00")} {fmtDateDa(day.date, true)}
         </span>
         <span className="detail-score" style={{ color: scoreColor(day.max) }}>
           {fmt(day.max)}

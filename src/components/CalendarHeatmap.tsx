@@ -1,10 +1,12 @@
 // Kalender-heatmap: én celle pr. dag, farvet efter dagens højeste score.
-// GitHub-stil: kolonner = uger, rækker = ugedage (mandag øverst).
+// Rækker = måneder, kolonner = dag i måneden — så felterne er store nok
+// at ramme på en telefon, og sæsonmønsteret læses lodret.
 // Dage uden data er tomme celler med kant — huller, ikke nuller.
 
 import { useMemo } from "react";
 import type { DayStat } from "../lib/history";
-import { scoreColor, MUTED } from "../lib/colors";
+import { scoreColor, FG, MUTED } from "../lib/colors";
+import { monthShort } from "../lib/time";
 
 interface Props {
   days: Map<string, DayStat>;
@@ -14,9 +16,11 @@ interface Props {
   onSelect: (date: string) => void;
 }
 
-const CELL = 7;
-const GAP = 1.6;
-const MONTHS = ["jan", "feb", "mar", "apr", "maj", "jun", "jul", "aug", "sep", "okt", "nov", "dec"];
+const CW = 10.5;
+const CH = 13;
+const GAP = 1.5;
+const LEFT = 36;
+const TOP = 12;
 
 function* dateRange(start: string, end: string): Generator<string> {
   const d = new Date(start + "T12:00");
@@ -28,58 +32,72 @@ function* dateRange(start: string, end: string): Generator<string> {
 }
 
 export function CalendarHeatmap({ days, start, end, selected, onSelect }: Props) {
-  const cells = useMemo(() => {
-    const list: { date: string; col: number; row: number; monthStart: boolean }[] = [];
-    let col = 0;
-    let prev = -1;
+  const { cells, months } = useMemo(() => {
+    const months: string[] = []; // "YYYY-MM" i rækkefølge
+    const cells: { date: string; row: number; col: number }[] = [];
     for (const date of dateRange(start, end)) {
-      const dow = (new Date(date + "T12:00").getDay() + 6) % 7; // man=0
-      if (dow <= prev && prev !== -1) col++;
-      prev = dow;
-      list.push({ date, col, row: dow, monthStart: date.slice(8, 10) === "01" });
+      const key = date.slice(0, 7);
+      if (months[months.length - 1] !== key) months.push(key);
+      cells.push({ date, row: months.length - 1, col: Number(date.slice(8, 10)) - 1 });
     }
-    return list;
+    return { cells, months };
   }, [start, end]);
 
-  const weeks = cells.length > 0 ? cells[cells.length - 1].col + 1 : 0;
-  const w = weeks * (CELL + GAP) + 24;
-  const h = 7 * (CELL + GAP) + 14;
+  const w = LEFT + 31 * (CW + GAP);
+  const h = TOP + months.length * (CH + GAP) + 2;
 
   return (
     <svg viewBox={`0 0 ${w} ${h}`} className="heatmap" aria-label="kalender-heatmap">
-      {["man", "ons", "fre"].map((label, i) => (
-        <text key={label} x={0} y={12 + (i * 2 + 0.8) * (CELL + GAP) + CELL} fontSize={5.5} fill={MUTED}>
-          {label}
+      {[1, 10, 20, 31].map((d) => (
+        <text
+          key={d}
+          x={LEFT + (d - 1) * (CW + GAP) + CW / 2}
+          y={TOP - 4}
+          fontSize={6.5}
+          fill={MUTED}
+          textAnchor="middle"
+        >
+          {d}
         </text>
       ))}
-      {cells.map((c) => {
-        const day = days.get(c.date);
-        const x = 24 + c.col * (CELL + GAP);
-        const y = 12 + c.row * (CELL + GAP);
+      {months.map((key, row) => {
+        const m = Number(key.slice(5, 7)) - 1;
+        const label = row === 0 || m === 0 ? `${monthShort(m)} ${key.slice(2, 4)}` : monthShort(m);
         return (
-          <g key={c.date}>
-            {c.monthStart && c.row === 0 && null}
-            <rect
-              x={x}
-              y={y}
-              width={CELL}
-              height={CELL}
-              fill={day ? scoreColor(day.max) : "none"}
-              stroke={c.date === selected ? "#E7E2D3" : day ? "none" : "#22332F"}
-              strokeWidth={c.date === selected ? 1.2 : 0.5}
-              onClick={() => day && onSelect(c.date)}
-              style={{ cursor: day ? "pointer" : "default" }}
-            />
-          </g>
+          <text
+            key={key}
+            x={0}
+            y={TOP + row * (CH + GAP) + CH * 0.78}
+            fontSize={7}
+            fontWeight={700}
+            fill={MUTED}
+          >
+            {label}
+          </text>
         );
       })}
-      {cells
-        .filter((c) => c.monthStart)
-        .map((c) => (
-          <text key={"m" + c.date} x={24 + c.col * (CELL + GAP)} y={8} fontSize={6} fill={MUTED}>
-            {MONTHS[Number(c.date.slice(5, 7)) - 1]}
-          </text>
-        ))}
+      {cells.map((c) => {
+        const day = days.get(c.date);
+        const x = LEFT + c.col * (CW + GAP);
+        const y = TOP + c.row * (CH + GAP);
+        const sel = c.date === selected;
+        return (
+          <rect
+            key={c.date}
+            x={x}
+            y={y}
+            width={CW}
+            height={CH}
+            rx={2}
+            fill={day ? scoreColor(day.max) : "none"}
+            stroke={sel ? FG : day ? "none" : "#22332F"}
+            strokeWidth={sel ? 1.4 : 0.5}
+            data-has={day ? "1" : undefined}
+            onClick={() => day && onSelect(c.date)}
+            style={{ cursor: day ? "pointer" : "default" }}
+          />
+        );
+      })}
     </svg>
   );
 }
