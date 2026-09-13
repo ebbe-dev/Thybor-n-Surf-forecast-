@@ -9,6 +9,7 @@ interface Props {
   wdir: number;
   wspd: number;
   side: "nord" | "syd";
+  compact?: boolean; // lille udgave uden tekst — forældrekomponenten sætter billedtekst
 }
 
 const rad = (d: number) => (d * Math.PI) / 180;
@@ -19,7 +20,7 @@ const add = (a: { x: number; y: number }, ...vs: { x: number; y: number }[]) =>
 const mul = (v: { x: number; y: number }, k: number) => ({ x: v.x * k, y: v.y * k });
 const pt = (p: { x: number; y: number }) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`;
 
-export function GroynePlan({ normal, wdir, side, wspd }: Props) {
+export function GroynePlan({ normal, wdir, side, wspd, compact = false }: Props) {
   const C = { x: 175, y: 115 };
   const s = vec(normal); // udad mod havet
   const t = vec(normal + 90); // langs kysten
@@ -52,19 +53,27 @@ export function GroynePlan({ normal, wdir, side, wspd }: Props) {
       <polygon points={land.map(pt).join(" ")} fill="#1A2C25" stroke={MUTED} strokeWidth="1" />
       {/* læside */}
       <polygon points={leePoly.map(pt).join(" ")} fill={MUTED} opacity="0.28" />
-      <text x={leeLabel.x} y={leeLabel.y} fill={FG} fontSize="13" textAnchor="middle" fontWeight="700">
-        læ ({side})
-      </text>
+      {!compact && (
+        <text x={leeLabel.x} y={leeLabel.y} fill={FG} fontSize="13" textAnchor="middle" fontWeight="700">
+          læ ({side})
+        </text>
+      )}
       {/* høfde */}
       <line x1={C.x} y1={C.y} x2={groyneEnd.x} y2={groyneEnd.y} stroke={FG} strokeWidth="7" strokeLinecap="round" />
       {/* vindpil */}
       <line x1={wTail.x} y1={wTail.y} x2={wHead.x} y2={wHead.y} stroke={FG} strokeWidth="3" />
       <polygon points={`${pt(wHead)} ${pt(headL)} ${pt(headR)}`} fill={FG} />
-      <text x={wTail.x} y={wTail.y - 8} fill={FG} fontSize="12" textAnchor="middle" fontWeight="700">
-        {compass(wdir)} {fmt(wspd, 0)} m/s
-      </text>
+      {!compact && (
+        <text x={wTail.x} y={wTail.y - 8} fill={FG} fontSize="12" textAnchor="middle" fontWeight="700">
+          {compass(wdir)} {fmt(wspd, 0)} m/s
+        </text>
+      )}
       {/* nordmarkør */}
-      <text x="14" y="22" fill={MUTED} fontSize="13" fontWeight="700">N ↑</text>
+      {!compact && (
+        <text x="14" y="22" fill={MUTED} fontSize="13" fontWeight="700">
+          N ↑
+        </text>
+      )}
     </svg>
   );
 }

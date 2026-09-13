@@ -29,3 +29,10 @@ export function scoreLabel(score: number): string {
   for (const b of BANDS) if (score >= b.min) return b.label;
   return BANDS[BANDS.length - 1].label;
 }
+
+// Tekstfarve oven på et bånds farve (piller, prikker på kortet): mørk på
+// de lyse bånd (sand og orange), lys på de mørke (teal). Så kan tallet
+// altid læses, også når båndet siger "ikke noget at hente".
+export function scoreTextColor(score: number): string {
+  return score >= 3.5 ? BG : FG;
+}

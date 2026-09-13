@@ -1,47 +1,71 @@
-// Dommen: bedste kommende blok i dag eller i morgen (samme horisont som
-// forsidelisten) — dag, klokkeslæt, mole, side.
+// Dommen som helte-kort: dommens ord, spot, hvornår og hvilken side, de
+// tal du kører efter, og scoren stort. Kanten har scorens farve — det
+// eneste sted i appen, hvor en kant bærer bandfarve.
 
+import type { CSSProperties } from "react";
 import type { VerdictPick } from "../lib/blocks";
 import { scoreColor, scoreLabel } from "../lib/colors";
 import { fmtClock, relativeDayLabel } from "../lib/time";
-import { fmt } from "../lib/format";
+import { fmt, compass } from "../lib/format";
 
-export function Verdict({ pick }: { pick: VerdictPick | null }) {
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+export function Verdict({ pick, sun }: { pick: VerdictPick | null; sun: string | null }) {
+  const eyebrow = (
+    <div className="eyebrow">
+      <span className="dot" />
+      Næste 2 døgn
+      {sun && (
+        <>
+          <span className="sep">·</span>
+          {sun}
+        </>
+      )}
+    </div>
+  );
+
   if (!pick) {
     return (
-      <section className="verdict">
-        <h1 className="verdict-label muted">Ingen kommende blokke i data</h1>
+      <section className="hero">
+        {eyebrow}
+        <h1 className="hero-label muted">Ingen kommende blokke i data</h1>
       </section>
     );
   }
+
   const { spot, block } = pick;
+  const r = block.row;
   const color = scoreColor(block.score);
-  const when = relativeDayLabel(block.time);
   return (
-    <section className="verdict" style={{ borderColor: color }}>
-      <h1 className="verdict-label" style={{ color }}>
-        {scoreLabel(block.score)}
-      </h1>
-      <p className="verdict-line">
-        <strong>
-          {when} kl. {fmtClock(block.time)}
-        </strong>{" "}
-        · {spot.shortName} ·{" "}
-        {spot.fixedSide ? (
-          <>
-            surfes på <strong>{block.side}siden</strong>
-          </>
-        ) : (
-          <>
-            læ på <strong>{block.side}siden</strong>
-          </>
-        )}
-        {spot.uncalibrated && <span className="uncal-inline"> · UKALIBRERET</span>}
-      </p>
-      <p className="verdict-score">
-        <span style={{ color }}>{fmt(block.score)}</span>
-        <span className="muted"> / 10</span>
-      </p>
+    <section className="hero" style={{ "--band": color } as CSSProperties}>
+      {eyebrow}
+      <div className="hero-row">
+        <div className="hero-main">
+          <h1 className="hero-label" style={{ color }}>
+            {scoreLabel(block.score)}
+          </h1>
+          <div className="hero-spot">
+            {spot.shortName}
+            {spot.uncalibrated && <span className="uncal-inline"> · ukalibreret</span>}
+          </div>
+          <div className="hero-when">
+            <strong>
+              {cap(relativeDayLabel(block.time))} kl. {fmtClock(block.time)}
+            </strong>
+            {" · "}
+            {spot.fixedSide ? "surfes på" : "læ på"} {block.side}siden
+          </div>
+          <div className="hero-sub">
+            {fmt(r.hs)} m / {fmt(r.tp)} s · vind {compass(r.wdir)} {fmt(r.wspd, 0)} m/s
+          </div>
+        </div>
+        <div className="hero-score">
+          <div className="n" style={{ color }}>
+            {fmt(block.score)}
+          </div>
+          <div className="d">af 10</div>
+        </div>
+      </div>
     </section>
   );
 }
