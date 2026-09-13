@@ -204,7 +204,7 @@ export function NowScreen() {
         </p>
         <p>
           Blokke uden mindst én times dagslys (solopgang/-nedgang beregnes for hver dag) er
-          sorteret fra — også i 7-døgns-dommen nedenfor.
+          sorteret fra — også i dommen nedenfor.
         </p>
       </Info>
 
@@ -213,8 +213,9 @@ export function NowScreen() {
       <Info q="Hvad betyder dommen?">
         <p>
           Dommen er appens svar på hovedspørgsmålet: <strong>hvornår skal du køre derud, og til
-          hvilken mole.</strong> Den finder det bedste 3-timers tidsrum i de næste 7 døgn på tværs
-          af alle spots.
+          hvilken mole.</strong> Den finder det bedste 3-timers tidsrum i dagslys i dag og i morgen
+          på tværs af alle spots — altså listens øverste række, nu med mole og side. Vil du længere
+          frem i ugen, er det søjlerne nedenfor.
         </p>
         <p>
           <strong>"Læ på nordsiden"</strong> betyder: gå i vandet på nordsiden af høfden — det er

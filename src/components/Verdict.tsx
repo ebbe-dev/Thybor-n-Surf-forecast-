@@ -1,8 +1,9 @@
-// Dommen: bedste kommende blok — dag, klokkeslæt, mole, side.
+// Dommen: bedste kommende blok i dag eller i morgen (samme horisont som
+// forsidelisten) — dag, klokkeslæt, mole, side.
 
 import type { VerdictPick } from "../lib/blocks";
 import { scoreColor, scoreLabel } from "../lib/colors";
-import { dayName, fmtClock, isToday } from "../lib/time";
+import { fmtClock, relativeDayLabel } from "../lib/time";
 import { fmt } from "../lib/format";
 
 export function Verdict({ pick }: { pick: VerdictPick | null }) {
@@ -15,7 +16,7 @@ export function Verdict({ pick }: { pick: VerdictPick | null }) {
   }
   const { spot, block } = pick;
   const color = scoreColor(block.score);
-  const when = isToday(block.time) ? "i dag" : dayName(block.time);
+  const when = relativeDayLabel(block.time);
   return (
     <section className="verdict" style={{ borderColor: color }}>
       <h1 className="verdict-label" style={{ color }}>
