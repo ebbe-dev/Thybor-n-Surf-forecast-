@@ -17,12 +17,11 @@ import { ScreenHeader } from "../components/ScreenHeader";
 import { WindArrow } from "../components/WindArrow";
 import type { Row } from "../model/model";
 
-// Mørke fliser fra CARTO (gratis med kildeangivelse), så kortet har
-// appens tone og scorefarverne står frem.
-const TILE_URL = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
-const TILE_ATTR =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> ' +
-  '&copy; <a href="https://carto.com/attributions">CARTO</a>';
+// OpenStreetMaps egne fliser, gjort mørke med et CSS-filter på flise-
+// laget (styles.css, .leaflet-tile-pane). Ingen nøgle, ingen tredjepart:
+// CARTO's mørke fliser kræver API-nøgle (opdaget 14/09/2026).
+const TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+const TILE_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
 
 // Vandfarve efter bølgehøjde — blå (småt) mod hvidligt skum (stort).
 // Egen skala, adskilt fra scorefarverne (samme farve = samme betydning
@@ -191,7 +190,7 @@ export function MapScreen() {
       ]).pad(0.1)
     );
 
-    L.tileLayer(TILE_URL, { subdomains: "abcd", maxZoom: 19, attribution: TILE_ATTR }).addTo(map);
+    L.tileLayer(TILE_URL, { maxZoom: 19, attribution: TILE_ATTR }).addTo(map);
 
     for (const a of AREAS) {
       const anchor = anchors.get(a.id);

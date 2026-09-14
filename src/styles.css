@@ -849,6 +849,14 @@ input[type="range"] {
   min-height: 0;
   background: var(--surf);
 }
+/* OSM-fliserne er lyse; inverteret + drejet 180° bliver land mørkegråt,
+   vand mørk teal, veje mørke streger og tekst lys. Lav kontrast løfter
+   det sorte, så kysten kan ses. Kun flise-laget filtreres, så nåle og
+   pletter beholder deres farver. Målt i Chromium: land ≈ #282724,
+   vand ≈ #354b51, tekst ≈ #e5e5e5. */
+.leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(1.02) contrast(0.82) saturate(0.6);
+}
 /* Leaflets kontroller i appens farver */
 .leaflet-bar {
   border: none !important;
