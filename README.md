@@ -50,8 +50,9 @@ Hierarki via flader og runde hjørner, ikke via kanter:
   tallet altid kan læses.
 - **Chips** (`SpotChips`) til spot-valg på NU, HISTORIK og LOG.
 - **Én ?-knap pr. skærm** (`ScreenHeader`) folder forklaringerne ud.
-- Kortet kører på CARTO's mørke fliser (gratis med kildeangivelse, som
-  vises på kortet). Spot-navne vises fra zoom 12.
+- Kortet kører på OpenStreetMaps fliser, gjort mørke med et CSS-filter på
+  flise-laget (CARTO's mørke fliser kræver API-nøgle). Spot-navne vises
+  fra zoom 12.
 
 ## Arkitektur
 
