@@ -14,6 +14,7 @@ import {
   SPOTS,
   AREAS,
   effectiveGeometry,
+  configGeometry,
   confirmOnMap,
   type Spot,
   type SpotGeometry
@@ -368,9 +369,14 @@ export function MapScreen({ checkSpotId, onCheckDone }: Props) {
       markersRef.current.set(spot.id, marker);
     }
     updateNames();
+    // Toppen skifter højde (skyder ↔ tjek-panel), og Leaflet lytter kun på
+    // vinduet — så fortæl den selv, når beholderen ændrer størrelse.
+    const ro = new ResizeObserver(() => map.invalidateSize({ animate: false }));
+    ro.observe(mapEl.current);
     mapRef.current = map;
     setMapReady(true);
     return () => {
+      ro.disconnect();
       map.remove();
       mapRef.current = null;
       markersRef.current.clear();
@@ -546,7 +552,13 @@ export function MapScreen({ checkSpotId, onCheckDone }: Props) {
             spot={checkSpot}
             geo={check}
             movedM={distanceM(effectiveGeometry(checkSpot), check)}
+            isAppValue={
+              check.lat === checkSpot.lat &&
+              check.lon === checkSpot.lon &&
+              check.normal === checkSpot.shoreNormal
+            }
             onTurn={(d) => setCheck((c) => (c ? { ...c, normal: normalizeDeg(c.normal + d) } : c))}
+            onReset={() => setCheck(configGeometry(checkSpot))}
             onConfirm={() => {
               confirmOnMap(checkSpot, check);
               onCheckDone();

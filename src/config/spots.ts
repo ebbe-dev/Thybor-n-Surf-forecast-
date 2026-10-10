@@ -15,7 +15,8 @@ export interface Spot {
   // Spottet surfes kun på denne side af høfden/molen (se model.ts,
   // SIDE_SHELTER/SIDE_MISMATCH).
   fixedSide?: "nord" | "syd";
-  // Orienteringen kan overstyres i UI'et (gemmes i localStorage).
+  // Retningen er et gæt: NU siger det, til den er tjekket på kortet.
+  // (Sted og retning kan tjekkes og rettes på kortet for ALLE spots.)
   adjustableNormal?: boolean;
   uncalibrated?: boolean; // vis "ukalibreret" i UI'et
   warning?: string; // fast advarsel, vises altid på spottet
@@ -161,15 +162,13 @@ const NORMAL_KEY = "bygtangen.normal.";
 const POS_KEY = "bygtangen.pos.";
 const CHECKED_KEY = "bygtangen.checked.";
 
-// Effektiv kystnormal: brugerens indstilling hvis spottet er justerbart,
-// ellers configværdien.
+// Effektiv kystnormal: brugerens rettelse fra kortet, hvis der er én,
+// ellers configværdien. Gælder alle spots (indtil 10/10 kun gætte-spots).
 export function effectiveNormal(spot: Spot): number {
-  if (spot.adjustableNormal) {
-    const v = localStorage.getItem(NORMAL_KEY + spot.id);
-    if (v !== null) {
-      const n = Number(v);
-      if (Number.isFinite(n) && n >= 0 && n < 360) return n;
-    }
+  const v = localStorage.getItem(NORMAL_KEY + spot.id);
+  if (v !== null) {
+    const n = Number(v);
+    if (Number.isFinite(n) && n >= 0 && n < 360) return n;
   }
   return spot.shoreNormal;
 }
@@ -179,30 +178,39 @@ export function setNormal(spot: Spot, deg: number): void {
 }
 
 // Effektiv position: dér brugeren har trukket prikken hen på kortet, hvis
-// spottet er justerbart og prikken er flyttet; ellers configværdien.
-// Bruges kun af kortet (nål og høfder) — vejrpunkterne er pr. område.
+// den er flyttet; ellers configværdien. Bruges kun af kortet (nål og
+// høfder) — vejrpunkterne er pr. område.
 export function effectivePosition(spot: Spot): { lat: number; lon: number } {
-  if (spot.adjustableNormal) {
-    try {
-      const raw = localStorage.getItem(POS_KEY + spot.id);
-      if (raw) {
-        const p = JSON.parse(raw) as { lat?: unknown; lon?: unknown };
-        if (
-          typeof p.lat === "number" &&
-          typeof p.lon === "number" &&
-          Number.isFinite(p.lat) &&
-          Number.isFinite(p.lon) &&
-          Math.abs(p.lat) <= 90 &&
-          Math.abs(p.lon) <= 180
-        ) {
-          return { lat: p.lat, lon: p.lon };
-        }
+  try {
+    const raw = localStorage.getItem(POS_KEY + spot.id);
+    if (raw) {
+      const p = JSON.parse(raw) as { lat?: unknown; lon?: unknown };
+      if (
+        typeof p.lat === "number" &&
+        typeof p.lon === "number" &&
+        Number.isFinite(p.lat) &&
+        Number.isFinite(p.lon) &&
+        Math.abs(p.lat) <= 90 &&
+        Math.abs(p.lon) <= 180
+      ) {
+        return { lat: p.lat, lon: p.lon };
       }
-    } catch {
-      // ugyldig værdi i lageret → configværdien
     }
+  } catch {
+    // ugyldig værdi i lageret → configværdien
   }
   return { lat: spot.lat, lon: spot.lon };
+}
+
+// Appens egne værdier — det "Appens værdi" i tjek-panelet sætter tilbage til.
+export function configGeometry(spot: Spot): SpotGeometry {
+  return { lat: spot.lat, lon: spot.lon, normal: spot.shoreNormal };
+}
+
+// Er sted eller retning rettet i forhold til appens værdier?
+export function isOverridden(spot: Spot): boolean {
+  const g = effectiveGeometry(spot);
+  return g.lat !== spot.lat || g.lon !== spot.lon || g.normal !== spot.shoreNormal;
 }
 
 // Sted og retning samlet — det kortet tegner efter.

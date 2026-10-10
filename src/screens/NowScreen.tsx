@@ -5,7 +5,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useForecast } from "../hooks/useForecast";
-import { SPOTS, effectiveNormal, checkedOnMapAt, type Spot } from "../config/spots";
+import { SPOTS, effectiveNormal, checkedOnMapAt, isOverridden, type Spot } from "../config/spots";
 import {
   buildDays,
   rankSpots,
@@ -67,9 +67,13 @@ function NuHelp() {
           efterprøvet i virkeligheden. Tag deres tal med et gran salt.
         </p>
         <p>
-          Står der <strong>"et gæt"</strong> under ugens chips, er spottets retning gættet. Knappen{" "}
+          Linjen under ugens chips viser, hvilken vej spottet vender — den retning scoren regner
+          med. <strong>"Et gæt"</strong> betyder, at retningen aldrig er efterprøvet;{" "}
+          <strong>"appens værdi"</strong> at den er sat i appen. Knappen{" "}
           <strong>Tjek på kortet</strong> zoomer ind på spottet, så du kan trække prik og pil på
-          plads og bekræfte sted og retning. Scoren regner med den nye retning med det samme.
+          plads og bekræfte sted og retning. Er spottet bekræftet, hedder knappen{" "}
+          <strong>Ret på kortet</strong> og åbner tjekket igen, og panelet kan sætte tilbage til
+          appens værdi. Scoren regner med den nye retning med det samme.
         </p>
       </Info>
       <Info q="Hvordan læser jeg listen?">
@@ -137,26 +141,28 @@ function fmtDayMonth(iso: string): string {
   return `${d.getDate()}/${d.getMonth() + 1}`;
 }
 
-// Sted og retning for de spots, hvor retningen er et gæt: én linje med
-// status og en knap, der åbner kortet zoomet ind på spottet (App skifter
-// fane). Dér trækkes prik og pil på plads, og bekræftelsen gemmes på
-// telefonen (config/spots.ts) — så står der "bekræftet" her i stedet.
+// Sted og retning for spottet: én linje med retningen og dens status, og
+// en knap, der åbner kortet zoomet ind på spottet (App skifter fane). Dér
+// trækkes prik og pil på plads, og bekræftelsen gemmes på telefonen
+// (config/spots.ts). Findes på alle spots, og kan altid åbnes igen —
+// retningen er det, scoren regner med.
 function SpotCheck({ spot, onCheck }: { spot: Spot; onCheck: () => void }) {
   const current = effectiveNormal(spot);
   const checked = checkedOnMapAt(spot);
+  const status = checked
+    ? ` · bekræftet på kortet ${fmtDayMonth(checked)}${isOverridden(spot) ? ", rettet" : ""}`
+    : spot.adjustableNormal
+      ? " · et gæt — tjek sted og retning på kortet"
+      : " · appens værdi";
   return (
     <div className="card normal-setting">
       <div className="normal-line">
         <span>
           Spottet vender mod <strong>{compass(current)} {current}°</strong>
-          <span className="muted">
-            {checked
-              ? ` · sted og retning bekræftet på kortet ${fmtDayMonth(checked)}`
-              : " · et gæt — tjek sted og retning på kortet"}
-          </span>
+          <span className="muted">{status}</span>
         </span>
         <button className="btn-ghost btn-sm" onClick={onCheck}>
-          {checked ? "Ret" : "Tjek på kortet"}
+          {checked ? "Ret på kortet" : "Tjek på kortet"}
         </button>
       </div>
     </div>
@@ -359,7 +365,7 @@ export function NowScreen({ initialSpotId, onCheckOnMap }: Props) {
       <SpotChips value={spot.id} onChange={setSpotId} />
 
       {spot.warning && <div className="warnbox">⚠ {spot.warning}</div>}
-      {spot.adjustableNormal && <SpotCheck spot={spot} onCheck={() => onCheckOnMap(spot.id)} />}
+      <SpotCheck spot={spot} onCheck={() => onCheckOnMap(spot.id)} />
 
       <Barograph
         days={days}

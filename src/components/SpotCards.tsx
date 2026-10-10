@@ -16,7 +16,8 @@ import { ScoreSparkline } from "./ScoreSparkline";
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const GAP = 10; // afstand mellem kortene — skal matche .spot-cards i styles.css
-const SETTLE_MS = 80; // et swipe meldes først, når rullet er faldet til ro
+const SETTLE_MS = 120; // et swipe meldes først, når rullet er faldet til ro
+const TRAVEL_MS = 1500; // så længe kan et rul sat i gang af listen højst vare
 
 interface Props {
   entries: VerdictPick[]; // rangeringen, bedste først
@@ -60,6 +61,9 @@ export function SpotCards({
 }: Props) {
   const scroller = useRef<HTMLDivElement>(null);
   const settleRef = useRef<number | null>(null);
+  // Et rul sat i gang af listen/chips er på vej til ét bestemt kort; de
+  // kort, det passerer undervejs, må ikke meldes som swipes.
+  const travelRef = useRef<{ target: number; until: number } | null>(null);
   const activeIdx = Math.max(
     0,
     entries.findIndex((e) => e.spot.id === selectedId)
@@ -83,6 +87,7 @@ export function SpotCards({
     const el = scroller.current;
     if (!el || entries.length === 0) return;
     if (indexAtScroll() === activeIdx) return;
+    travelRef.current = { target: activeIdx, until: Date.now() + TRAVEL_MS };
     el.scrollTo({ left: activeIdx * step(), behavior: "smooth" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId, activeIdx, entries]);
@@ -92,9 +97,19 @@ export function SpotCards({
     if (settleRef.current !== null) window.clearTimeout(settleRef.current);
     settleRef.current = window.setTimeout(() => {
       settleRef.current = null;
-      const e = entries[indexAtScroll()];
+      const i = indexAtScroll();
+      const travel = travelRef.current;
+      if (travel) {
+        if (i === travel.target || Date.now() > travel.until) travelRef.current = null;
+        else return; // stadig på vej til det kort, listen valgte
+      }
+      const e = entries[i];
       if (e && e.spot.id !== selectedId) onSelect(e.spot.id, e.block.time);
     }, SETTLE_MS);
+  };
+  // Rører brugeren skærmen, er det brugerens rul fra nu af.
+  const onPointerDown = () => {
+    travelRef.current = null;
   };
   useEffect(
     () => () => {
@@ -127,6 +142,7 @@ export function SpotCards({
         className={"spot-cards" + (entries.length === 1 ? " single" : "")}
         ref={scroller}
         onScroll={onScroll}
+        onPointerDown={onPointerDown}
         aria-label="spots efter bedste vindue — swipe for det næste"
       >
         {entries.map(({ spot, block }, i) => {

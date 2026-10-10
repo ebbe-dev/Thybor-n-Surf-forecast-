@@ -25,11 +25,12 @@ npm run preview    # server dist/
 2. **KORT** — Leaflet, fem bekræftede spots, tidsskyder, score-tal på markører. ✅
    Afspil-knappen ved klokkeslættet spoler selv én time frem hvert 2. sekund;
    andet og tredje tryk sætter farten op (2× og 4×), fjerde tryk holder pause.
-   **Tjek på kortet** (knappen på NU for spots, hvor retningen er et gæt) zoomer
-   ind på spottet: prikken og pilespidsen trækkes på plads, og "Bekræft" gemmer
+   **Tjek på kortet** (knappen under ugens chips på NU, alle spots) zoomer ind
+   på spottet: prikken og pilespidsen trækkes på plads, og "Bekræft" gemmer
    sted, retning og tidspunkt i localStorage (`bygtangen.pos.*`,
-   `bygtangen.normal.*`, `bygtangen.checked.*`). Kortet tegner nåle og høfder
-   efter det bekræftede sted; scoren regner med den bekræftede retning.
+   `bygtangen.normal.*`, `bygtangen.checked.*`). "Ret på kortet" åbner tjekket
+   igen, og panelet kan sætte tilbage til appens værdi. Kortet tegner nåle og
+   høfder efter det bekræftede sted; scoren regner med den bekræftede retning.
 3. **HISTORIK** — kalender-heatmap (12 mdr.), vindrose, fordeling, dags-timeline
    med session-markering. Kildens reelle dækning vises i UI'et; huller står tomme. ✅
 4. **LOG** — lokal session-log med forecast-snapshot, løbende afvigelses-snit
