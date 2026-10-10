@@ -1066,34 +1066,77 @@ input[type="range"] {
   text-shadow: 0 0 3px #000, 0 0 6px #000, 0 1px 2px #000;
   white-space: nowrap;
 }
-/* vejr-skiltet ved områdets måleplet: vind og bølger med retning og tal */
-.rose-wrap {
+/* vejr-skiltet pr. område: ét objekt — kort i popup-stil, stilk og måleprik */
+.sign-wrap {
   background: none;
   border: none;
 }
-.rose {
-  display: inline-flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 4px 9px 4px 6px;
-  border-radius: 10px;
-  background: rgba(11, 25, 23, 0.8);
-  border: 1px solid var(--line2);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-}
-.rose-row {
+.sign {
+  position: relative;
+  width: 190px; /* SIGN_W + SIGN_STEM + SIGN_DOT i MapScreen.tsx */
+  height: 80px;
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 12px;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+.sign-card {
+  width: 164px;
+  background: var(--surf2);
+  border: 1px solid var(--line2);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+  padding: 6px 10px 7px;
+}
+.sign-eyebrow {
+  font-size: 9.5px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 700;
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sign-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
   font-weight: 800;
   color: var(--fg);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+  line-height: 1.4;
 }
-.rose-row svg {
+.sign-row svg {
   display: block;
   flex: 0 0 auto;
+}
+.sign-none {
+  font-weight: 600;
+  color: var(--muted);
+}
+.sign-stem {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  width: 20px;
+  height: 2px;
+  margin-top: -1px;
+  background: var(--line2);
+}
+.sign-dot {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: var(--fg);
+  border: 2px solid var(--bg);
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.6);
 }
 /* vind- og bølgepile ved hvert spot, fra zoom 15 */
 .spot-arrows-wrap {

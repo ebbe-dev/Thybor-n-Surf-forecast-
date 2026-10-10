@@ -69,7 +69,9 @@ Hierarki via flader og runde hjørner, ikke via kanter:
 - **Én ?-knap pr. skærm** (`ScreenHeader`) folder forklaringerne ud.
 - Kortet kører på OpenStreetMaps fliser, gjort mørke med et CSS-filter på
   flise-laget (CARTO's mørke fliser kræver API-nøgle). Spot-navne vises
-  fra zoom 12.
+  fra zoom 12. Vejret står som ét skilt pr. område ud for kysten (navn, vind
+  og bølger til skyderens tidspunkt, hængende ud mod havet fra måleprikken),
+  og fra zoom 15 som pile ved hvert spot.
 
 ## Arkitektur
 
