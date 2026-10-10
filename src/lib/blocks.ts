@@ -3,7 +3,7 @@
 // Dommen er toppen af den rangering — aldrig noget listen ikke viser.
 
 import type { CachedForecast } from "./storage";
-import { scoreSpot, moleSide, type Row } from "../model/model";
+import { scoreSpot, leeSide, isOffshoreWind, type Row } from "../model/model";
 import { effectiveNormal, type Spot } from "../config/spots";
 import { BLOCK_HOURS, dateOf, hourOf, nextDate } from "./time";
 import { adjustedScore } from "./calibration";
@@ -14,6 +14,15 @@ export interface Block {
   row: Row;
   score: number;
   side: "nord" | "syd";
+}
+
+// Ordene for læet — de samme på dommen, i listen, på kortet og under
+// tallene: enkeltsidede spots surfes på deres side; fralandsvind giver læ
+// overalt; ellers er det høfdens læside.
+export function leeCaption(spot: Spot, b: Block): string {
+  if (spot.fixedSide) return `surfes på ${b.side}siden`;
+  if (isOffshoreWind(b.row.wdir, effectiveNormal(spot))) return "fralandsvind · læ overalt";
+  return `læ på ${b.side}siden`;
 }
 
 export interface Day {
@@ -37,7 +46,7 @@ export function hourlyBlocks(f: CachedForecast, spot: Spot): Map<string, Block> 
         spot.id
       ),
       // enkeltsidede spots viser altid deres side; ellers vind-læsiden
-      side: spot.fixedSide ?? moleSide(row.wdir)
+      side: spot.fixedSide ?? leeSide(row.wdir, normal)
     });
   }
   return m;

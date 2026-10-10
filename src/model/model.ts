@@ -90,6 +90,9 @@ export function windQuality(
 export const SIDE_SHELTER_MIN = 0.75;
 export const SIDE_MISMATCH = 0.5;
 export const SIDE_SHELTER_MAX_WIND = 12;
+// Kommer vinden fra land (inden for denne vinkel fra offshore), er hele
+// kysten i læ, og høfdens side er ligegyldig: hverken løft eller straf.
+export const OFFSHORE_SIDE_DEADZONE = 45;
 
 export interface SpotOpts {
   offshore?: number; // se windQuality
@@ -101,8 +104,8 @@ export interface SpotOpts {
 export function scoreSpot(r: Row, normal = SHORE_NORMAL, opts?: SpotOpts): number {
   const e = energy(r.hs, r.tp, r.swdir, normal);
   let wq = windQuality(r.wdir, r.wspd, normal, opts?.offshore ?? (normal + 180) % 360);
-  if (opts?.fixedSide) {
-    if (moleSide(r.wdir) === opts.fixedSide) {
+  if (opts?.fixedSide && !isOffshoreWind(r.wdir, normal)) {
+    if (leeSide(r.wdir, normal) === opts.fixedSide) {
       if (r.wspd <= SIDE_SHELTER_MAX_WIND) wq = Math.max(wq, SIDE_SHELTER_MIN);
     } else {
       wq = wq * SIDE_MISMATCH;
@@ -116,6 +119,27 @@ export function scoreSpot(r: Row, normal = SHORE_NORMAL, opts?: SpotOpts): numbe
 
 export const scoreWest = (r: Row) => scoreSpot(r, SHORE_NORMAL);
 
-// Hvilken side af høfden ligger i læ
-export const moleSide = (wdir: number): "nord" | "syd" =>
-  wdir > 135 && wdir < 315 ? "nord" : "syd";
+// Høfdens nordside: den af høfdens to sider, der vender nærmest nord.
+// Høfden peger ud langs spottets retning (normal), så siderne vender mod
+// normal ± 90°.
+export function northSideDir(normal: number): number {
+  const a = (normal + 90) % 360;
+  const b = (normal + 270) % 360;
+  return angDiff(a, 0) <= angDiff(b, 0) ? a : b;
+}
+
+// Hvilken side af høfden ligger i læ: den side, vinden IKKE kommer ind på.
+// Kommer vinden fra nordsidens halvplan, er læet på sydsiden — og omvendt.
+// Regnet ud fra spottets egen retning. (Til 10/10 var det ét fast vindue,
+// 135–315° = nord, for alle spots; det lagde læet på nordsiden ved vind fra
+// NV, hvor den i virkeligheden rammer nordsiden.) Tegningen og kortet
+// bruger samme geometri, så det, der står, er det, der vises.
+export function leeSide(wdir: number, normal: number): "nord" | "syd" {
+  return angDiff(wdir, northSideDir(normal)) < 90 ? "syd" : "nord";
+}
+
+// Fralandsvind: inden for dødzonen fra offshore. Så er hele kysten i læ,
+// og høfdens side er uden betydning — både for scoren og for teksten.
+export function isOffshoreWind(wdir: number, normal: number): boolean {
+  return angDiff(wdir, normal + 180) <= OFFSHORE_SIDE_DEADZONE;
+}

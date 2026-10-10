@@ -11,6 +11,7 @@ import {
   rankSpots,
   hourlyBlocks,
   horizonDates,
+  leeCaption,
   nowLocalIso,
   type Block,
   type HorizonDays
@@ -127,8 +128,13 @@ function NuHelp() {
           scoren.
         </p>
         <p>
-          <strong>Tegningen</strong> er en høfde set fra oven (nord er op). Den lange streg er
-          selve høfden, det skraverede felt er læsiden, der hvor du går i, og pilen viser vinden.
+          <strong>Tegningen</strong> er høfden set fra oven, nord er op. Det mørke er land, den lyse
+          streg er høfden, og N og S står på dens to sider. Pilen <strong>VIND</strong> kommer ind
+          fra den vej, vinden blæser fra (tallet er m/s); de stiplede pile er bølgerne. Det lyse
+          felt mærket <strong>LÆ</strong> er høfdens vindskygge: der er vandet glattest, og det er
+          den side, teksten mener med "læ på nordsiden". Blæser vinden lige ind på kysten eller
+          lige ud fra land, bliver feltet smalt — så giver høfden ingen læ. Samme felt ligger på
+          kortet.
         </p>
       </Info>
     </>
@@ -227,12 +233,10 @@ function BlockDetail({ block, spot }: { block: Block; spot: Spot }) {
             normal={effectiveNormal(spot)}
             wdir={r.wdir}
             wspd={r.wspd}
+            swdir={r.swdir}
             side={block.side}
-            compact
           />
-          <div className="plan-cap">
-            {spot.fixedSide ? "surfes på" : "læ på"} {block.side}siden
-          </div>
+          <div className="plan-cap">{leeCaption(spot, block)}</div>
         </div>
       </div>
     </section>

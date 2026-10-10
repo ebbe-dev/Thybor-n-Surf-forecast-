@@ -73,3 +73,28 @@ export function groyneLines(
   }
   return lines;
 }
+
+// Høfdens læ (vindskyggen) på kortet: feltet bag høfden, set fra vinden —
+// fra kysten ved prikken ud til høfdens spids, og derfra med vinden
+// LEE_SHADOW_FACTOR × høfdens længde. Blæser vinden langs høfden (lige ind
+// eller lige ud), bliver feltet smalt: så giver høfden ingen læ. Samme
+// geometri som tegningen på NU (components/GroynePlan.tsx).
+export const LEE_SHADOW_FACTOR = 0.8;
+
+export function leeShadowLatLngs(
+  geo: SpotGeometry,
+  g: Groynes,
+  wdir: number
+): [number, number][] {
+  const downwind = wdir + 180;
+  const len = g.lengthM * LEE_SHADOW_FACTOR;
+  const shore: [number, number] = [geo.lat, geo.lon];
+  const tip = dest(geo.lat, geo.lon, geo.normal, g.lengthM);
+  const tipDown = dest(tip[0], tip[1], downwind, len);
+  // kystpunktet med vinden — men aldrig ind over land: komposanten ind mod
+  // land fjernes, så punktet lander på kystlinjen
+  let shoreDown = dest(geo.lat, geo.lon, downwind, len);
+  const seaward = len * Math.cos(((downwind - geo.normal) * Math.PI) / 180);
+  if (seaward < 0) shoreDown = dest(shoreDown[0], shoreDown[1], geo.normal, -seaward);
+  return [shore, tip, tipDown, shoreDown];
+}

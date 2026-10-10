@@ -31,6 +31,9 @@ npm run preview    # server dist/
    `bygtangen.normal.*`, `bygtangen.checked.*`). "Ret på kortet" åbner tjekket
    igen, og panelet kan sætte tilbage til appens værdi. Kortet tegner nåle og
    høfder efter det bekræftede sted; scoren regner med den bekræftede retning.
+   Høfdens **læ** (vindskyggen bag den, `leeShadowLatLngs`) ligger på kortet
+   til det valgte tidspunkt og i tegningen under tallene på NU; læsiden regnes
+   geometrisk af spottets retning (`leeSide` i `model.ts`).
 3. **HISTORIK** — kalender-heatmap (12 mdr.), vindrose, fordeling, dags-timeline
    med session-markering. Kildens reelle dækning vises i UI'et; huller står tomme. ✅
 4. **LOG** — lokal session-log med forecast-snapshot, løbende afvigelses-snit

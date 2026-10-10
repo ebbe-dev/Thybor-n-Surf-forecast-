@@ -19,11 +19,18 @@ import {
   type Spot,
   type SpotGeometry
 } from "../config/spots";
-import { hourlyBlocks, nowLocalIso, type Block } from "../lib/blocks";
+import { hourlyBlocks, leeCaption, nowLocalIso, type Block } from "../lib/blocks";
 import { scoreColor, scoreLabel, scoreTextColor, BG, FG, MUTED } from "../lib/colors";
 import { fmtDayLabel, fmtClock } from "../lib/time";
 import { fmt, compass } from "../lib/format";
-import { bearingOnScreen, distanceM, groyneLines, normalizeDeg, pointAt } from "../lib/geo";
+import {
+  bearingOnScreen,
+  distanceM,
+  groyneLines,
+  leeShadowLatLngs,
+  normalizeDeg,
+  pointAt
+} from "../lib/geo";
 import { Info } from "../components/Info";
 import { ScreenHeader } from "../components/ScreenHeader";
 import { WindArrow } from "../components/WindArrow";
@@ -103,7 +110,7 @@ function popupHtml(spot: Spot, block: Block | null): string {
     `<strong>${name}</strong><br>` +
     `<span style="font-size:20px;font-weight:800;color:${scoreColor(b.score)}">${fmt(b.score)}</span>` +
     ` — ${scoreLabel(b.score)}<br>` +
-    `${spot.fixedSide ? "surfes på" : "læ på"} ${b.side}siden · ${fmt(b.row.hs)} m / ${fmt(b.row.tp)} s`
+    `${leeCaption(spot, b)} · ${fmt(b.row.hs)} m / ${fmt(b.row.tp)} s`
   );
 }
 
@@ -185,7 +192,10 @@ function MapHelp() {
         <p>
           Linjen under skyderen viser vind og bølge pr. vejr-område til det valgte tidspunkt. En{" "}
           <strong>stiplet ring</strong> betyder ukalibreret spot. De små lyse streger er
-          høfderne. Kortudsnit, du har set, virker også uden net.
+          høfderne, og det <strong>lyse felt</strong> ved en høfde er dens læ: vindskyggen bag
+          den til det valgte tidspunkt (fra zoom 13 står der LÆ i det). Blæser vinden langs
+          høfden, bliver feltet smalt — så giver høfden ingen læ. Kortudsnit, du har set, virker
+          også uden net.
         </p>
       </Info>
       <Info q="Tjek sted og retning på kortet">
@@ -218,6 +228,7 @@ export function MapScreen({ checkSpotId, onCheckDone }: Props) {
   const [mapReady, setMapReady] = useState(false);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
   const groynesRef = useRef<Map<string, L.Polyline[]>>(new Map());
+  const leeRef = useRef<Map<string, L.Polygon>>(new Map()); // høfdens læ pr. spot
   const patchesRef = useRef<Map<string, { circle: L.Circle; arrows: L.Marker[] }>>(new Map());
 
   // Timescorer pr. spot + fælles timevis tidslinje (skyderen kører 1 time
@@ -306,10 +317,14 @@ export function MapScreen({ checkSpotId, onCheckDone }: Props) {
     const map = L.map(mapEl.current, { zoomControl: true, attributionControl: true });
 
     // Spot-navne kun når der er zoomet ind nok til, at de ikke ligger oven
-    // i hinanden (Thyborøn-spottene ligger inden for få km).
+    // i hinanden (Thyborøn-spottene ligger inden for få km); LÆ-mærket på
+    // læ-felterne et trin senere.
     const NAME_ZOOM = 12;
-    const updateNames = () =>
+    const LEE_ZOOM = 13;
+    const updateNames = () => {
       map.getContainer().classList.toggle("names-on", map.getZoom() >= NAME_ZOOM);
+      map.getContainer().classList.toggle("lee-on", map.getZoom() >= LEE_ZOOM);
+    };
     map.on("zoomend", updateNames);
 
     const geos = new Map<string, SpotGeometry>();
@@ -363,6 +378,22 @@ export function MapScreen({ checkSpotId, onCheckDone }: Props) {
 
     for (const spot of SPOTS) {
       const geo = geos.get(spot.id) as SpotGeometry;
+      // Læ-feltet lægges FØR høfderne, så stregerne tegnes ovenpå. Formen
+      // sættes af effekten nedenfor (den følger tidsskyderen).
+      if (spot.groynes) {
+        const lee = L.polygon([], {
+          className: "lee-shadow",
+          color: FG,
+          weight: 1.5,
+          opacity: 0.9,
+          dashArray: "4 4",
+          fillColor: FG,
+          fillOpacity: 0.26,
+          interactive: false
+        });
+        lee.bindTooltip("LÆ", { permanent: true, direction: "center", className: "lee-tip" });
+        leeRef.current.set(spot.id, lee);
+      }
       drawGroynes(map, groynesRef.current, spot, geo);
       const marker = L.marker([geo.lat, geo.lon], { icon: pinIcon(spot, null) }).addTo(map);
       marker.bindPopup("", { closeButton: false, offset: [0, -12] });
@@ -381,6 +412,7 @@ export function MapScreen({ checkSpotId, onCheckDone }: Props) {
       mapRef.current = null;
       markersRef.current.clear();
       groynesRef.current.clear();
+      leeRef.current.clear();
       patchesRef.current.clear();
       setMapReady(false);
     };
@@ -409,6 +441,27 @@ export function MapScreen({ checkSpotId, onCheckDone }: Props) {
         );
     }
   }, [forecast, time, mapReady]);
+
+  // Høfdernes læ følger tidsskyderen (vinden til det valgte tidspunkt) og
+  // under et tjek også den retning, der trækkes på. Uden vind for timen
+  // tages feltet af kortet — et felt uden grundlag er ikke læ.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || !forecast || !time) return;
+    for (const spot of SPOTS) {
+      const lee = leeRef.current.get(spot.id);
+      if (!lee || !spot.groynes) continue;
+      const row = forecast.areas[spot.area]?.rows.find((r) => r.time === time);
+      if (!row) {
+        if (map.hasLayer(lee)) lee.remove();
+        continue;
+      }
+      const geo = checkSpot && check && checkSpot.id === spot.id ? check : effectiveGeometry(spot);
+      lee.setLatLngs(leeShadowLatLngs(geo, spot.groynes, row.wdir));
+      if (!map.hasLayer(lee)) lee.addTo(map);
+      lee.getTooltip()?.setLatLng(lee.getCenter());
+    }
+  }, [forecast, time, mapReady, check, checkSpot]);
 
   // Nåle og popups følger tidsskyderen (og ringen følger tjekket)
   useEffect(() => {
