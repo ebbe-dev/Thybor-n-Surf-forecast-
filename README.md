@@ -20,7 +20,8 @@ npm run preview    # server dist/
 
 1. **NU** — dom, 7-døgns barograf, blokdetalje + høfde-planview, offline-cache. ✅
 2. **KORT** — Leaflet, fem bekræftede spots, tidsskyder, score-tal på markører. ✅
-   Afspil-knappen ved klokkeslættet spoler selv én time frem hvert 2. sekund.
+   Afspil-knappen ved klokkeslættet spoler selv én time frem hvert 2. sekund;
+   andet og tredje tryk sætter farten op (2× og 4×), fjerde tryk holder pause.
    **Tjek på kortet** (knappen på NU for spots, hvor retningen er et gæt) zoomer
    ind på spottet: prikken og pilespidsen trækkes på plads, og "Bekræft" gemmer
    sted, retning og tidspunkt i localStorage (`bygtangen.pos.*`,

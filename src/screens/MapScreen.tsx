@@ -1,8 +1,8 @@
 // KORT: Leaflet over tangen på mørke fliser. Nål pr. spot (farvet prik
 // med score + navn) til det valgte tidspunkt, høfderne som streger
 // vinkelret på kysten, målings-pletter i vandet, og en tidsskyder øverst,
-// der scrubber time for time gennem 14 døgn — eller afspiller sig selv,
-// én time hvert andet sekund.
+// der scrubber time for time gennem 14 døgn — eller afspiller sig selv:
+// én time hvert andet sekund, eller hurtigere for hvert tryk.
 // "Tjek på kortet" (knappen på NU) zoomer ind på ét spot, så sted og
 // retning kan bekræftes ved at trække i prikken og i pilespidsen.
 
@@ -35,8 +35,11 @@ import type { Row } from "../model/model";
 const TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 const TILE_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
 
-// Afspilning: skyderen rykker én time frem med dette mellemrum.
-export const PLAY_STEP_MS = 2000;
+// Afspilning: ms pr. time for hvert tryk på knappen. Første tryk starter
+// i det rolige tempo, de næste to sætter farten op, og det fjerde holder
+// pause igen.
+export const PLAY_STEPS_MS = [2000, 1000, 500] as const;
+const PLAY_LABELS = ["1×", "2×", "4×"] as const;
 
 // Tjek på kortet: zoom ind hertil, og pilens og kystlinjens længde på
 // skærmen — i pixels uanset zoom, så pilespidsen altid kan nås.
@@ -143,13 +146,8 @@ function WaveArrow({ deg, size = 18 }: { deg: number; size?: number }) {
   );
 }
 
-function PlayIcon({ playing }: { playing: boolean }) {
-  return playing ? (
-    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-      <rect x="3" y="2" width="4" height="12" rx="1" fill="currentColor" />
-      <rect x="9" y="2" width="4" height="12" rx="1" fill="currentColor" />
-    </svg>
-  ) : (
+function PlayIcon() {
+  return (
     <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
       <path d="M4.5 2.5 L13.5 8 L4.5 13.5 Z" fill="currentColor" />
     </svg>
@@ -167,9 +165,10 @@ function MapHelp() {
           står stille.
         </p>
         <p>
-          <strong>Afspil-knappen</strong> ved klokkeslættet spoler selv: én time frem hvert andet
-          sekund, til tidslinjen slutter. Tryk igen for pause. Skyderen og pilene virker stadig
-          imens, og er du nået til enden, starter den forfra fra nu.
+          <strong>Afspil-knappen</strong> ved klokkeslættet spoler selv: ét tryk giver én time
+          frem hvert andet sekund, andet og tredje tryk sætter farten op (2× og 4×), og fjerde
+          tryk holder pause. Knappen viser farten. Skyderen og pilene virker stadig imens, den
+          stopper selv ved enden af tidslinjen, og er du nået dertil, starter den forfra fra nu.
         </p>
         <p>
           <strong>Tallet i prikken</strong> er spottets score (0–10) på det valgte tidspunkt,
@@ -268,28 +267,35 @@ export function MapScreen({ checkSpotId, onCheckDone }: Props) {
     layoutRef.current?.();
   }, [check]);
 
-  // ---- Afspilning: én time frem hvert andet sekund, stopper ved enden.
-  const [playing, setPlaying] = useState(false);
+  // ---- Afspilning: trin i PLAY_STEPS_MS (-1 = pause). Stopper ved enden.
+  const [playStep, setPlayStep] = useState(-1);
+  const playing = playStep >= 0;
   const atEnd = idx >= timeline.length - 1;
   useEffect(() => {
     if (!playing || checkSpot) return;
     const id = window.setInterval(
       () => setIdx((i) => Math.min(timeline.length - 1, i + 1)),
-      PLAY_STEP_MS
+      PLAY_STEPS_MS[playStep]
     );
     return () => window.clearInterval(id);
-  }, [playing, checkSpot, timeline.length]);
+  }, [playing, playStep, checkSpot, timeline.length]);
   useEffect(() => {
-    if (playing && atEnd) setPlaying(false);
+    if (playing && atEnd) setPlayStep(-1);
   }, [playing, atEnd]);
-  const togglePlay = () => {
-    if (playing) {
-      setPlaying(false);
+  // Ét tryk: afspil. Andet og tredje: hurtigere. Fjerde: pause.
+  const cyclePlay = () => {
+    if (playStep >= PLAY_STEPS_MS.length - 1) {
+      setPlayStep(-1);
       return;
     }
-    if (atEnd) setIdx(indexOfNow(timeline)); // forfra fra nu
-    setPlaying(true);
+    if (!playing && atEnd) setIdx(indexOfNow(timeline)); // forfra fra nu
+    setPlayStep((s) => s + 1);
   };
+  const playLabel = !playing
+    ? "afspil, én time frem hvert andet sekund"
+    : playStep < PLAY_STEPS_MS.length - 1
+      ? `hurtigere, nu ${PLAY_LABELS[playStep]}`
+      : "pause";
 
   // Kortet oprettes én gang — når der er et element at sætte det i (uden
   // cache findes elementet først, når forecasten er hentet).
@@ -561,12 +567,12 @@ export function MapScreen({ checkSpotId, onCheckDone }: Props) {
               </span>
               <button
                 className={"play-btn" + (playing ? " on" : "")}
-                onClick={togglePlay}
+                onClick={cyclePlay}
                 disabled={timeline.length < 2}
                 aria-pressed={playing}
-                aria-label={playing ? "pause" : "afspil, én time frem hvert andet sekund"}
+                aria-label={playLabel}
               >
-                <PlayIcon playing={playing} />
+                {playing ? <span className="play-speed">{PLAY_LABELS[playStep]}</span> : <PlayIcon />}
               </button>
             </div>
             <div className="slider-row">

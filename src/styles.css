@@ -778,6 +778,11 @@ textarea {
 .play-btn svg {
   display: block;
 }
+.play-speed {
+  font-size: 13px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
 .play-btn.on {
   background: var(--fg);
   color: var(--bg);
