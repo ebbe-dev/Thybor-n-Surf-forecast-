@@ -29,6 +29,7 @@ import {
   bearingOnScreen,
   distanceM,
   groyneLines,
+  groyneRoot,
   leeShadowLatLngs,
   normalizeDeg,
   pointAt
@@ -248,11 +249,12 @@ function MapHelp() {
       </Info>
       <Info q="Tjek sted og retning på kortet">
         <p>
-          De spots, hvor retningen er et gæt, har på NU knappen{" "}
-          <strong>Tjek på kortet</strong>. Den zoomer ind på spottet: en ring om prikken, en pil,
-          der peger den vej spottet vender, og en stiplet streg langs kysten. Træk prikken hen
-          til stedet, og træk pilespidsen (eller brug − og +), til pilen peger ud mod havet og
-          stregen ligger langs kysten — og høfde-stregerne oven i de rigtige høfder.
+          Knappen <strong>Tjek på kortet</strong> på NU zoomer ind på spottet: en ring om
+          prikken, en pil, der peger den vej spottet vender, og en stiplet streg langs kysten.
+          <strong> Prikken skal stå på høfdens spids</strong>, den yderste ende — høfden tegnes
+          derfra ind mod land, og læet regnes af den. Træk pilespidsen (eller brug − og +), til
+          pilen peger ud mod havet og stregen ligger langs kysten — og høfde-stregerne oven i
+          de rigtige høfder.
         </p>
         <p>
           <strong>Bekræft</strong> gemmer sted og retning på telefonen, NU viser spottet som
@@ -557,14 +559,16 @@ export function MapScreen({ checkSpotId, onCheckDone }: Props) {
       if (!marker.getLatLng().equals(pin)) marker.setLatLng(pin);
       arrowsRef.current.get(spot.id)?.setLatLng(pin);
       const p = map.latLngToContainerPoint(pin);
-      const at = (bearing: number, px: number) => {
-        const q = pointAt(p, bearing, px);
+      const at = (from: L.Point, bearing: number, px: number) => {
+        const q = pointAt(from, bearing, px);
         return map.containerPointToLatLng(L.point(q.x, q.y));
       };
-      const tip = at(c.normal, CHECK_ARROW_PX);
+      const tip = at(p, c.normal, CHECK_ARROW_PX);
       shaftBack.setLatLngs([pin, tip]);
       shaft.setLatLngs([pin, tip]);
-      coast.setLatLngs([at(c.normal + 90, CHECK_COAST_PX), at(c.normal - 90, CHECK_COAST_PX)]);
+      // kystlinjen ligger ved høfdens rod — prikken står på spidsen
+      const shore = spot.groynes ? map.latLngToContainerPoint(groyneRoot(c, spot.groynes)) : p;
+      coast.setLatLngs([at(shore, c.normal + 90, CHECK_COAST_PX), at(shore, c.normal - 90, CHECK_COAST_PX)]);
       const svg = handle.getElement()?.querySelector("svg");
       if (svg) svg.style.transform = `rotate(${c.normal}deg)`;
       if (!handleDragRef.current) handle.setLatLng(tip);

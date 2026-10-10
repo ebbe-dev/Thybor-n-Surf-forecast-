@@ -58,9 +58,18 @@ export interface Groynes {
   lengthM: number;
 }
 
+// Prikken står på høfdens SPIDS — den yderste ende, den man kan se og sigte
+// efter på kortet — og høfden løber lengthM ind mod land. (Til 10/10 var
+// prikken høfdens rod ved kysten, og høfden blev tegnet 130 m ud i havet
+// fra den; med prikken på spidsen lå høfde og læ så ude bag en høfde, der
+// ikke var der.)
+export function groyneRoot(geo: SpotGeometry, g: Groynes): [number, number] {
+  return dest(geo.lat, geo.lon, geo.normal + 180, g.lengthM);
+}
+
 // Høfderækken: streger vinkelret på kysten (langs kystnormalen), fra 20 m
-// inde på land til lengthM ud i havet, spacingM fra hinanden og centreret
-// om spottet. Samme tegning som kortet altid har haft.
+// inde på stranden til spidsen, spacingM fra hinanden og centreret om
+// spottets høfde.
 export function groyneLines(
   geo: SpotGeometry,
   g: Groynes
@@ -68,8 +77,8 @@ export function groyneLines(
   const lines: [[number, number], [number, number]][] = [];
   const half = Math.floor(g.count / 2);
   for (let i = -half; i <= half; i++) {
-    const [la, lo] = dest(geo.lat, geo.lon, geo.normal + 90, i * g.spacingM);
-    lines.push([dest(la, lo, geo.normal + 180, 20), dest(la, lo, geo.normal, g.lengthM)]);
+    const tip = dest(geo.lat, geo.lon, geo.normal + 90, i * g.spacingM);
+    lines.push([dest(tip[0], tip[1], geo.normal + 180, g.lengthM + 20), tip]);
   }
   return lines;
 }
@@ -88,13 +97,13 @@ export function leeShadowLatLngs(
 ): [number, number][] {
   const downwind = wdir + 180;
   const len = g.lengthM * LEE_SHADOW_FACTOR;
-  const shore: [number, number] = [geo.lat, geo.lon];
-  const tip = dest(geo.lat, geo.lon, geo.normal, g.lengthM);
+  const tip: [number, number] = [geo.lat, geo.lon];
+  const root = groyneRoot(geo, g);
   const tipDown = dest(tip[0], tip[1], downwind, len);
-  // kystpunktet med vinden — men aldrig ind over land: komposanten ind mod
+  // rodpunktet med vinden — men aldrig ind over land: komposanten ind mod
   // land fjernes, så punktet lander på kystlinjen
-  let shoreDown = dest(geo.lat, geo.lon, downwind, len);
+  let rootDown = dest(root[0], root[1], downwind, len);
   const seaward = len * Math.cos(((downwind - geo.normal) * Math.PI) / 180);
-  if (seaward < 0) shoreDown = dest(shoreDown[0], shoreDown[1], geo.normal, -seaward);
-  return [shore, tip, tipDown, shoreDown];
+  if (seaward < 0) rootDown = dest(rootDown[0], rootDown[1], geo.normal, -seaward);
+  return [root, tip, tipDown, rootDown];
 }

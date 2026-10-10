@@ -52,9 +52,17 @@ export function CalibratePanel({
         {movedM >= 5 ? `Prikken er flyttet ${fmt(movedM, 0)} m` : "\u00a0"}
       </div>
       <p className="cal-hint">
-        Træk <strong>prikken</strong> hen til stedet. Træk <strong>pilespidsen</strong>, til pilen
-        peger ud mod havet og den stiplede streg ligger langs kysten
-        {spot.groynes ? " — de lyse streger skal ligge oven i høfderne" : ""}.
+        {spot.groynes ? (
+          <>
+            Træk <strong>prikken</strong> ud på høfdens spids, den yderste ende.
+          </>
+        ) : (
+          <>
+            Træk <strong>prikken</strong> hen, hvor du går i.
+          </>
+        )}{" "}
+        Træk <strong>pilespidsen</strong>, til pilen peger ud mod havet og den stiplede streg
+        ligger langs kysten{spot.groynes ? " — de lyse streger skal ligge oven i høfderne" : ""}.
       </p>
       <div className="cal-actions">
         <button className="btn" onClick={onConfirm}>

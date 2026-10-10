@@ -21,6 +21,8 @@ export interface Spot {
   uncalibrated?: boolean; // vis "ukalibreret" i UI'et
   warning?: string; // fast advarsel, vises altid på spottet
   // Tegn en høfderække på kortet: antal streger, afstand og længde i meter.
+  // Prikken (lat/lon) står på høfdens SPIDS; høfden løber lengthM ind mod
+  // land, og læet regnes af den (lib/geo.ts).
   groynes?: { count: number; spacingM: number; lengthM: number };
 }
 
