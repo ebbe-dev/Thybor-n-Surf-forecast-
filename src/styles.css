@@ -458,24 +458,9 @@ textarea {
   gap: 10px;
   min-height: 30px;
 }
-.normal-setting label {
-  display: block;
-  margin-top: 6px;
-}
-.normal-row {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-}
-.normal-row input {
-  width: 110px;
-  min-height: 46px;
-  background: var(--bg);
-  border: 1px solid var(--line2);
-  border-radius: var(--r-sm);
-  color: var(--fg);
-  font-size: 18px;
-  padding: 0 10px;
+.normal-line button {
+  flex: 0 0 auto;
+  white-space: nowrap; /* "Tjek på kortet" på én linje — teksten må ombrydes i stedet */
 }
 
 /* ---- knapper og felter ---- */
@@ -768,9 +753,39 @@ textarea {
   border-bottom: 1px solid var(--line);
 }
 .timeslider-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   font-size: 16px;
-  min-height: 20px;
-  margin-bottom: 6px;
+  min-height: 40px;
+  margin-bottom: 2px;
+}
+/* afspil: skyderen går selv én time frem hvert andet sekund */
+.play-btn {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--surf2);
+  border: 1px solid var(--line2);
+  color: var(--fg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.play-btn svg {
+  display: block;
+}
+.play-btn.on {
+  background: var(--fg);
+  color: var(--bg);
+  border-color: var(--fg);
+}
+.play-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
 }
 .slider-row {
   display: flex;
@@ -965,6 +980,65 @@ input[type="range"] {
 .wave-arrow {
   background: none;
   border: none;
+}
+/* tjek på kortet: panelet øverst, ring om prikken, pilespids der kan trækkes */
+.cal-panel {
+  padding: 2px 0 4px;
+}
+.cal-eyebrow {
+  font-size: 11px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.cal-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.cal-dir {
+  font-size: 16px;
+}
+.cal-dir strong {
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+.cal-steps {
+  display: flex;
+  gap: 6px;
+}
+.cal-hint {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.45;
+  margin: 6px 0 10px;
+}
+.cal-hint strong {
+  color: var(--fg);
+}
+.cal-actions {
+  display: flex;
+  gap: 8px;
+}
+.cal-actions .btn {
+  flex: 1;
+}
+.spot-dot.cal {
+  box-shadow:
+    0 0 0 3px var(--bg),
+    0 0 0 5px var(--fg),
+    0 1px 5px rgba(0, 0, 0, 0.55);
+}
+.cal-handle {
+  background: none;
+  border: none;
+}
+.cal-handle svg {
+  display: block;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.6));
 }
 
 /* ---- historik ---- */

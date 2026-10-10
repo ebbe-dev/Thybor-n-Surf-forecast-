@@ -158,6 +158,8 @@ export const SPOTS: Spot[] = [
 ];
 
 const NORMAL_KEY = "bygtangen.normal.";
+const POS_KEY = "bygtangen.pos.";
+const CHECKED_KEY = "bygtangen.checked.";
 
 // Effektiv kystnormal: brugerens indstilling hvis spottet er justerbart,
 // ellers configværdien.
@@ -174,4 +176,57 @@ export function effectiveNormal(spot: Spot): number {
 
 export function setNormal(spot: Spot, deg: number): void {
   localStorage.setItem(NORMAL_KEY + spot.id, String(((deg % 360) + 360) % 360));
+}
+
+// Effektiv position: dér brugeren har trukket prikken hen på kortet, hvis
+// spottet er justerbart og prikken er flyttet; ellers configværdien.
+// Bruges kun af kortet (nål og høfder) — vejrpunkterne er pr. område.
+export function effectivePosition(spot: Spot): { lat: number; lon: number } {
+  if (spot.adjustableNormal) {
+    try {
+      const raw = localStorage.getItem(POS_KEY + spot.id);
+      if (raw) {
+        const p = JSON.parse(raw) as { lat?: unknown; lon?: unknown };
+        if (
+          typeof p.lat === "number" &&
+          typeof p.lon === "number" &&
+          Number.isFinite(p.lat) &&
+          Number.isFinite(p.lon) &&
+          Math.abs(p.lat) <= 90 &&
+          Math.abs(p.lon) <= 180
+        ) {
+          return { lat: p.lat, lon: p.lon };
+        }
+      }
+    } catch {
+      // ugyldig værdi i lageret → configværdien
+    }
+  }
+  return { lat: spot.lat, lon: spot.lon };
+}
+
+// Sted og retning samlet — det kortet tegner efter.
+export interface SpotGeometry {
+  lat: number;
+  lon: number;
+  normal: number;
+}
+
+export function effectiveGeometry(spot: Spot): SpotGeometry {
+  return { ...effectivePosition(spot), normal: effectiveNormal(spot) };
+}
+
+// "Tjek på kortet": brugeren har set spottet på kortet og bekræftet sted og
+// retning (flyttet eller ej). Gemmer begge dele og hvornår, så NU-skærmen
+// kan skifte fra "et gæt" til "bekræftet".
+export function confirmOnMap(spot: Spot, geo: SpotGeometry): void {
+  localStorage.setItem(POS_KEY + spot.id, JSON.stringify({ lat: geo.lat, lon: geo.lon }));
+  setNormal(spot, geo.normal);
+  localStorage.setItem(CHECKED_KEY + spot.id, new Date().toISOString());
+}
+
+// ISO-tidspunkt for bekræftelsen, eller null hvis spottet aldrig er tjekket.
+export function checkedOnMapAt(spot: Spot): string | null {
+  const v = localStorage.getItem(CHECKED_KEY + spot.id);
+  return v !== null && !Number.isNaN(Date.parse(v)) ? v : null;
 }

@@ -4,7 +4,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useForecast } from "../hooks/useForecast";
-import { SPOTS, effectiveNormal, setNormal, type Spot } from "../config/spots";
+import { SPOTS, effectiveNormal, checkedOnMapAt, type Spot } from "../config/spots";
 import { buildDays, rankSpots, nowLocalIso, type Block } from "../lib/blocks";
 import { scoreColor } from "../lib/colors";
 import { fmtClock, fmtDayLabel, todayIso } from "../lib/time";
@@ -44,6 +44,11 @@ function NuHelp() {
         <p>
           Spots mærket <strong>ukalibreret</strong> regner med en retning, vi endnu ikke har
           efterprøvet i virkeligheden. Tag deres tal med et gran salt.
+        </p>
+        <p>
+          Står der <strong>"et gæt"</strong> under ugens chips, er spottets retning gættet. Knappen{" "}
+          <strong>Tjek på kortet</strong> zoomer ind på spottet, så du kan trække prik og pil på
+          plads og bekræfte sted og retning. Scoren regner med den nye retning med det samme.
         </p>
       </Info>
       <Info q="Hvordan læser jeg listen?">
@@ -105,60 +110,34 @@ function NuHelp() {
   );
 }
 
-// Kystnormalen kan rettes for de spots, hvor retningen er et gæt. Fylder
-// én linje, til du trykker Ret.
-function NormalSetting({ spot, onChange }: { spot: Spot; onChange: () => void }) {
-  const [editing, setEditing] = useState(false);
-  const [val, setVal] = useState(String(effectiveNormal(spot)));
+// "10/10" fra et ISO-tidspunkt — til "bekræftet på kortet 10/10".
+function fmtDayMonth(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getDate()}/${d.getMonth() + 1}`;
+}
+
+// Sted og retning for de spots, hvor retningen er et gæt: én linje med
+// status og en knap, der åbner kortet zoomet ind på spottet (App skifter
+// fane). Dér trækkes prik og pil på plads, og bekræftelsen gemmes på
+// telefonen (config/spots.ts) — så står der "bekræftet" her i stedet.
+function SpotCheck({ spot, onCheck }: { spot: Spot; onCheck: () => void }) {
   const current = effectiveNormal(spot);
+  const checked = checkedOnMapAt(spot);
   return (
     <div className="card normal-setting">
       <div className="normal-line">
         <span>
           Spottet vender mod <strong>{compass(current)} {current}°</strong>
-          {!editing && <span className="muted"> · et gæt, ret det hvis du kan se andet</span>}
+          <span className="muted">
+            {checked
+              ? ` · sted og retning bekræftet på kortet ${fmtDayMonth(checked)}`
+              : " · et gæt — tjek sted og retning på kortet"}
+          </span>
         </span>
-        {!editing && (
-          <button className="btn-ghost btn-sm" onClick={() => setEditing(true)}>
-            Ret
-          </button>
-        )}
+        <button className="btn-ghost btn-sm" onClick={onCheck}>
+          {checked ? "Ret" : "Tjek på kortet"}
+        </button>
       </div>
-      {editing && (
-        <>
-          <label htmlFor="normal-input" className="muted">
-            Grader: 0 = nord, 90 = øst, 180 = syd, 270 = vest. Scoren regner med det samme med
-            den nye retning.
-          </label>
-          <div className="normal-row">
-            <input
-              id="normal-input"
-              type="number"
-              inputMode="numeric"
-              min={0}
-              max={359}
-              value={val}
-              onChange={(e) => setVal(e.target.value)}
-            />
-            <button
-              className="btn"
-              onClick={() => {
-                const n = Number(val);
-                if (Number.isFinite(n)) {
-                  setNormal(spot, n);
-                  setEditing(false);
-                  onChange();
-                }
-              }}
-            >
-              Gem
-            </button>
-            <button className="btn-ghost" onClick={() => setEditing(false)}>
-              Annullér
-            </button>
-          </div>
-        </>
-      )}
     </div>
   );
 }
@@ -233,27 +212,25 @@ function BlockDetail({ block, spot }: { block: Block; spot: Spot }) {
   );
 }
 
-export function NowScreen() {
+interface Props {
+  initialSpotId: string | null; // spottet ugen åbner på (efter et tjek på kortet)
+  onCheckOnMap: (spotId: string) => void; // App skifter til kortet med spottet
+}
+
+export function NowScreen({ initialSpotId, onCheckOnMap }: Props) {
   const { forecast, status, error } = useForecast();
-  const [spotId, setSpotId] = useState<string | null>(null);
+  const [spotId, setSpotId] = useState<string | null>(initialSpotId);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
-  const [normalVersion, setNormalVersion] = useState(0);
   const detailRef = useRef<HTMLDivElement>(null);
 
   // Én rangering til både dommen og listen (lib/blocks.ts).
-  const ranking = useMemo(
-    () => (forecast ? rankSpots(forecast, SPOTS) : []),
-    [forecast, normalVersion]
-  );
+  const ranking = useMemo(() => (forecast ? rankSpots(forecast, SPOTS) : []), [forecast]);
   const verdict = ranking[0] ?? null;
 
   // Ugen starter på dommens spot, medmindre du selv har valgt et andet.
   const spot = SPOTS.find((s) => s.id === (spotId ?? verdict?.spot.id)) ?? SPOTS[0];
 
-  const days = useMemo(
-    () => (forecast ? buildDays(forecast, spot) : []),
-    [forecast, spot, normalVersion]
-  );
+  const days = useMemo(() => (forecast ? buildDays(forecast, spot) : []), [forecast, spot]);
 
   // Valgt blok: den du trykkede på; ellers dommens blok, hvis ugen viser
   // dommens spot; ellers første kommende blok.
@@ -334,13 +311,7 @@ export function NowScreen() {
       <SpotChips value={spot.id} onChange={setSpotId} />
 
       {spot.warning && <div className="warnbox">⚠ {spot.warning}</div>}
-      {spot.adjustableNormal && (
-        <NormalSetting
-          key={spot.id}
-          spot={spot}
-          onChange={() => setNormalVersion((v) => v + 1)}
-        />
-      )}
+      {spot.adjustableNormal && <SpotCheck spot={spot} onCheck={() => onCheckOnMap(spot.id)} />}
 
       <Barograph
         days={days}

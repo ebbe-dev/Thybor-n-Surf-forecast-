@@ -15,11 +15,27 @@ type TabId = (typeof TABS)[number]["id"];
 
 export default function App() {
   const [tab, setTab] = useState<TabId>("nu");
+  // "Tjek på kortet": NU sender et spot til kortet, og kortet sender én
+  // tilbage til NU, når tjekket er bekræftet eller annulleret. NU åbner så
+  // på det spot — ellers på dommens spot som altid.
+  const [checkSpotId, setCheckSpotId] = useState<string | null>(null);
+  const [nuSpotId, setNuSpotId] = useState<string | null>(null);
+
+  const startCheck = (spotId: string) => {
+    setNuSpotId(spotId);
+    setCheckSpotId(spotId);
+    setTab("kort");
+  };
+  const endCheck = () => {
+    setCheckSpotId(null);
+    setTab("nu");
+  };
+
   return (
     <div className="app">
       <main className="main">
-        {tab === "nu" && <NowScreen />}
-        {tab === "kort" && <MapScreen />}
+        {tab === "nu" && <NowScreen initialSpotId={nuSpotId} onCheckOnMap={startCheck} />}
+        {tab === "kort" && <MapScreen checkSpotId={checkSpotId} onCheckDone={endCheck} />}
         {tab === "historik" && <HistoryScreen />}
         {tab === "log" && <LogScreen />}
       </main>
@@ -28,7 +44,12 @@ export default function App() {
           <button
             key={t.id}
             className={"tab" + (tab === t.id ? " active" : "")}
-            onClick={() => setTab(t.id)}
+            onClick={() => {
+              // et fane-skift afbryder et tjek uden at gemme
+              setCheckSpotId(null);
+              setNuSpotId(null);
+              setTab(t.id);
+            }}
           >
             {t.label}
           </button>

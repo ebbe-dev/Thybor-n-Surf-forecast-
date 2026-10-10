@@ -1,20 +1,32 @@
 // KORT: Leaflet over tangen på mørke fliser. Nål pr. spot (farvet prik
 // med score + navn) til det valgte tidspunkt, høfderne som streger
 // vinkelret på kysten, målings-pletter i vandet, og en tidsskyder øverst,
-// der scrubber time for time gennem 14 døgn.
+// der scrubber time for time gennem 14 døgn — eller afspiller sig selv,
+// én time hvert andet sekund.
+// "Tjek på kortet" (knappen på NU) zoomer ind på ét spot, så sted og
+// retning kan bekræftes ved at trække i prikken og i pilespidsen.
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useForecast } from "../hooks/useForecast";
-import { SPOTS, AREAS, type Spot } from "../config/spots";
+import {
+  SPOTS,
+  AREAS,
+  effectiveGeometry,
+  confirmOnMap,
+  type Spot,
+  type SpotGeometry
+} from "../config/spots";
 import { hourlyBlocks, nowLocalIso, type Block } from "../lib/blocks";
-import { scoreColor, scoreLabel, scoreTextColor, FG, MUTED } from "../lib/colors";
+import { scoreColor, scoreLabel, scoreTextColor, BG, FG, MUTED } from "../lib/colors";
 import { fmtDayLabel, fmtClock } from "../lib/time";
 import { fmt, compass } from "../lib/format";
+import { bearingOnScreen, distanceM, groyneLines, normalizeDeg, pointAt } from "../lib/geo";
 import { Info } from "../components/Info";
 import { ScreenHeader } from "../components/ScreenHeader";
 import { WindArrow } from "../components/WindArrow";
+import { CalibratePanel } from "../components/CalibratePanel";
 import type { Row } from "../model/model";
 
 // OpenStreetMaps egne fliser, gjort mørke med et CSS-filter på flise-
@@ -22,6 +34,15 @@ import type { Row } from "../model/model";
 // CARTO's mørke fliser kræver API-nøgle (opdaget 14/09/2026).
 const TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 const TILE_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+
+// Afspilning: skyderen rykker én time frem med dette mellemrum.
+export const PLAY_STEP_MS = 2000;
+
+// Tjek på kortet: zoom ind hertil, og pilens og kystlinjens længde på
+// skærmen — i pixels uanset zoom, så pilespidsen altid kan nås.
+const CHECK_ZOOM = 16;
+const CHECK_ARROW_PX = 120;
+const CHECK_COAST_PX = 110;
 
 // Vandfarve efter bølgehøjde — blå (småt) mod hvidligt skum (stort).
 // Egen skala, adskilt fra scorefarverne (samme farve = samme betydning
@@ -43,27 +64,31 @@ function waveArrowHtml(swdir: number): string {
   );
 }
 
-// Flyt et punkt distM meter i kompasretning bearing. Rigeligt præcist
-// til høfde-streger på dette zoomniveau.
-function dest(lat: number, lon: number, bearing: number, distM: number): [number, number] {
-  const r = (bearing * Math.PI) / 180;
-  return [
-    lat + (distM * Math.cos(r)) / 111320,
-    lon + (distM * Math.sin(r)) / (111320 * Math.cos((lat * Math.PI) / 180))
-  ];
-}
-
 // Spot-nålen: rund prik i scorefarven med tallet i, og navnet ved siden af.
-function pinIcon(spot: Spot, block: Block | null): L.DivIcon {
+// Under et tjek får prikken en ring, så man kan se, at den kan trækkes.
+function pinIcon(spot: Spot, block: Block | null, checking = false): L.DivIcon {
   const color = block ? scoreColor(block.score) : MUTED;
   const text = block ? scoreTextColor(block.score) : FG;
+  const cls = "spot-dot" + (spot.uncalibrated ? " uncal" : "") + (checking ? " cal" : "");
   const html =
     `<div class="spot-pin">` +
-    `<span class="spot-dot${spot.uncalibrated ? " uncal" : ""}" style="background:${color};color:${text}">` +
+    `<span class="${cls}" style="background:${color};color:${text}">` +
     `${block ? fmt(block.score) : "–"}</span>` +
     `<span class="spot-name">${spot.shortName}</span></div>`;
   // Boksen er selve prikken (34 px); navnet får lov at stikke ud til højre.
   return L.divIcon({ html, className: "spot-pin-wrap", iconSize: [34, 34], iconAnchor: [17, 17] });
+}
+
+// Pilespidsen, der trækkes rundt om prikken under et tjek. Peger i
+// kystnormalens retning. Drejes bagefter med CSS på svg'et — aldrig med
+// setIcon, for et nyt ikon midt i et træk afbryder trækket.
+function handleIcon(normal: number): L.DivIcon {
+  const html =
+    `<svg width="44" height="44" viewBox="0 0 44 44" style="transform:rotate(${normal}deg)">` +
+    `<circle cx="22" cy="22" r="20" fill="${BG}" fill-opacity="0.55"/>` +
+    `<path d="M22 5 L34 31 L22 25 L10 31 Z" fill="${FG}" stroke="${BG}" stroke-width="2" stroke-linejoin="round"/>` +
+    `</svg>`;
+  return L.divIcon({ html, className: "cal-handle", iconSize: [44, 44], iconAnchor: [22, 22] });
 }
 
 function popupHtml(spot: Spot, block: Block | null): string {
@@ -78,11 +103,55 @@ function popupHtml(spot: Spot, block: Block | null): string {
   );
 }
 
+// Høfderækken for ét spot, tegnet efter det effektive sted og den effektive
+// retning. Tegnes om, når de ændrer sig (under og efter et tjek); findes
+// stregerne allerede, flyttes de bare.
+function drawGroynes(
+  map: L.Map,
+  store: Map<string, L.Polyline[]>,
+  spot: Spot,
+  geo: SpotGeometry
+): void {
+  const lines = spot.groynes ? groyneLines(geo, spot.groynes) : [];
+  const existing = store.get(spot.id) ?? [];
+  if (existing.length === lines.length) {
+    existing.forEach((pl, i) => pl.setLatLngs(lines[i]));
+    return;
+  }
+  for (const pl of existing) pl.remove();
+  store.set(
+    spot.id,
+    lines.map((ll) =>
+      L.polyline(ll, { color: FG, weight: 3, opacity: 0.85, interactive: false }).addTo(map)
+    )
+  );
+}
+
+// Første time i tidslinjen, der ikke er passeret — skyderens startsted.
+function indexOfNow(timeline: string[]): number {
+  const now = nowLocalIso();
+  const i = timeline.findIndex((t) => t >= now);
+  return i === -1 ? Math.max(0, timeline.length - 1) : i;
+}
+
 function WaveArrow({ deg, size = 18 }: { deg: number; size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 16 16" style={{ transform: `rotate(${deg + 180}deg)` }}>
       <line x1="8" y1="14" x2="8" y2="3.5" stroke={FG} strokeWidth="1.6" strokeDasharray="2 1.4" />
       <path d="M8 1 L4.6 6.4 L8 4.8 L11.4 6.4 Z" fill={FG} />
+    </svg>
+  );
+}
+
+function PlayIcon({ playing }: { playing: boolean }) {
+  return playing ? (
+    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+      <rect x="3" y="2" width="4" height="12" rx="1" fill="currentColor" />
+      <rect x="9" y="2" width="4" height="12" rx="1" fill="currentColor" />
+    </svg>
+  ) : (
+    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+      <path d="M4.5 2.5 L13.5 8 L4.5 13.5 Z" fill="currentColor" />
     </svg>
   );
 }
@@ -96,6 +165,11 @@ function MapHelp() {
           døgn frem og 7 tilbage. Dagen og klokkeslættet står ovenover, og prikkerne skifter tal
           og farve med. I en flad uge rykker tallene sig kun lidt; det er havet, ikke kortet, der
           står stille.
+        </p>
+        <p>
+          <strong>Afspil-knappen</strong> ved klokkeslættet spoler selv: én time frem hvert andet
+          sekund, til tidslinjen slutter. Tryk igen for pause. Skyderen og pilene virker stadig
+          imens, og er du nået til enden, starter den forfra fra nu.
         </p>
         <p>
           <strong>Tallet i prikken</strong> er spottets score (0–10) på det valgte tidspunkt,
@@ -114,15 +188,36 @@ function MapHelp() {
           høfderne. Kortudsnit, du har set, virker også uden net.
         </p>
       </Info>
+      <Info q="Tjek sted og retning på kortet">
+        <p>
+          De spots, hvor retningen er et gæt, har på NU knappen{" "}
+          <strong>Tjek på kortet</strong>. Den zoomer ind på spottet: en ring om prikken, en pil,
+          der peger den vej spottet vender, og en stiplet streg langs kysten. Træk prikken hen
+          til stedet, og træk pilespidsen (eller brug − og +), til pilen peger ud mod havet og
+          stregen ligger langs kysten — og høfde-stregerne oven i de rigtige høfder.
+        </p>
+        <p>
+          <strong>Bekræft</strong> gemmer sted og retning på telefonen, NU viser spottet som
+          bekræftet, og scoren regner med den nye retning med det samme. Annullér smider
+          ændringerne væk. Begge dele sender dig tilbage til NU.
+        </p>
+      </Info>
     </>
   );
 }
 
-export function MapScreen() {
+interface Props {
+  checkSpotId: string | null; // spottet der tjekkes (fra NU), ellers null
+  onCheckDone: () => void; // bekræftet eller annulleret → App går tilbage til NU
+}
+
+export function MapScreen({ checkSpotId, onCheckDone }: Props) {
   const { forecast } = useForecast();
   const mapEl = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
+  const [mapReady, setMapReady] = useState(false);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
+  const groynesRef = useRef<Map<string, L.Polyline[]>>(new Map());
   const patchesRef = useRef<Map<string, { circle: L.Circle; arrows: L.Marker[] }>>(new Map());
 
   // Timescorer pr. spot + fælles timevis tidslinje (skyderen kører 1 time
@@ -142,11 +237,7 @@ export function MapScreen() {
 
   const [idx, setIdx] = useState(-1); // -1 = ikke sat endnu
   useEffect(() => {
-    if (idx === -1 && timeline.length > 0) {
-      const now = nowLocalIso();
-      const i = timeline.findIndex((t) => t >= now);
-      setIdx(i === -1 ? timeline.length - 1 : i);
-    }
+    if (idx === -1 && timeline.length > 0) setIdx(indexOfNow(timeline));
   }, [timeline, idx]);
 
   const time = idx >= 0 && idx < timeline.length ? timeline[idx] : null;
@@ -160,7 +251,49 @@ export function MapScreen() {
     });
   }, [forecast, time]);
 
-  // Kortet oprettes én gang
+  // ---- Tjek på kortet: sted og retning, der trækkes på, men ikke er gemt.
+  const checkSpot = useMemo(() => SPOTS.find((s) => s.id === checkSpotId) ?? null, [checkSpotId]);
+  const [check, setCheck] = useState<SpotGeometry | null>(null);
+  const checkRef = useRef<SpotGeometry | null>(null);
+  const layoutRef = useRef<(() => void) | null>(null);
+  const handleDragRef = useRef(false); // pilespidsen er i hånden — flyt den ikke selv
+
+  useEffect(() => {
+    setCheck(checkSpot ? effectiveGeometry(checkSpot) : null);
+  }, [checkSpot]);
+
+  // Lagene på kortet følger sted og retning, så snart de ændrer sig.
+  useEffect(() => {
+    checkRef.current = check;
+    layoutRef.current?.();
+  }, [check]);
+
+  // ---- Afspilning: én time frem hvert andet sekund, stopper ved enden.
+  const [playing, setPlaying] = useState(false);
+  const atEnd = idx >= timeline.length - 1;
+  useEffect(() => {
+    if (!playing || checkSpot) return;
+    const id = window.setInterval(
+      () => setIdx((i) => Math.min(timeline.length - 1, i + 1)),
+      PLAY_STEP_MS
+    );
+    return () => window.clearInterval(id);
+  }, [playing, checkSpot, timeline.length]);
+  useEffect(() => {
+    if (playing && atEnd) setPlaying(false);
+  }, [playing, atEnd]);
+  const togglePlay = () => {
+    if (playing) {
+      setPlaying(false);
+      return;
+    }
+    if (atEnd) setIdx(indexOfNow(timeline)); // forfra fra nu
+    setPlaying(true);
+  };
+
+  // Kortet oprettes én gang — når der er et element at sætte det i (uden
+  // cache findes elementet først, når forecasten er hentet).
+  const hasForecast = forecast !== null;
   useEffect(() => {
     if (!mapEl.current || mapRef.current) return;
     const map = L.map(mapEl.current, { zoomControl: true, attributionControl: true });
@@ -172,20 +305,23 @@ export function MapScreen() {
       map.getContainer().classList.toggle("names-on", map.getZoom() >= NAME_ZOOM);
     map.on("zoomend", updateNames);
 
+    const geos = new Map<string, SpotGeometry>();
+    for (const s of SPOTS) geos.set(s.id, effectiveGeometry(s));
+
     // Målings-pletter ude i vandet: ~2,5 km vest for områdets spots.
     const anchors = new Map<string, [number, number]>();
     for (const a of AREAS) {
-      const areaSpots = SPOTS.filter((s) => s.area === a.id);
-      if (areaSpots.length === 0) continue;
-      const lat = areaSpots.reduce((acc, s) => acc + s.lat, 0) / areaSpots.length;
-      const lon = areaSpots.reduce((acc, s) => acc + s.lon, 0) / areaSpots.length - 0.09;
+      const areaGeos = SPOTS.filter((s) => s.area === a.id).map((s) => geos.get(s.id) as SpotGeometry);
+      if (areaGeos.length === 0) continue;
+      const lat = areaGeos.reduce((acc, g) => acc + g.lat, 0) / areaGeos.length;
+      const lon = areaGeos.reduce((acc, g) => acc + g.lon, 0) / areaGeos.length - 0.09;
       anchors.set(a.id, [lat, lon]);
     }
 
     // Indram alle spots + målings-pletter
     map.fitBounds(
       L.latLngBounds([
-        ...SPOTS.map((s) => [s.lat, s.lon] as [number, number]),
+        ...[...geos.values()].map((g) => [g.lat, g.lon] as [number, number]),
         ...anchors.values()
       ]).pad(0.1)
     );
@@ -219,30 +355,24 @@ export function MapScreen() {
     }
 
     for (const spot of SPOTS) {
-      // Høfderækken: streger vinkelret på kysten (langs kystnormalen).
-      if (spot.groynes) {
-        const { count, spacingM, lengthM } = spot.groynes;
-        const half = Math.floor(count / 2);
-        for (let i = -half; i <= half; i++) {
-          const [la, lo] = dest(spot.lat, spot.lon, spot.shoreNormal + 90, i * spacingM);
-          const inner = dest(la, lo, spot.shoreNormal + 180, 20);
-          const outer = dest(la, lo, spot.shoreNormal, lengthM);
-          L.polyline([inner, outer], { color: FG, weight: 3, opacity: 0.85 }).addTo(map);
-        }
-      }
-      const marker = L.marker([spot.lat, spot.lon], { icon: pinIcon(spot, null) }).addTo(map);
+      const geo = geos.get(spot.id) as SpotGeometry;
+      drawGroynes(map, groynesRef.current, spot, geo);
+      const marker = L.marker([geo.lat, geo.lon], { icon: pinIcon(spot, null) }).addTo(map);
       marker.bindPopup("", { closeButton: false, offset: [0, -12] });
       markersRef.current.set(spot.id, marker);
     }
     updateNames();
     mapRef.current = map;
+    setMapReady(true);
     return () => {
       map.remove();
       mapRef.current = null;
       markersRef.current.clear();
+      groynesRef.current.clear();
       patchesRef.current.clear();
+      setMapReady(false);
     };
-  }, []);
+  }, [hasForecast]);
 
   // Målings-pletterne følger tidsskyderen: vandfarve = bølgehøjde,
   // pile = bølgeretning, tallet = højden.
@@ -266,19 +396,120 @@ export function MapScreen() {
           L.divIcon({ html: waveArrowHtml(row.swdir), className: "wave-arrow", iconSize: [26, 26] })
         );
     }
-  }, [forecast, time]);
+  }, [forecast, time, mapReady]);
 
-  // Nåle og popups følger tidsskyderen
+  // Nåle og popups følger tidsskyderen (og ringen følger tjekket)
   useEffect(() => {
     if (!time) return;
     for (const spot of SPOTS) {
       const marker = markersRef.current.get(spot.id);
       if (!marker) continue;
       const block = perSpot.get(spot.id)?.get(time) ?? null;
-      marker.setIcon(pinIcon(spot, block));
+      marker.setIcon(pinIcon(spot, block, spot.id === checkSpotId));
       marker.setPopupContent(popupHtml(spot, block));
     }
-  }, [time, perSpot]);
+  }, [time, perSpot, checkSpotId, mapReady]);
+
+  // Tjek på kortet: zoom ind, gør prikken trækbar, og læg pil, kystlinje og
+  // pilespids ovenpå. Alt regnes i skærm-pixels ud fra prikken, så pilen
+  // er lige lang uanset zoom. Ryddes op igen, når tjekket slutter.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || !checkSpot) return;
+    const spot = checkSpot;
+    const marker = markersRef.current.get(spot.id);
+    if (!marker) return;
+
+    const start = effectiveGeometry(spot);
+    map.setView([start.lat, start.lon], Math.max(map.getZoom(), CHECK_ZOOM));
+    marker.dragging?.enable();
+
+    const shaftBack = L.polyline([], { color: BG, weight: 7, opacity: 0.6, interactive: false }).addTo(map);
+    const shaft = L.polyline([], { color: FG, weight: 3, interactive: false }).addTo(map);
+    const coast = L.polyline([], {
+      color: FG,
+      weight: 2,
+      opacity: 0.85,
+      dashArray: "6 6",
+      interactive: false
+    }).addTo(map);
+    const handle = L.marker([start.lat, start.lon], {
+      icon: handleIcon(start.normal),
+      draggable: true,
+      keyboard: false,
+      zIndexOffset: 1000
+    }).addTo(map);
+
+    const layout = () => {
+      const c = checkRef.current;
+      if (!c) return;
+      const pin = L.latLng(c.lat, c.lon);
+      if (!marker.getLatLng().equals(pin)) marker.setLatLng(pin);
+      const p = map.latLngToContainerPoint(pin);
+      const at = (bearing: number, px: number) => {
+        const q = pointAt(p, bearing, px);
+        return map.containerPointToLatLng(L.point(q.x, q.y));
+      };
+      const tip = at(c.normal, CHECK_ARROW_PX);
+      shaftBack.setLatLngs([pin, tip]);
+      shaft.setLatLngs([pin, tip]);
+      coast.setLatLngs([at(c.normal + 90, CHECK_COAST_PX), at(c.normal - 90, CHECK_COAST_PX)]);
+      const svg = handle.getElement()?.querySelector("svg");
+      if (svg) svg.style.transform = `rotate(${c.normal}deg)`;
+      if (!handleDragRef.current) handle.setLatLng(tip);
+      drawGroynes(map, groynesRef.current, spot, c);
+    };
+    layoutRef.current = layout;
+    layout();
+
+    const onPinDrag = () => {
+      const ll = marker.getLatLng();
+      setCheck((c) => (c ? { ...c, lat: ll.lat, lon: ll.lng } : c));
+    };
+    const onHandleDragStart = () => {
+      handleDragRef.current = true;
+    };
+    const onHandleDrag = () => {
+      const deg = normalizeDeg(
+        bearingOnScreen(
+          map.latLngToContainerPoint(marker.getLatLng()),
+          map.latLngToContainerPoint(handle.getLatLng())
+        )
+      );
+      setCheck((c) => (c && c.normal !== deg ? { ...c, normal: deg } : c));
+    };
+    const onHandleDragEnd = () => {
+      handleDragRef.current = false;
+      layout(); // pilespidsen tilbage på pilens ende
+    };
+    marker.on("drag", onPinDrag);
+    handle.on("dragstart", onHandleDragStart);
+    handle.on("drag", onHandleDrag);
+    handle.on("dragend", onHandleDragEnd);
+    map.on("zoomend", layout); // pixel-længderne skal regnes om
+
+    return () => {
+      marker.off("drag", onPinDrag);
+      handle.off("dragstart", onHandleDragStart);
+      handle.off("drag", onHandleDrag);
+      handle.off("dragend", onHandleDragEnd);
+      map.off("zoomend", layout);
+      layoutRef.current = null;
+      handleDragRef.current = false;
+      marker.dragging?.disable();
+      shaftBack.remove();
+      shaft.remove();
+      coast.remove();
+      handle.remove();
+      // Lever kortet stadig, står prikken og høfderne tilbage på det gemte
+      // (bekræftet eller ej); er kortet fjernet, er der intet at stille.
+      if (mapRef.current === map) {
+        const saved = effectiveGeometry(spot);
+        marker.setLatLng([saved.lat, saved.lon]);
+        drawGroynes(map, groynesRef.current, spot, saved);
+      }
+    };
+  }, [mapReady, checkSpot]);
 
   const header = (
     <ScreenHeader
@@ -304,59 +535,86 @@ export function MapScreen() {
     <div className="map-screen">
       <div className="map-top">
         {header}
-        <div className="timeslider-label">
-          {time ? (
-            <>
-              <strong>{fmtDayLabel(time)}</strong> kl. {fmtClock(time)}
-            </>
-          ) : (
-            "—"
-          )}
-        </div>
-        <div className="slider-row">
-          <button
-            className="step-btn"
-            onClick={() => setIdx((i) => Math.max(0, i - 1))}
-            disabled={idx <= 0}
-            aria-label="én time tilbage"
-          >
-            ‹
-          </button>
-          <input
-            type="range"
-            min={0}
-            max={Math.max(0, timeline.length - 1)}
-            value={Math.max(0, idx)}
-            onChange={(e) => setIdx(Number(e.target.value))}
-            aria-label="tidsskyder, time for time"
+        {checkSpot && check ? (
+          <CalibratePanel
+            spot={checkSpot}
+            geo={check}
+            movedM={distanceM(effectiveGeometry(checkSpot), check)}
+            onTurn={(d) => setCheck((c) => (c ? { ...c, normal: normalizeDeg(c.normal + d) } : c))}
+            onConfirm={() => {
+              confirmOnMap(checkSpot, check);
+              onCheckDone();
+            }}
+            onCancel={onCheckDone}
           />
-          <button
-            className="step-btn"
-            onClick={() => setIdx((i) => Math.min(timeline.length - 1, i + 1))}
-            disabled={idx >= timeline.length - 1}
-            aria-label="én time frem"
-          >
-            ›
-          </button>
-        </div>
-        {areaRows.length > 0 && (
-          <div className="area-strip" aria-label="vind og bølge pr. område">
-            {areaRows.map(({ label, row }) => (
-              <div className="area-cell" key={label}>
-                <div className="area-lab">{label}</div>
-                <div className="area-vals">
-                  <span className="area-val">
-                    <WindArrow deg={row.wdir} spd={row.wspd} size={18} />
-                    {compass(row.wdir)} {fmt(row.wspd, 0)} m/s
-                  </span>
-                  <span className="area-val">
-                    <WaveArrow deg={row.swdir} />
-                    {compass(row.swdir)} {fmt(row.hs)} m
-                  </span>
-                </div>
+        ) : (
+          <>
+            <div className="timeslider-label">
+              <span>
+                {time ? (
+                  <>
+                    <strong>{fmtDayLabel(time)}</strong> kl. {fmtClock(time)}
+                  </>
+                ) : (
+                  "—"
+                )}
+              </span>
+              <button
+                className={"play-btn" + (playing ? " on" : "")}
+                onClick={togglePlay}
+                disabled={timeline.length < 2}
+                aria-pressed={playing}
+                aria-label={playing ? "pause" : "afspil, én time frem hvert andet sekund"}
+              >
+                <PlayIcon playing={playing} />
+              </button>
+            </div>
+            <div className="slider-row">
+              <button
+                className="step-btn"
+                onClick={() => setIdx((i) => Math.max(0, i - 1))}
+                disabled={idx <= 0}
+                aria-label="én time tilbage"
+              >
+                ‹
+              </button>
+              <input
+                type="range"
+                min={0}
+                max={Math.max(0, timeline.length - 1)}
+                value={Math.max(0, idx)}
+                onChange={(e) => setIdx(Number(e.target.value))}
+                aria-label="tidsskyder, time for time"
+              />
+              <button
+                className="step-btn"
+                onClick={() => setIdx((i) => Math.min(timeline.length - 1, i + 1))}
+                disabled={idx >= timeline.length - 1}
+                aria-label="én time frem"
+              >
+                ›
+              </button>
+            </div>
+            {areaRows.length > 0 && (
+              <div className="area-strip" aria-label="vind og bølge pr. område">
+                {areaRows.map(({ label, row }) => (
+                  <div className="area-cell" key={label}>
+                    <div className="area-lab">{label}</div>
+                    <div className="area-vals">
+                      <span className="area-val">
+                        <WindArrow deg={row.wdir} spd={row.wspd} size={18} />
+                        {compass(row.wdir)} {fmt(row.wspd, 0)} m/s
+                      </span>
+                      <span className="area-val">
+                        <WaveArrow deg={row.swdir} />
+                        {compass(row.swdir)} {fmt(row.hs)} m
+                      </span>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </div>
       <div className="map-body">
