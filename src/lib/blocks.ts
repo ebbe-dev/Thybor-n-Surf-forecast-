@@ -75,18 +75,25 @@ export function isDaylightBlock(time: string, spot: Spot): boolean {
   return daylightOverlap(hourOf(time), st) >= 1;
 }
 
-// Forsidens horisont — "næste 2 døgn": resten af i dag + hele i morgen.
-// Listen og dommen deler den, så dommen aldrig peger længere frem end
-// listen (den pegede før 7 døgn frem og kunne sige "torsdag" om søndagen).
-export function horizonDates(now: string): string[] {
-  const today = dateOf(now);
-  return [today, nextDate(today)];
+// Forsidens horisont: "næste 2 døgn" (resten af i dag + hele i morgen)
+// eller "næste 7 dage" — brugerens valg (lib/settings.ts). Listen, dommen
+// og kortenes grafer deler den, så dommen aldrig peger længere frem end
+// listen. Standard er 2 døgn: dér er "torsdag kl. 14" aldrig et svar om
+// søndagen, medmindre man selv har bedt om ugen.
+export const HORIZON_OPTIONS = [2, 7] as const;
+export type HorizonDays = (typeof HORIZON_OPTIONS)[number];
+export const DEFAULT_HORIZON: HorizonDays = 2;
+
+export function horizonDates(now: string, days: number = DEFAULT_HORIZON): string[] {
+  const dates = [dateOf(now)];
+  while (dates.length < days) dates.push(nextDate(dates[dates.length - 1]));
+  return dates;
 }
 
 // Bedste kommende dagslys-blok for ét spot inden for horisonten.
 // Ved lighed vinder den tidligste.
-function bestBlock(f: CachedForecast, spot: Spot, now: string): Block | null {
-  const dates = horizonDates(now);
+function bestBlock(f: CachedForecast, spot: Spot, now: string, days: number): Block | null {
+  const dates = horizonDates(now, days);
   let best: Block | null = null;
   for (const day of buildDays(f, spot)) {
     if (!dates.includes(day.date)) continue;
@@ -104,17 +111,22 @@ function bestBlock(f: CachedForecast, spot: Spot, now: string): Block | null {
 export function rankSpots(
   f: CachedForecast,
   spots: Spot[],
-  now = nowLocalIso()
+  now = nowLocalIso(),
+  days: number = DEFAULT_HORIZON
 ): VerdictPick[] {
   const picks: VerdictPick[] = [];
   for (const spot of spots) {
-    const block = bestBlock(f, spot, now);
+    const block = bestBlock(f, spot, now, days);
     if (block) picks.push({ spot, block });
   }
   return picks.sort((a, b) => b.block.score - a.block.score);
 }
 
 // Dommen: listens øverste række.
-export function pickVerdict(f: CachedForecast, spots: Spot[]): VerdictPick | null {
-  return rankSpots(f, spots)[0] ?? null;
+export function pickVerdict(
+  f: CachedForecast,
+  spots: Spot[],
+  days: number = DEFAULT_HORIZON
+): VerdictPick | null {
+  return rankSpots(f, spots, nowLocalIso(), days)[0] ?? null;
 }

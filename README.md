@@ -19,6 +19,9 @@ npm run preview    # server dist/
 ## Status pr. etape
 
 1. **NU** — dom, 7-døgns barograf, blokdetalje + høfde-planview, offline-cache. ✅
+   Dommen er swipebare spot-kort (bedste først) med scoren time for time frem
+   til horisonten; horisonten vælges på kortet (2 døgn / 7 dage, huskes i
+   `bygtangen.horizon`) og gælder dom, liste og grafer.
 2. **KORT** — Leaflet, fem bekræftede spots, tidsskyder, score-tal på markører. ✅
    Afspil-knappen ved klokkeslættet spoler selv én time frem hvert 2. sekund;
    andet og tredje tryk sætter farten op (2× og 4×), fjerde tryk holder pause.
@@ -51,7 +54,10 @@ og udgives automatisk ved hvert push (`.github/workflows/deploy.yml`).
 Mørkt, høj kontrast, store trykflader — læses i sollys på stranden.
 Hierarki via flader og runde hjørner, ikke via kanter:
 
-- **Dommen øverst** som helte-kort; det eneste sted en kant bærer bandfarve.
+- **Dommen øverst** som helte-kort — ét pr. spot i rangeringens rækkefølge,
+  swipebare, med scoren time for time (`ScoreSparkline`: 0 i bunden, 10 i
+  toppen på alle kort, fladen i skalaens farver, nætter mørke). Det eneste
+  sted en kant bærer bandfarve.
 - **Rangeringen** af alle spots nedenunder. Rækkefølgen er rangeringen,
   scoren står i en pille (`ScorePill`) med tekstfarve efter kontrast, så
   tallet altid kan læses.

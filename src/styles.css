@@ -65,7 +65,7 @@ textarea {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 14px 4px 10px;
+  padding: 6px 4px 8px;
 }
 .brand {
   font-weight: 800;
@@ -258,8 +258,37 @@ textarea {
   color: var(--muted);
   font-weight: 700;
   display: flex;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 4px 8px;
   align-items: center;
+}
+.eyebrow-sun {
+  margin-left: auto;
+  white-space: nowrap;
+}
+/* horisont: 2 døgn / 7 dage */
+.hz {
+  display: inline-flex;
+  gap: 4px;
+}
+.hz-btn {
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line2);
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.hz-btn.on {
+  background: var(--fg);
+  color: var(--bg);
+  border-color: var(--fg);
 }
 .eyebrow .dot {
   width: 8px;
@@ -335,6 +364,56 @@ textarea {
   letter-spacing: 1px;
   color: var(--muted);
   font-weight: 600;
+}
+
+/* ---- spot-kortene: swipebar række, det næste titter frem i kanten ---- */
+.spot-cards-wrap {
+  margin-bottom: 12px;
+}
+.spot-cards {
+  display: flex;
+  gap: 10px; /* GAP i SpotCards.tsx */
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 12px;
+  margin: 0 -12px;
+  padding: 0 12px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.spot-cards::-webkit-scrollbar {
+  display: none;
+}
+.spot-cards > .hero {
+  flex: 0 0 calc(100% - 14px);
+  scroll-snap-align: start;
+  margin-bottom: 0;
+}
+.spot-cards.single > .hero {
+  flex-basis: 100%;
+}
+.cdots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+.cdot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--line2);
+}
+.cdot.on {
+  width: 16px;
+  border-radius: 3px;
+}
+/* scoren time for time på kortet */
+.spark {
+  margin-top: 12px;
+}
+.spark svg {
+  display: block;
 }
 
 /* ---- rangeringen ---- */

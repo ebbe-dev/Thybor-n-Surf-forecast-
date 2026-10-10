@@ -1,16 +1,26 @@
-// NU: dommen øverst som helte-kort, rangeringen af alle spots, og ugen
-// for det valgte spot (chips → barograf → tal + høfde-planview).
-// Forklaringerne bor bag ?-knappen i toppen.
+// NU: dommen øverst som swipebare spot-kort (bedste først, med scoren
+// time for time), rangeringen af alle spots, og ugen for det valgte spot
+// (chips → barograf → tal + høfde-planview). Horisonten (2 døgn / 7 dage)
+// vælges på kortene og huskes. Forklaringerne bor bag ?-knappen i toppen.
 
 import { useMemo, useRef, useState } from "react";
 import { useForecast } from "../hooks/useForecast";
 import { SPOTS, effectiveNormal, checkedOnMapAt, type Spot } from "../config/spots";
-import { buildDays, rankSpots, nowLocalIso, type Block } from "../lib/blocks";
+import {
+  buildDays,
+  rankSpots,
+  hourlyBlocks,
+  horizonDates,
+  nowLocalIso,
+  type Block,
+  type HorizonDays
+} from "../lib/blocks";
+import { loadHorizonDays, saveHorizonDays } from "../lib/settings";
 import { scoreColor } from "../lib/colors";
 import { fmtClock, fmtDayLabel, todayIso } from "../lib/time";
 import { fmt, compass } from "../lib/format";
 import { sunTimes, fmtSunHour } from "../lib/sun";
-import { Verdict } from "../components/Verdict";
+import { SpotCards } from "../components/SpotCards";
 import { Barograph } from "../components/Barograph";
 import { GroynePlan } from "../components/GroynePlan";
 import { Info, Legend } from "../components/Info";
@@ -31,9 +41,20 @@ function NuHelp() {
       <Info q="Hvad betyder dommen?">
         <p>
           Dommen er appens svar på hovedspørgsmålet: <strong>hvornår skal du køre derud, og til
-          hvilken mole.</strong> Den finder det bedste 3-timers tidsrum i dagslys i dag og i morgen
-          på tværs af alle spots. Det er listens øverste række, med side og tal. Vil du længere
-          frem i ugen, er det søjlerne nedenfor.
+          hvilken mole.</strong> Den finder det bedste 3-timers tidsrum i dagslys inden for
+          horisonten på tværs af alle spots. Det er det forreste kort og listens øverste række,
+          med side og tal.
+        </p>
+        <p>
+          <strong>Horisonten</strong> vælger du øverst på kortet: <strong>2 døgn</strong> er
+          resten af i dag og hele i morgen, <strong>7 dage</strong> er hele ugen. Valget gælder
+          dommen, listen og graferne, og det huskes.
+        </p>
+        <p>
+          <strong>Swipe kortet</strong> til siden for det næste spot i rækkefølgen — ugen
+          nedenunder følger med. <strong>Grafen</strong> på kortet er spottets score time for
+          time fra nu til horisontens ende: bunden er 0 og toppen 10 på alle kort, fladen har
+          skalaens farver, nætterne er mørke, og prikken er det vindue, kortet handler om.
         </p>
         <p>
           <strong>"Læ på nordsiden"</strong> betyder: gå i vandet på nordsiden af høfden. Det er
@@ -221,11 +242,22 @@ export function NowScreen({ initialSpotId, onCheckOnMap }: Props) {
   const { forecast, status, error } = useForecast();
   const [spotId, setSpotId] = useState<string | null>(initialSpotId);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [horizon, setHorizon] = useState<HorizonDays>(() => loadHorizonDays());
   const detailRef = useRef<HTMLDivElement>(null);
 
-  // Én rangering til både dommen og listen (lib/blocks.ts).
-  const ranking = useMemo(() => (forecast ? rankSpots(forecast, SPOTS) : []), [forecast]);
+  // Én rangering til kortene og listen (lib/blocks.ts), inden for horisonten.
+  const ranking = useMemo(
+    () => (forecast ? rankSpots(forecast, SPOTS, nowLocalIso(), horizon) : []),
+    [forecast, horizon]
+  );
   const verdict = ranking[0] ?? null;
+
+  // Timescorer pr. spot til kortenes grafer.
+  const perSpot = useMemo(() => {
+    const m = new Map<string, Map<string, Block>>();
+    if (forecast) for (const s of SPOTS) m.set(s.id, hourlyBlocks(forecast, s));
+    return m;
+  }, [forecast]);
 
   // Ugen starter på dommens spot, medmindre du selv har valgt et andet.
   const spot = SPOTS.find((s) => s.id === (spotId ?? verdict?.spot.id)) ?? SPOTS[0];
@@ -294,7 +326,23 @@ export function NowScreen({ initialSpotId, onCheckOnMap }: Props) {
         </div>
       )}
 
-      <Verdict pick={verdict} sun={sun} />
+      <SpotCards
+        entries={ranking}
+        perSpot={perSpot}
+        now={nowLocalIso().slice(0, 13) + ":00"}
+        dates={horizonDates(nowLocalIso(), horizon)}
+        horizon={horizon}
+        onHorizon={(d) => {
+          setHorizon(d);
+          saveHorizonDays(d);
+        }}
+        selectedId={spot.id}
+        onSelect={(id, time) => {
+          setSpotId(id);
+          setSelectedTime(time);
+        }}
+        sun={sun}
+      />
 
       <QuickPick
         entries={ranking}
