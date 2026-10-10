@@ -82,11 +82,19 @@ export function SpotCards({
   };
 
   // Valg udefra (listen, chips, ny rækkefølge): rul hen til kortet, hvis
-  // det ikke allerede står der.
+  // det ikke allerede står der. Første gang (fx tilbage fra kortet med et
+  // valgt spot) står kortene der med det samme; siden rulles der blødt.
+  const placedRef = useRef(false);
   useEffect(() => {
     const el = scroller.current;
     if (!el || entries.length === 0) return;
+    const first = !placedRef.current;
+    placedRef.current = true;
     if (indexAtScroll() === activeIdx) return;
+    if (first) {
+      el.scrollTo({ left: activeIdx * step(), behavior: "instant" });
+      return;
+    }
     travelRef.current = { target: activeIdx, until: Date.now() + TRAVEL_MS };
     el.scrollTo({ left: activeIdx * step(), behavior: "smooth" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
