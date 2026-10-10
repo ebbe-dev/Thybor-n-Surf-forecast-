@@ -67,14 +67,55 @@ function waveColor(hs: number): string {
   return "#4A7FB5";
 }
 
-// Pil (SVG) der peger derhen bølgerne løber (swdir + 180), til divIcon.
-function waveArrowHtml(swdir: number): string {
+// Pile som på striben under skyderen: hel pil = vind, stiplet pil = bølger.
+// Begge peger derhen, vinden blæser og bølgerne løber (retningen + 180).
+function arrowSvg(fromDeg: number, size: number, dashed: boolean): string {
+  const dash = dashed ? ' stroke-dasharray="2 1.4"' : "";
   return (
-    `<svg width="26" height="26" viewBox="0 0 16 16" style="transform:rotate(${swdir + 180}deg)">` +
-    `<line x1="8" y1="14" x2="8" y2="4" stroke="#0B1917" stroke-width="2"/>` +
-    `<path d="M8 1 L4.4 6.6 L8 5 L11.6 6.6 Z" fill="#0B1917"/></svg>`
+    `<svg width="${size}" height="${size}" viewBox="0 0 16 16" style="transform:rotate(${fromDeg + 180}deg)">` +
+    `<line x1="8" y1="14.5" x2="8" y2="4" stroke="${FG}" stroke-width="${dashed ? 1.6 : 2.4}"${dash}/>` +
+    `<path d="M8 1 L4.4 6.6 L8 5 L11.6 6.6 Z" fill="${FG}"/></svg>`
   );
 }
+
+// Vejr-skiltet ved områdets måleplet: vind og bølger med retning og tal.
+function roseHtml(row: Row): string {
+  return (
+    `<div class="rose">` +
+    `<div class="rose-row">${arrowSvg(row.wdir, 26, false)}<span>${compass(row.wdir)} ${fmt(row.wspd, 0)} m/s</span></div>` +
+    `<div class="rose-row">${arrowSvg(row.swdir, 26, true)}<span>${compass(row.swdir)} ${fmt(row.hs)} m</span></div>` +
+    `</div>`
+  );
+}
+
+// Pilene ved et spot (fra ARROWS_ZOOM): vinden står dér, den kommer fra,
+// bølgerne længere ude, dér de kommer fra — så de kan læses mod høfden og
+// læ-feltet. Boksen er pixels om prikken, så afstanden holder i alle zoom.
+const ARROW_BOX = 230;
+function spotArrowsHtml(row: Row): string {
+  const c = ARROW_BOX / 2;
+  const at = (deg: number, r: number) => {
+    const a = (deg * Math.PI) / 180;
+    return { x: c + r * Math.sin(a), y: c - r * Math.cos(a) };
+  };
+  const w = at(row.wdir, 60);
+  const s = at(row.swdir, 96);
+  return (
+    `<div class="spot-arrows">` +
+    `<div class="sa" style="left:${w.x.toFixed(0)}px;top:${w.y.toFixed(0)}px">${arrowSvg(row.wdir, 38, false)}<span>vind ${fmt(row.wspd, 0)} m/s</span></div>` +
+    `<div class="sa" style="left:${s.x.toFixed(0)}px;top:${s.y.toFixed(0)}px">${arrowSvg(row.swdir, 38, true)}<span>bølger ${fmt(row.hs)} m</span></div>` +
+    `</div>`
+  );
+}
+const spotArrowsIcon = (row: Row | null) =>
+  L.divIcon({
+    html: row ? spotArrowsHtml(row) : "",
+    className: "spot-arrows-wrap",
+    iconSize: [ARROW_BOX, ARROW_BOX],
+    iconAnchor: [ARROW_BOX / 2, ARROW_BOX / 2]
+  });
+const roseIcon = (row: Row | null) =>
+  L.divIcon({ html: row ? roseHtml(row) : "", className: "rose-wrap", iconSize: [120, 56], iconAnchor: [60, 28] });
 
 // Spot-nålen: rund prik i scorefarven med tallet i, og navnet ved siden af.
 // Under et tjek får prikken en ring, så man kan se, at den kan trækkes.
@@ -185,10 +226,12 @@ function MapHelp() {
           dom, læside og bølgetal.
         </p>
         <p>
-          <strong>Pletterne ude i vandet</strong> er områdets bølgemåling: vandfarven viser
-          højden (blå = småt, lysere mod hvidt = større), pilene viser hvilken vej bølgerne
-          løber, og tallet er højden i meter. Én plet pr. vejr-område. Det er dér, tallene
-          måles, ikke et kort over hele havet.
+          <strong>Pletterne ude i vandet</strong> er områdets vejrmåling: vandfarven viser
+          bølgehøjden (blå = småt, lysere mod hvidt = større), og skiltet i pletten viser vind
+          (hel pil, m/s) og bølger (stiplet pil, meter) — pilene peger derhen, vinden blæser og
+          bølgerne løber. Én plet pr. vejr-område. Det er dér, tallene måles, ikke et kort over
+          hele havet. <strong>Fra zoom 15</strong> står de samme to pile ved hvert spot, så de
+          kan læses mod høfden og læ-feltet: vinden dér, den kommer fra, bølgerne længere ude.
         </p>
         <p>
           Linjen under skyderen viser vind og bølge pr. vejr-område til det valgte tidspunkt. En{" "}
@@ -230,7 +273,8 @@ export function MapScreen({ checkSpotId, onCheckDone }: Props) {
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
   const groynesRef = useRef<Map<string, L.Polyline[]>>(new Map());
   const leeRef = useRef<Map<string, L.Polygon>>(new Map()); // høfdens læ pr. spot
-  const patchesRef = useRef<Map<string, { circle: L.Circle; arrows: L.Marker[] }>>(new Map());
+  const patchesRef = useRef<Map<string, { circle: L.Circle; rose: L.Marker }>>(new Map());
+  const arrowsRef = useRef<Map<string, L.Marker>>(new Map()); // vind- og bølgepile pr. spot
 
   // Timescorer pr. spot + fælles timevis tidslinje (skyderen kører 1 time
   // pr. skridt hen over alle 14 dage)
@@ -322,9 +366,12 @@ export function MapScreen({ checkSpotId, onCheckDone }: Props) {
     // læ-felterne et trin senere.
     const NAME_ZOOM = 12;
     const LEE_ZOOM = 13;
+    const ARROWS_ZOOM = 15; // pile ved spottet: tæt nok på til, at nabospots ikke ligger oven i
     const updateNames = () => {
-      map.getContainer().classList.toggle("names-on", map.getZoom() >= NAME_ZOOM);
-      map.getContainer().classList.toggle("lee-on", map.getZoom() >= LEE_ZOOM);
+      const z = map.getZoom();
+      map.getContainer().classList.toggle("names-on", z >= NAME_ZOOM);
+      map.getContainer().classList.toggle("lee-on", z >= LEE_ZOOM);
+      map.getContainer().classList.toggle("arrows-on", z >= ARROWS_ZOOM);
     };
     map.on("zoomend", updateNames);
 
@@ -363,18 +410,8 @@ export function MapScreen({ checkSpotId, onCheckDone }: Props) {
         fillColor: "#4A7FB5",
         fillOpacity: 0.55
       }).addTo(map);
-      circle.bindTooltip("", { permanent: true, direction: "center", className: "wave-tip" });
-      const arrows = [
-        [0.010, 0.013],
-        [-0.011, -0.010]
-      ].map(([dlat, dlon]) =>
-        L.marker([anchor[0] + dlat, anchor[1] + dlon], {
-          icon: L.divIcon({ html: "", className: "wave-arrow", iconSize: [26, 26] }),
-          interactive: false,
-          keyboard: false
-        }).addTo(map)
-      );
-      patchesRef.current.set(a.id, { circle, arrows });
+      const rose = L.marker(anchor, { icon: roseIcon(null), interactive: false, keyboard: false }).addTo(map);
+      patchesRef.current.set(a.id, { circle, rose });
     }
 
     for (const spot of SPOTS) {
@@ -396,6 +433,15 @@ export function MapScreen({ checkSpotId, onCheckDone }: Props) {
         leeRef.current.set(spot.id, lee);
       }
       drawGroynes(map, groynesRef.current, spot, geo);
+      arrowsRef.current.set(
+        spot.id,
+        L.marker([geo.lat, geo.lon], {
+          icon: spotArrowsIcon(null),
+          interactive: false,
+          keyboard: false,
+          zIndexOffset: -500
+        }).addTo(map)
+      );
       const marker = L.marker([geo.lat, geo.lon], { icon: pinIcon(spot, null) }).addTo(map);
       marker.bindPopup("", { closeButton: false, offset: [0, -12] });
       markersRef.current.set(spot.id, marker);
@@ -412,6 +458,7 @@ export function MapScreen({ checkSpotId, onCheckDone }: Props) {
       map.remove();
       mapRef.current = null;
       markersRef.current.clear();
+      arrowsRef.current.clear();
       groynesRef.current.clear();
       leeRef.current.clear();
       patchesRef.current.clear();
@@ -419,8 +466,9 @@ export function MapScreen({ checkSpotId, onCheckDone }: Props) {
     };
   }, [hasForecast]);
 
-  // Målings-pletterne følger tidsskyderen: vandfarve = bølgehøjde,
-  // pile = bølgeretning, tallet = højden.
+  // Målings-pletterne og pilene følger tidsskyderen: vandfarve = bølge-
+  // højde, vejr-skiltet ved pletten og pilene ved hvert spot viser vind og
+  // bølger til det valgte tidspunkt. Uden data for timen står de tomme.
   useEffect(() => {
     if (!forecast || !time) return;
     for (const a of AREAS) {
@@ -429,17 +477,17 @@ export function MapScreen({ checkSpotId, onCheckDone }: Props) {
       const row = forecast.areas[a.id]?.rows.find((r) => r.time === time) ?? null;
       if (!row) {
         patch.circle.setStyle({ fillColor: "#888888", fillOpacity: 0.15, opacity: 0.25 });
-        patch.circle.setTooltipContent("–");
-        for (const ar of patch.arrows)
-          ar.setIcon(L.divIcon({ html: "", className: "wave-arrow", iconSize: [26, 26] }));
+        patch.rose.setIcon(roseIcon(null));
         continue;
       }
       patch.circle.setStyle({ fillColor: waveColor(row.hs), fillOpacity: 0.55, opacity: 0.35 });
-      patch.circle.setTooltipContent(`${fmt(row.hs)} m`);
-      for (const ar of patch.arrows)
-        ar.setIcon(
-          L.divIcon({ html: waveArrowHtml(row.swdir), className: "wave-arrow", iconSize: [26, 26] })
-        );
+      patch.rose.setIcon(roseIcon(row));
+    }
+    for (const spot of SPOTS) {
+      const arrows = arrowsRef.current.get(spot.id);
+      if (!arrows) continue;
+      const row = forecast.areas[spot.area]?.rows.find((r) => r.time === time) ?? null;
+      arrows.setIcon(spotArrowsIcon(row));
     }
   }, [forecast, time, mapReady]);
 
@@ -513,6 +561,7 @@ export function MapScreen({ checkSpotId, onCheckDone }: Props) {
       if (!c) return;
       const pin = L.latLng(c.lat, c.lon);
       if (!marker.getLatLng().equals(pin)) marker.setLatLng(pin);
+      arrowsRef.current.get(spot.id)?.setLatLng(pin);
       const p = map.latLngToContainerPoint(pin);
       const at = (bearing: number, px: number) => {
         const q = pointAt(p, bearing, px);
@@ -574,6 +623,7 @@ export function MapScreen({ checkSpotId, onCheckDone }: Props) {
       if (mapRef.current === map) {
         const saved = effectiveGeometry(spot);
         marker.setLatLng([saved.lat, saved.lon]);
+        arrowsRef.current.get(spot.id)?.setLatLng([saved.lat, saved.lon]);
         drawGroynes(map, groynesRef.current, spot, saved);
       }
     };

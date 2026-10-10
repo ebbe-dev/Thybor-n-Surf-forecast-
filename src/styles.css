@@ -1066,22 +1066,71 @@ input[type="range"] {
   text-shadow: 0 0 3px #000, 0 0 6px #000, 0 1px 2px #000;
   white-space: nowrap;
 }
-/* målings-pletter i vandet */
-.wave-tip {
-  background: transparent;
-  border: none;
-  box-shadow: none;
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 800;
-  color: #0b1917;
-}
-.wave-tip::before {
-  display: none;
-}
-.wave-arrow {
+/* vejr-skiltet ved områdets måleplet: vind og bølger med retning og tal */
+.rose-wrap {
   background: none;
   border: none;
+}
+.rose {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 9px 4px 6px;
+  border-radius: 10px;
+  background: rgba(11, 25, 23, 0.8);
+  border: 1px solid var(--line2);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+.rose-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--fg);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.rose-row svg {
+  display: block;
+  flex: 0 0 auto;
+}
+/* vind- og bølgepile ved hvert spot, fra zoom 15 */
+.spot-arrows-wrap {
+  background: none;
+  border: none;
+  pointer-events: none;
+}
+.spot-arrows {
+  display: none;
+  position: relative;
+  width: 230px;
+  height: 230px;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+.arrows-on .spot-arrows {
+  display: block;
+}
+.sa {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+.sa svg {
+  display: block;
+  filter: drop-shadow(0 1px 2px #000) drop-shadow(0 0 3px #000);
+}
+.sa span {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--fg);
+  text-shadow: 0 0 3px #000, 0 0 6px #000, 0 1px 2px #000;
+  white-space: nowrap;
 }
 /* tjek på kortet: panelet øverst, ring om prikken, pilespids der kan trækkes */
 .cal-panel {
