@@ -20,6 +20,7 @@ import {
   type SpotGeometry
 } from "../config/spots";
 import { hourlyBlocks, leeCaption, nowLocalIso, type Block } from "../lib/blocks";
+import { isOffshoreWind } from "../model/model";
 import { scoreColor, scoreLabel, scoreTextColor, BG, FG, MUTED } from "../lib/colors";
 import { fmtDayLabel, fmtClock } from "../lib/time";
 import { fmt, compass } from "../lib/format";
@@ -444,7 +445,9 @@ export function MapScreen({ checkSpotId, onCheckDone }: Props) {
 
   // Høfdernes læ følger tidsskyderen (vinden til det valgte tidspunkt) og
   // under et tjek også den retning, der trækkes på. Uden vind for timen
-  // tages feltet af kortet — et felt uden grundlag er ikke læ.
+  // tages feltet af kortet — et felt uden grundlag er ikke læ. Ved
+  // fralandsvind er hele kysten i læ, og høfdens skygge ville pege ud over
+  // havet: så tages feltet også af (samme dødzone som scoren).
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady || !forecast || !time) return;
@@ -452,11 +455,11 @@ export function MapScreen({ checkSpotId, onCheckDone }: Props) {
       const lee = leeRef.current.get(spot.id);
       if (!lee || !spot.groynes) continue;
       const row = forecast.areas[spot.area]?.rows.find((r) => r.time === time);
-      if (!row) {
+      const geo = checkSpot && check && checkSpot.id === spot.id ? check : effectiveGeometry(spot);
+      if (!row || isOffshoreWind(row.wdir, geo.normal)) {
         if (map.hasLayer(lee)) lee.remove();
         continue;
       }
-      const geo = checkSpot && check && checkSpot.id === spot.id ? check : effectiveGeometry(spot);
       lee.setLatLngs(leeShadowLatLngs(geo, spot.groynes, row.wdir));
       if (!map.hasLayer(lee)) lee.addTo(map);
       lee.getTooltip()?.setLatLng(lee.getCenter());

@@ -24,6 +24,11 @@ const add = (a: V, ...vs: V[]): V => vs.reduce((p, v) => ({ x: p.x + v.x, y: p.y
 const mul = (v: V, k: number): V => ({ x: v.x * k, y: v.y * k });
 const dot = (a: V, b: V) => a.x * b.x + a.y * b.y;
 const pt = (p: V) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`;
+// Hold et etiket-midtpunkt inden for tegningen (half = halv tekstbredde).
+const clampIn = (p: V, half: number): V => ({
+  x: Math.max(half + 4, Math.min(W - half - 4, p.x)),
+  y: Math.max(14, Math.min(H - 8, p.y))
+});
 
 const W = 350;
 const H = 230;
@@ -60,7 +65,11 @@ export function GroynePlan({ normal, wdir, wspd, swdir, side }: Props) {
   // læ at hente, fra land er hele kysten i læ. Sig det, i stedet for at
   // lade et tyndt felt stå uden ord.
   const thin = shadowWidth < 14;
-  const offshore = isOffshoreWind(wdir, normal); // samme dødzone som scoren og teksten
+  // Fralandsvind (samme dødzone som scoren og teksten): hele kysten er i
+  // læ, og høfdens skygge ville pege ud over havet — så den tegnes ikke.
+  const offshore = isOffshoreWind(wdir, normal);
+  const showShadow = !offshore;
+  const showLee = showShadow && !thin;
 
   // N og S på hver sin side af høfdens rod
   const nLabel = add(C, mul(tN, 30), mul(s, 14));
@@ -70,9 +79,14 @@ export function GroynePlan({ normal, wdir, wspd, swdir, side }: Props) {
   const windSide = Math.sign(dot(vec(wdir), tN)) || 1;
   const wTail = add(C, mul(s, GROYNE * 0.6), mul(tN, windSide * 48), mul(vec(wdir), 34));
   const wHead = add(wTail, mul(dw, 48));
-  const headL = add(wHead, mul(vec(wdir + 150), 11));
-  const headR = add(wHead, mul(vec(wdir + 210), 11));
-  const wLabel = add(wTail, mul(vec(wdir), 10));
+  // spidsen peger med vinden: barberne stikker bagud, mod der vinden kommer fra
+  const headL = add(wHead, mul(vec(wdir + 30), 11));
+  const headR = add(wHead, mul(vec(wdir - 30), 11));
+  // etiketten ved siden af pilen, på den side der vender væk fra høfden —
+  // så ligger den hverken på skaftet eller på bølgepilene
+  const perp: V = { x: -dw.y, y: dw.x };
+  const away = dot(perp, mul(tN, windSide)) >= 0 ? perp : mul(perp, -1);
+  const wLabel = clampIn(add(mul(add(wTail, wHead), 0.5), mul(away, 16)), 32);
 
   // bølger: to stiplede pile fra bølgeretningen, ude på havet
   const run = vec(swdir + 180); // bølgerne løber hen
@@ -81,8 +95,9 @@ export function GroynePlan({ normal, wdir, wspd, swdir, side }: Props) {
     const a = add(waveBase, mul(tN, k * 46), mul(vec(swdir), 30));
     return { a, b: add(a, mul(run, 40)) };
   });
-  // etiketten lidt længere opstrøms end pilenes haler, så den ikke ligger på dem
-  const waveLabel = add(waveBase, mul(vec(swdir), 48));
+  // etiketten lidt længere opstrøms end pilenes haler, så den ikke ligger på
+  // dem — og aldrig uden for tegningen
+  const waveLabel = clampIn(add(waveBase, mul(vec(swdir), 48)), 28);
 
   const north = side === "nord";
   return (
@@ -93,7 +108,7 @@ export function GroynePlan({ normal, wdir, wspd, swdir, side }: Props) {
       {waves.map((w, i) => (
         <g key={i}>
           <line x1={w.a.x} y1={w.a.y} x2={w.b.x} y2={w.b.y} stroke={FG} strokeOpacity="0.7" strokeWidth="2" strokeDasharray="4 3" />
-          <polygon points={`${pt(w.b)} ${pt(add(w.b, mul(vec(swdir + 150), 8)))} ${pt(add(w.b, mul(vec(swdir + 210), 8)))}`} fill={FG} fillOpacity="0.7" />
+          <polygon points={`${pt(w.b)} ${pt(add(w.b, mul(vec(swdir + 30), 8)))} ${pt(add(w.b, mul(vec(swdir - 30), 8)))}`} fill={FG} fillOpacity="0.7" />
         </g>
       ))}
       <text x={waveLabel.x} y={waveLabel.y + 4} fill={MUTED} fontSize="11" fontWeight="700" textAnchor="middle" letterSpacing="1">
@@ -102,13 +117,15 @@ export function GroynePlan({ normal, wdir, wspd, swdir, side }: Props) {
       {/* land */}
       <polygon points={land.map(pt).join(" ")} fill="#1A2C25" stroke={MUTED} strokeWidth="1" />
       {/* læ: vindskyggen bag høfden */}
-      <polygon points={shadow.map(pt).join(" ")} fill={FG} fillOpacity="0.22" stroke={FG} strokeOpacity="0.9" strokeWidth="1.5" strokeDasharray="5 4" />
-      {!thin && (
+      {showShadow && (
+        <polygon points={shadow.map(pt).join(" ")} fill={FG} fillOpacity="0.22" stroke={FG} strokeOpacity="0.9" strokeWidth="1.5" strokeDasharray="5 4" />
+      )}
+      {showLee && (
         <text x={leeLabel.x} y={leeLabel.y + 5} fill={FG} fontSize="14" fontWeight="800" textAnchor="middle" letterSpacing="1.5">
           LÆ
         </text>
       )}
-      {thin && (
+      {!showLee && (
         <text x="12" y={H - 12} fill={FG} fontSize="11" fontWeight="800" letterSpacing="1">
           {offshore ? "FRALANDSVIND · LÆ OVERALT" : "INGEN LÆ FRA HØFDEN"}
         </text>
