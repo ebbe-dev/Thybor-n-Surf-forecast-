@@ -3,8 +3,9 @@
 // lignes, når man swiper. Fladen under kurven bærer skalaens farver efter
 // højden (samme farve = samme betydning som overalt), nætterne er mørke,
 // dagsskel har etiket, og det vindue kortet handler om, er en prik i
-// bandfarven. Ingen akser — det er et blik, ikke en tabel; tallene står i
-// søjlerne længere nede.
+// bandfarven. Under grafen ligger en lys stribe i de timer, der er ground
+// swell (lib/swell.ts) — det er dér, det kan ses, HVORNÅR det kommer. Ingen
+// akser — det er et blik, ikke en tabel; tallene står i søjlerne længere nede.
 
 import { useLayoutEffect, useRef, useState, type RefObject } from "react";
 import type { Block } from "../lib/blocks";
@@ -12,6 +13,7 @@ import type { Spot } from "../config/spots";
 import { BANDS, BG, FG, MUTED, scoreColor } from "../lib/colors";
 import { dayName, hourOf } from "../lib/time";
 import { sunTimes } from "../lib/sun";
+import { swellKind } from "../lib/swell";
 
 interface Props {
   blocks: Map<string, Block>; // spottets timescorer (lib/blocks.ts, hourlyBlocks)
@@ -22,7 +24,9 @@ interface Props {
 }
 
 const H = 44; // grafens højde
+const STRIP = 13; // striben under grafen: 3 px luft + 10 px bånd for ground swell
 const LABELS = 16; // plads til dagsetiketter under
+const STRIP_LABEL_MIN_W = 78; // så bredt skal et bånd være, før ordene står i det
 const pad2 = (n: number) => String(n).padStart(2, "0");
 
 // Bredden måles, så intet strækkes: tekst og prikker skal være skarpe.
@@ -56,6 +60,16 @@ export function ScoreSparkline({ blocks, from, dates, pick, spot }: Props) {
   const runs: Pt[][] = [];
   let run: Pt[] = [];
   let pickPt: Pt | null = null;
+  // Timer med ground swell, samlet i bånd: fra timens start til næste times
+  // start, så én time også får bredde. Et hul eller en wind swell-time
+  // lukker båndet.
+  const grounds: { x1: number; x2: number }[] = [];
+  let groundFrom: number | null = null;
+  const endGround = (hEnd: number) => {
+    if (groundFrom === null) return;
+    grounds.push({ x1: x(groundFrom), x2: x(Math.min(span, hEnd)) });
+    groundFrom = null;
+  };
   for (let h = 0; h <= span; h++) {
     const abs = startHour + h;
     const date = dates[Math.floor(abs / 24)];
@@ -64,13 +78,26 @@ export function ScoreSparkline({ blocks, from, dates, pick, spot }: Props) {
     if (!b) {
       if (run.length) runs.push(run);
       run = [];
+      endGround(h);
       continue;
     }
     const pt = { x: x(h), y: y(b.score) };
     run.push(pt);
     if (time === pick.time) pickPt = pt;
+    if (swellKind(b.row.tp) === "ground") {
+      if (groundFrom === null) groundFrom = h;
+    } else {
+      endGround(h);
+    }
   }
   if (run.length) runs.push(run);
+  endGround(span + 1);
+  // Ordene står i det bredeste bånd, hvis der er plads til dem.
+  const widest = grounds.reduce<{ x1: number; x2: number } | null>(
+    (best, g) => (best === null || g.x2 - g.x1 > best.x2 - best.x1 ? g : best),
+    null
+  );
+  const stripLabel = widest && widest.x2 - widest.x1 >= STRIP_LABEL_MIN_W ? widest : null;
 
   const linePath = runs
     .map((r) => r.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" "))
@@ -139,7 +166,7 @@ export function ScoreSparkline({ blocks, from, dates, pick, spot }: Props) {
 
   return (
     <div className="spark" ref={wrap} aria-label="score time for time">
-      <svg width={W} height={H + LABELS} viewBox={`0 0 ${W} ${H + LABELS}`}>
+      <svg width={W} height={H + STRIP + LABELS} viewBox={`0 0 ${W} ${H + STRIP + LABELS}`}>
         <defs>
           <linearGradient id={gradId} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2={H}>
             {gradientStops.map((s, i) => (
@@ -156,11 +183,29 @@ export function ScoreSparkline({ blocks, from, dates, pick, spot }: Props) {
         ))}
         {dayCols.map((d, i) =>
           i > 0 ? (
-            <line key={d.label + i} x1={d.x1} y1="0" x2={d.x1} y2={H + 4} stroke={MUTED} strokeOpacity="0.5" />
+            <line key={d.label + i} x1={d.x1} y1="0" x2={d.x1} y2={H + STRIP + 4} stroke={MUTED} strokeOpacity="0.5" />
           ) : null
         )}
+        {grounds.map((g, i) => (
+          <rect
+            key={i}
+            className="ground"
+            x={g.x1.toFixed(1)}
+            y={H + 3}
+            width={Math.max(2, g.x2 - g.x1).toFixed(1)}
+            height={STRIP - 3}
+            rx="2"
+            fill={FG}
+            fillOpacity="0.9"
+          />
+        ))}
+        {stripLabel && (
+          <text className="strip-label" x={stripLabel.x1 + 5} y={H + 3 + 7.5} fill={BG} fontSize="8" fontWeight="800" letterSpacing="0.7">
+            GROUND SWELL
+          </text>
+        )}
         {labels.map((l) => (
-          <text key={l.text + l.x} x={l.x} y={H + LABELS - 4} fill={MUTED} fontSize="10" fontWeight="700" letterSpacing="0.8">
+          <text key={l.text + l.x} x={l.x} y={H + STRIP + LABELS - 4} fill={MUTED} fontSize="10" fontWeight="700" letterSpacing="0.8">
             {l.text}
           </text>
         ))}

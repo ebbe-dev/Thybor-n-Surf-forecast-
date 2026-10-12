@@ -1,6 +1,7 @@
 // Vandret barograf: 7 dage × 6 blokke (05–20). Søjlehøjde = score,
 // farve fra skalaen, vindpil over hver søjle, "nu"-markør ved første
-// kommende blok. Eneste sted i appen med vandret scroll.
+// kommende blok, og lys bund under de blokke, der har ground swell
+// (lib/swell.ts). Eneste sted i appen med vandret scroll.
 
 import { useEffect, useRef } from "react";
 import type { Day, Block } from "../lib/blocks";
@@ -8,6 +9,7 @@ import { scoreColor } from "../lib/colors";
 import { BLOCK_HOURS, dateOf, fmtDayLabel, isToday } from "../lib/time";
 import { nowLocalIso } from "../lib/blocks";
 import { WindArrow } from "./WindArrow";
+import { swellKind } from "../lib/swell";
 
 interface Props {
   days: Day[];
@@ -55,7 +57,8 @@ export function Barograph({ days, selected, onSelect }: Props) {
                       "baro-block" +
                       (selected === b.time ? " selected" : "") +
                       (b.time < now ? " past" : "") +
-                      (b.time === nowKey ? " now" : "")
+                      (b.time === nowKey ? " now" : "") +
+                      (swellKind(b.row.tp) === "ground" ? " ground" : "")
                     }
                     onClick={() => onSelect(b)}
                     role="option"

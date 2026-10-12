@@ -13,6 +13,7 @@ import { scoreColor, scoreLabel } from "../lib/colors";
 import { fmtClock, relativeDayLabel } from "../lib/time";
 import { fmt, compass } from "../lib/format";
 import { ScoreSparkline } from "./ScoreSparkline";
+import { SwellChip } from "./SwellChip";
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const GAP = 10; // afstand mellem kortene — skal matche .spot-cards i styles.css
@@ -182,7 +183,14 @@ export function SpotCards({
                     {leeCaption(spot, block)}
                   </div>
                   <div className="hero-sub">
-                    {fmt(r.hs)} m / {fmt(r.tp)} s · vind {compass(r.wdir)} {fmt(r.wspd, 0)} m/s
+                    <SwellChip tp={r.tp} />{" "}
+                    <span className="nw">
+                      {fmt(r.hs)} m / {fmt(r.tp)} s
+                    </span>
+                    {" · "}
+                    <span className="nw">
+                      vind {compass(r.wdir)} {fmt(r.wspd, 0)} m/s
+                    </span>
                   </div>
                 </div>
                 <div className="hero-score">

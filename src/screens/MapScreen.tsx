@@ -25,6 +25,7 @@ import { isOffshoreWind } from "../model/model";
 import { scoreColor, scoreLabel, scoreTextColor, BG, FG, MUTED } from "../lib/colors";
 import { fmtDayLabel, fmtClock } from "../lib/time";
 import { fmt, compass } from "../lib/format";
+import { swellKind, swellLabel } from "../lib/swell";
 import {
   bearingOnScreen,
   distanceM,
@@ -38,6 +39,7 @@ import { Info } from "../components/Info";
 import { ScreenHeader } from "../components/ScreenHeader";
 import { WindArrow } from "../components/WindArrow";
 import { CalibratePanel } from "../components/CalibratePanel";
+import { SwellChip } from "../components/SwellChip";
 import type { Row } from "../model/model";
 
 // OpenStreetMaps egne fliser, gjort mørke med et CSS-filter på flise-
@@ -69,17 +71,26 @@ function arrowSvg(fromDeg: number, size: number, dashed: boolean): string {
   );
 }
 
-// Vejr-skiltet for et område: navnet, vind (hel pil, m/s) og bølger
-// (stiplet pil, meter) — ét objekt: skiltet hænger ud mod havet fra
-// måleprikken, så det aldrig ligger over nålene (kysten er øst for prikken).
+// Mærket ground swell / wind swell som på NU (SwellChip) — her som HTML,
+// fordi skilte og pile er Leaflet-ikoner.
+function swellChipHtml(tp: number): string {
+  const kind = swellKind(tp);
+  return `<span class="swell-chip ${kind}">${swellLabel(kind)}</span>`;
+}
+
+// Vejr-skiltet for et område: navnet, vind (hel pil, m/s), bølger
+// (stiplet pil, meter) og nederst ground/wind swell med perioden — ét
+// objekt: skiltet hænger ud mod havet fra måleprikken, så det aldrig
+// ligger over nålene (kysten er øst for prikken).
 const SIGN_W = 164;
-const SIGN_H = 80;
+const SIGN_H = 94; // skal matche .sign i styles.css
 const SIGN_STEM = 16;
 const SIGN_DOT = 10;
 function signHtml(area: Area, row: Row | null): string {
   const rows = row
     ? `<div class="sign-row">${arrowSvg(row.wdir, 24, false)}<span>${compass(row.wdir)} ${fmt(row.wspd, 0)} m/s</span></div>` +
-      `<div class="sign-row">${arrowSvg(row.swdir, 24, true)}<span>${compass(row.swdir)} ${fmt(row.hs)} m</span></div>`
+      `<div class="sign-row">${arrowSvg(row.swdir, 24, true)}<span>${compass(row.swdir)} ${fmt(row.hs)} m</span></div>` +
+      `<div class="sign-kind">${swellChipHtml(row.tp)}<span>${fmt(row.tp)} s</span></div>`
     : `<div class="sign-row sign-none">ingen data for timen</div>`;
   return (
     `<div class="sign"><div class="sign-card"><div class="sign-eyebrow">${area.label}</div>${rows}</div>` +
@@ -96,8 +107,9 @@ const signIcon = (area: Area, row: Row | null) =>
   });
 
 // Pilene ved et spot (fra ARROWS_ZOOM): vinden står dér, den kommer fra,
-// bølgerne længere ude, dér de kommer fra — så de kan læses mod høfden og
-// læ-feltet. Boksen er pixels om prikken, så afstanden holder i alle zoom.
+// bølgerne længere ude, dér de kommer fra, med ground/wind swell under —
+// så de kan læses mod høfden og læ-feltet. Boksen er pixels om prikken, så
+// afstanden holder i alle zoom.
 const ARROW_BOX = 230;
 function spotArrowsHtml(row: Row): string {
   const c = ARROW_BOX / 2;
@@ -110,7 +122,7 @@ function spotArrowsHtml(row: Row): string {
   return (
     `<div class="spot-arrows">` +
     `<div class="sa" style="left:${w.x.toFixed(0)}px;top:${w.y.toFixed(0)}px">${arrowSvg(row.wdir, 38, false)}<span>vind ${fmt(row.wspd, 0)} m/s</span></div>` +
-    `<div class="sa" style="left:${s.x.toFixed(0)}px;top:${s.y.toFixed(0)}px">${arrowSvg(row.swdir, 38, true)}<span>bølger ${fmt(row.hs)} m</span></div>` +
+    `<div class="sa" style="left:${s.x.toFixed(0)}px;top:${s.y.toFixed(0)}px">${arrowSvg(row.swdir, 38, true)}<span>bølger ${fmt(row.hs)} m</span>${swellChipHtml(row.tp)}</div>` +
     `</div>`
   );
 }
@@ -157,7 +169,8 @@ function popupHtml(spot: Spot, block: Block | null): string {
     `<strong>${name}</strong><br>` +
     `<span style="font-size:20px;font-weight:800;color:${scoreColor(b.score)}">${fmt(b.score)}</span>` +
     ` — ${scoreLabel(b.score)}<br>` +
-    `${leeCaption(spot, b)} · ${fmt(b.row.hs)} m / ${fmt(b.row.tp)} s`
+    `${leeCaption(spot, b)} · ${fmt(b.row.hs)} m / ${fmt(b.row.tp)} s · ` +
+    swellLabel(swellKind(b.row.tp)).toLowerCase()
   );
 }
 
@@ -231,12 +244,13 @@ function MapHelp() {
           dom, læside og bølgetal.
         </p>
         <p>
-          <strong>Skiltene ude i vandet</strong> er områdets vejrmåling: vind (hel pil, m/s) og
-          bølger (stiplet pil, meter) til det valgte tidspunkt — pilene peger derhen, vinden
-          blæser og bølgerne løber. Prikken er dér, tallene måles; ét skilt pr. vejr-område,
-          ikke et kort over hele havet. <strong>Fra zoom 15</strong> står de samme to pile ved
-          hvert spot, så de kan læses mod høfden og læ-feltet: vinden dér, den kommer fra,
-          bølgerne længere ude.
+          <strong>Skiltene ude i vandet</strong> er områdets vejrmåling: vind (hel pil, m/s),
+          bølger (stiplet pil, meter) og nederst, om det er <strong>ground swell</strong> eller{" "}
+          <strong>wind swell</strong>, med perioden i sekunder (fra 8 s er det ground swell) —
+          alt til det valgte tidspunkt. Pilene peger derhen, vinden blæser og bølgerne løber.
+          Prikken er dér, tallene måles; ét skilt pr. vejr-område, ikke et kort over hele havet.{" "}
+          <strong>Fra zoom 15</strong> står de samme to pile ved hvert spot, så de kan læses mod
+          høfden og læ-feltet: vinden dér, den kommer fra, bølgerne længere ude med mærket under.
         </p>
         <p>
           Linjen under skyderen viser vind og bølge pr. vejr-område til det valgte tidspunkt. En{" "}
@@ -718,7 +732,7 @@ export function MapScreen({ checkSpotId, onCheckDone }: Props) {
               </button>
             </div>
             {areaRows.length > 0 && (
-              <div className="area-strip" aria-label="vind og bølge pr. område">
+              <div className="area-strip" aria-label="vind, bølge og bølgetype pr. område">
                 {areaRows.map(({ label, row }) => (
                   <div className="area-cell" key={label}>
                     <div className="area-lab">{label}</div>
@@ -730,6 +744,10 @@ export function MapScreen({ checkSpotId, onCheckDone }: Props) {
                       <span className="area-val">
                         <WaveArrow deg={row.swdir} />
                         {compass(row.swdir)} {fmt(row.hs)} m
+                      </span>
+                      <span className="area-val area-kind">
+                        <SwellChip tp={row.tp} />
+                        {fmt(row.tp)} s
                       </span>
                     </div>
                   </div>

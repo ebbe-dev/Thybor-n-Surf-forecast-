@@ -7,6 +7,7 @@ import { scoreColor, FG } from "../lib/colors";
 import { dayName, fmtClock, fmtDateDa, hourOf } from "../lib/time";
 import { fmt, compass } from "../lib/format";
 import type { Session } from "../lib/sessions";
+import { SwellChip } from "./SwellChip";
 
 export function DayTimeline({ day, sessions = [] }: { day: DayStat; sessions?: Session[] }) {
   const hours = hoursOfDay(day);
@@ -25,7 +26,7 @@ export function DayTimeline({ day, sessions = [] }: { day: DayStat; sessions?: S
         <p className="daytimeline-best">
           Bedst kl. {fmtClock(best.time)}: {fmt(best.row.hs)} m / {fmt(best.row.tp)} s ·{" "}
           {compass(best.row.swdir)}-bølge · vind {compass(best.row.wdir)} {fmt(best.row.wspd)} m/s{" "}
-          <span className={"src-badge " + best.row.source}>{best.row.source}</span>
+          <SwellChip tp={best.row.tp} />
         </p>
       )}
       <svg viewBox="0 0 340 84" className="daytimeline-svg" aria-label="dagens timer">

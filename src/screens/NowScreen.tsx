@@ -28,6 +28,9 @@ import { Info, Legend } from "../components/Info";
 import { QuickPick } from "../components/QuickPick";
 import { ScreenHeader } from "../components/ScreenHeader";
 import { SpotChips } from "../components/SpotChips";
+import { SwellChip } from "../components/SwellChip";
+import { SwellGauge } from "../components/SwellGauge";
+import { GROUND_SWELL_MIN_TP } from "../lib/swell";
 import { correctionFor } from "../lib/calibration";
 
 function fmtFetched(iso: string): string {
@@ -55,7 +58,8 @@ function NuHelp() {
           <strong>Swipe kortet</strong> til siden for det næste spot i rækkefølgen — ugen
           nedenunder følger med. <strong>Grafen</strong> på kortet er spottets score time for
           time fra nu til horisontens ende: bunden er 0 og toppen 10 på alle kort, fladen har
-          skalaens farver, nætterne er mørke, og prikken er det vindue, kortet handler om.
+          skalaens farver, nætterne er mørke, og prikken er det vindue, kortet handler om. Den
+          lyse stribe under grafen er timerne med ground swell.
         </p>
         <p>
           <strong>"Læ på nordsiden"</strong> betyder: gå i vandet på nordsiden af høfden. Det er
@@ -105,18 +109,27 @@ function NuHelp() {
           mod land, roder den dem sammen.
         </p>
         <p>
-          Et tomt felt med stiplet kant betyder, at vejrtjenesten mangler data for de timer. Det
-          er et hul, ikke fladt hav. <strong>Tryk på en søjle</strong> for tallene bag og en
-          tegning af høfden med vindretning og læside.
+          En <strong>lys bund</strong> under en søjle er ground swell i den blok. Et tomt felt
+          med stiplet kant betyder, at vejrtjenesten mangler data for de timer. Det er et hul,
+          ikke fladt hav. <strong>Tryk på en søjle</strong> for tallene bag og en tegning af
+          høfden med vindretning og læside.
         </p>
       </Info>
       <Info q="Hvad betyder tallene og tegningen?">
         <p>
-          <strong>Bølge</strong> er bølgehøjden i meter. Mærket{" "}
-          <span className="src-badge swell">swell</span> betyder ren dønning (organiserede
-          bølger, det bedste); <span className="src-badge vindsø">vindsø</span> betyder, at
-          tallet er den samlede, mere rodede sø, som vinden pisker op. Der var ingen ren dønning
-          at måle.
+          <strong>Ground swell eller wind swell</strong> står øverst under tallene, ved tallene
+          på kortet øverst og på skiltene på KORT. Appen afgør det af perioden: fra{" "}
+          {GROUND_SWELL_MIN_TP} s og op er det <SwellChip tp={GROUND_SWELL_MIN_TP} /> — lange,
+          ordnede bølger rejst af et blæsevejr langt væk, det bedste. Under er det{" "}
+          <SwellChip tp={GROUND_SWELL_MIN_TP - 1} /> — kortere bølger, som vinden har rejst tæt
+          på. Skalaen under mærket viser, hvor perioden ligger i forhold til grænsen, så du kan
+          se, om det er lige på kanten.
+        </p>
+        <p>
+          <strong>Bølge</strong> er bølgehøjden i meter. "Ren dønning" under tallet betyder, at
+          vejrtjenesten har skilt dønningen fra den sø, vinden pisker op lige nu, og tallet er
+          dønningen alene. "Samlet sø" betyder, at den ikke kunne skille dem ad, og tallet er det
+          hele.
         </p>
         <p>
           <strong>Periode</strong> er sekunder mellem bølgerne. Høj periode (8+) = kraft og
@@ -196,11 +209,19 @@ function BlockDetail({ block, spot }: { block: Block; spot: Spot }) {
         </p>
       )}
       <div className="detail-body">
+        <div className="swell-block">
+          <div className="swell-line">
+            <SwellChip tp={r.tp} big />
+            <span className="swell-tp">{fmt(r.tp)} s</span>
+          </div>
+          <SwellGauge tp={r.tp} />
+        </div>
         <dl className="detail-grid">
           <div>
             <dt>Bølge</dt>
             <dd>
-              {fmt(r.hs)} m<span className={"src-badge " + r.source}>{r.source}</span>
+              {fmt(r.hs)} m
+              <span className="dd-note">{r.source === "swell" ? "ren dønning" : "samlet sø"}</span>
             </dd>
           </div>
           <div>

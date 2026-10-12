@@ -23,6 +23,7 @@ import { dayName, fmtClock, fmtDateDa } from "../lib/time";
 import { Info } from "../components/Info";
 import { ScreenHeader } from "../components/ScreenHeader";
 import { SpotChips } from "../components/SpotChips";
+import { SwellChip } from "../components/SwellChip";
 import { ScorePill } from "../components/ScorePill";
 import {
   calibrationEnabled,
@@ -348,7 +349,8 @@ export function LogScreen() {
               <p className="session-snap">
                 {s.snapshot ? (
                   <>
-                    {fmt(s.snapshot.hs)} m / {fmt(s.snapshot.tp)} s · {compass(s.snapshot.swdir)}-bølge ·
+                    {fmt(s.snapshot.hs)} m / {fmt(s.snapshot.tp)} s <SwellChip tp={s.snapshot.tp} /> ·{" "}
+                    {compass(s.snapshot.swdir)}-bølge ·
                     vind {compass(s.snapshot.wdir)} {fmt(s.snapshot.wspd)} m/s · model{" "}
                     <strong style={{ color: scoreColor(s.predicted ?? 0) }}>{fmt(s.predicted ?? 0)}</strong>
                   </>

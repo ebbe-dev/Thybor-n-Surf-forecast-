@@ -62,7 +62,11 @@ Hierarki via flader og runde hjørner, ikke via kanter:
 - **Dommen øverst** som helte-kort — ét pr. spot i rangeringens rækkefølge,
   swipebare, med scoren time for time (`ScoreSparkline`: 0 i bunden, 10 i
   toppen på alle kort, fladen i skalaens farver, nætter mørke). Det eneste
-  sted en kant bærer bandfarve.
+  sted en kant bærer bandfarve. Ved bølgetallene står, om det er **ground
+  swell** eller **wind swell** (afgjort af perioden, grænsen 8 s —
+  `src/lib/swell.ts`); den lyse stribe under grafen og den lyse bund under
+  en søjle er timerne og blokkene med ground swell, og under tallene viser
+  en skala, hvor perioden ligger i forhold til grænsen.
 - **Rangeringen** af alle spots nedenunder. Rækkefølgen er rangeringen,
   scoren står i en pille (`ScorePill`) med tekstfarve efter kontrast, så
   tallet altid kan læses.
@@ -70,9 +74,9 @@ Hierarki via flader og runde hjørner, ikke via kanter:
 - **Én ?-knap pr. skærm** (`ScreenHeader`) folder forklaringerne ud.
 - Kortet kører på OpenStreetMaps fliser, gjort mørke med et CSS-filter på
   flise-laget (CARTO's mørke fliser kræver API-nøgle). Spot-navne vises
-  fra zoom 12. Vejret står som ét skilt pr. område ud for kysten (navn, vind
-  og bølger til skyderens tidspunkt, hængende ud mod havet fra måleprikken),
-  og fra zoom 15 som pile ved hvert spot.
+  fra zoom 12. Vejret står som ét skilt pr. område ud for kysten (navn, vind,
+  bølger og ground/wind swell med perioden til skyderens tidspunkt, hængende
+  ud mod havet fra måleprikken), og fra zoom 15 som pile ved hvert spot.
 
 ## Arkitektur
 
@@ -80,5 +84,9 @@ Hierarki via flader og runde hjørner, ikke via kanter:
   Kalibreret mod faktiske sessions; justér kun her.
 - `src/config/spots.ts` — spots med egen kystnormal + gridpunkter.
 - `src/lib/colors.ts` — farveskalaen; samme farve = samme betydning overalt.
+- `src/lib/swell.ts` — ground swell / wind swell afgøres af perioden (≥ 8 s);
+  chip, skala, stribe, lys bund og kortets skilte læser alle herfra.
 - `src/api/openMeteo.ts` — henter/fletter forecast; swell-null → fallback
-  til vindsø, markeret pr. række. Manglende timer vises som huller.
+  til vindsø, markeret pr. række (vist som "ren dønning"/"samlet sø" under
+  bølgehøjden — typen ground/wind regnes ikke af det, men af perioden).
+  Manglende timer vises som huller.
