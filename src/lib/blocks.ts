@@ -3,8 +3,8 @@
 // Dommen er toppen af den rangering — aldrig noget listen ikke viser.
 
 import type { CachedForecast } from "./storage";
-import { scoreSpot, leeSide, isOffshoreWind, type Row } from "../model/model";
-import { effectiveNormal, type Spot } from "../config/spots";
+import { scoreSpot, leeSide, isOffshoreWind, caveats, type Row, type Caveat } from "../model/model";
+import { effectiveNormal, spotOpts, type Spot } from "../config/spots";
 import { BLOCK_HOURS, dateOf, hourOf, nextDate } from "./time";
 import { adjustedScore } from "./calibration";
 import { sunTimes, daylightOverlap } from "./sun";
@@ -42,7 +42,7 @@ export function hourlyBlocks(f: CachedForecast, spot: Spot): Map<string, Block> 
       row,
       // personlig korrektion fra loggede sessions oveni (lib/calibration.ts)
       score: adjustedScore(
-        scoreSpot(row, normal, { offshore: spot.offshoreDir, fixedSide: spot.fixedSide }),
+        scoreSpot(row, normal, spotOpts(spot)),
         spot.id
       ),
       // enkeltsidede spots viser altid deres side; ellers vind-læsiden
@@ -138,4 +138,10 @@ export function pickVerdict(
   days: number = DEFAULT_HORIZON
 ): VerdictPick | null {
   return rankSpots(f, spots, nowLocalIso(), days)[0] ?? null;
+}
+
+// Advarslerne for en blok: de regler, der trækker ned lige nu (model.ts,
+// caveats), regnet med spottets effektive retning og dets egenskaber.
+export function blockCaveats(spot: Spot, b: Block): Caveat[] {
+  return caveats(b.row, effectiveNormal(spot), spotOpts(spot));
 }

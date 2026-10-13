@@ -1,6 +1,8 @@
 // Spots ned langs tangen. Tilføj en høfde ved at tilføje et objekt —
 // hver høfde kan have sin egen kystnormal, de eksponeres forskelligt.
 
+import type { SpotOpts } from "../model/model";
+
 export interface Spot {
   id: string;
   name: string;
@@ -15,6 +17,12 @@ export interface Spot {
   // Spottet surfes kun på denne side af høfden/molen (se model.ts,
   // SIDE_SHELTER/SIDE_MISMATCH).
   fixedSide?: "nord" | "syd";
+  // Spottet ligger op ad en lang mole, der kaster bølgerne tilbage, så
+  // den udadgående bølge spiser den næste, når søen er stor (model.ts,
+  // reflectionFactor; docs/surf-science.md, afsnit 7). Sat 13/10/2026 efter
+  // brugerens session 11/10: appen sagde over 7, og bølgerne blev "spist af
+  // den bølge, der ville ud igen efter at have ramt molen".
+  reflective?: boolean;
   // Retningen er et gæt: NU siger det, til den er tjekket på kortet.
   // (Sted og retning kan tjekkes og rettes på kortet for ALLE spots.)
   adjustableNormal?: boolean;
@@ -110,7 +118,8 @@ export const SPOTS: Spot[] = [
     shoreNormal: 320,
     lat: 56.7089371, // brugerens nål, 28/07/2026
     lon: 8.2171907,
-    adjustableNormal: true
+    adjustableNormal: true,
+    reflective: true // kanalens mole
   },
   {
     id: "faergehavnen",
@@ -125,7 +134,8 @@ export const SPOTS: Spot[] = [
     offshoreDir: 270,
     lat: 56.6903646, // brugerens nål, 28/07/2026
     lon: 8.2265966,
-    adjustableNormal: true
+    adjustableNormal: true,
+    reflective: true // havnens kajer og moler
   },
   // ---- Sydområdet (Bovbjerg/Thorsminde), nord → syd.
   // (Fjaltring udgik 28/07/2026 — det VAR Høfde Q, samme sted.)
@@ -156,9 +166,16 @@ export const SPOTS: Spot[] = [
     lat: 56.3704838, // brugerens nål, 28/07/2026
     lon: 8.1142532,
     adjustableNormal: true,
-    fixedSide: "syd" // surfes langs den store mole, mod syd
+    fixedSide: "syd", // surfes langs den store mole, mod syd
+    reflective: true // den store mole
   }
 ];
+
+// Det, modellen skal vide om spottet ud over retningen — ét sted, så
+// ugen, kortet og session-snapshottet regner ens.
+export function spotOpts(spot: Spot): SpotOpts {
+  return { offshore: spot.offshoreDir, fixedSide: spot.fixedSide, reflective: spot.reflective };
+}
 
 const NORMAL_KEY = "bygtangen.normal.";
 const POS_KEY = "bygtangen.pos.";

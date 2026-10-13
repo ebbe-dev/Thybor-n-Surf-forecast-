@@ -5,7 +5,7 @@
 // Atlanterhavets 10-12 s kommer næsten aldrig, og appens hjælp har hele
 // tiden kaldt 8+ "kraft og orden".
 //
-// Open-Meteos swell-felter (Row.source) siger kun, at modellen kunne skille
+// Open-Meteos dønnings-del (Row.swell) siger kun, at modellen kunne skille
 // dønningen fra vindsøen — ikke om den er lang. En nyligt rejst dønning på
 // 5 s er stadig wind swell. Derfor regnes typen af perioden alene, og det
 // virker også på et session-snapshot, der kun har tallene.

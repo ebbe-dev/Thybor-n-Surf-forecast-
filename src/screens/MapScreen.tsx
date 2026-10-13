@@ -20,11 +20,11 @@ import {
   type Spot,
   type SpotGeometry
 } from "../config/spots";
-import { hourlyBlocks, leeCaption, nowLocalIso, type Block } from "../lib/blocks";
+import { hourlyBlocks, leeCaption, blockCaveats, nowLocalIso, type Block } from "../lib/blocks";
 import { isOffshoreWind } from "../model/model";
 import { scoreColor, scoreLabel, scoreTextColor, BG, FG, MUTED } from "../lib/colors";
 import { fmtDayLabel, fmtClock } from "../lib/time";
-import { fmt, compass } from "../lib/format";
+import { fmt, fmtLevel, compass } from "../lib/format";
 import { swellKind, swellLabel } from "../lib/swell";
 import {
   bearingOnScreen,
@@ -165,12 +165,14 @@ function popupHtml(spot: Spot, block: Block | null): string {
   const name = spot.uncalibrated ? `${spot.shortName} (ukalibreret)` : spot.shortName;
   if (!block) return `<strong>${name}</strong><br>hul i data`;
   const b = block;
+  const warn = blockCaveats(spot, b);
   return (
     `<strong>${name}</strong><br>` +
     `<span style="font-size:20px;font-weight:800;color:${scoreColor(b.score)}">${fmt(b.score)}</span>` +
     ` — ${scoreLabel(b.score)}<br>` +
     `${leeCaption(spot, b)} · ${fmt(b.row.hs)} m / ${fmt(b.row.tp)} s · ` +
-    swellLabel(swellKind(b.row.tp)).toLowerCase()
+    swellLabel(swellKind(b.row.tp)).toLowerCase() +
+    (warn.length ? `<br>⚠ ${warn.map((c) => c.short).join(" · ")}` : "")
   );
 }
 
@@ -749,6 +751,9 @@ export function MapScreen({ checkSpotId, onCheckDone }: Props) {
                         <SwellChip tp={row.tp} />
                         {fmt(row.tp)} s
                       </span>
+                      {row.level != null && (
+                        <span className="area-val area-kind">vandstand {fmtLevel(row.level)}</span>
+                      )}
                     </div>
                   </div>
                 ))}

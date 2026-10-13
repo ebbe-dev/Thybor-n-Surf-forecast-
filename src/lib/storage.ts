@@ -15,9 +15,10 @@ export interface CachedForecast {
   areas: Record<string, AreaForecast>;
 }
 
-// v2: område-opdelt (flere vejr-områder). Gammel v1-cache ignoreres —
-// første åbning efter opdateringen henter frisk.
-const KEY = "bygtangen.forecast2";
+// v3 (13/10/2026): rækken bærer den samlede sø med dønning, vindsø og
+// vandstand som dele. v2 bar dønningen alene og læses ikke — første
+// åbning efter opdateringen henter frisk.
+const KEY = "bygtangen.forecast3";
 
 export function saveForecast(f: CachedForecast): void {
   try {

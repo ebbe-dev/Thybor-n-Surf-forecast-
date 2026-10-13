@@ -5,7 +5,7 @@
 
 import type { Row } from "../model/model";
 import { scoreSpot } from "../model/model";
-import { effectiveNormal, SPOTS, type Spot } from "../config/spots";
+import { effectiveNormal, SPOTS, spotOpts, type Spot } from "../config/spots";
 import { loadForecast } from "./storage";
 import { loadCachedHistory } from "../api/archive";
 import { dateOf } from "./time";
@@ -128,10 +128,7 @@ export function createSession(
     // ALTID modellens rå score — aldrig den justerede. Ellers ville
     // kalibreringen (lib/calibration.ts) fodre sig selv.
     predicted: row
-      ? scoreSpot(row, effectiveNormal(spot), {
-          offshore: spot.offshoreDir,
-          fixedSide: spot.fixedSide
-        })
+      ? scoreSpot(row, effectiveNormal(spot), spotOpts(spot))
       : null
   };
 }

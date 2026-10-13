@@ -8,7 +8,7 @@
 // farve — stadig det eneste sted i appen, hvor en kant gør det.
 
 import { useEffect, useRef, type CSSProperties } from "react";
-import { HORIZON_OPTIONS, leeCaption, type Block, type HorizonDays, type VerdictPick } from "../lib/blocks";
+import { HORIZON_OPTIONS, leeCaption, blockCaveats, type Block, type HorizonDays, type VerdictPick } from "../lib/blocks";
 import { scoreColor, scoreLabel } from "../lib/colors";
 import { fmtClock, relativeDayLabel } from "../lib/time";
 import { fmt, compass } from "../lib/format";
@@ -158,6 +158,7 @@ export function SpotCards({
           const r = block.row;
           const color = scoreColor(block.score);
           const hourly = perSpot.get(spot.id);
+          const warn = blockCaveats(spot, block);
           return (
             <section
               className="hero"
@@ -192,6 +193,9 @@ export function SpotCards({
                       vind {compass(r.wdir)} {fmt(r.wspd, 0)} m/s
                     </span>
                   </div>
+                  {warn.length > 0 && (
+                    <div className="hero-caveat">⚠ {warn.map((c) => c.short).join(" · ")}</div>
+                  )}
                 </div>
                 <div className="hero-score">
                   <div className="n" style={{ color }}>

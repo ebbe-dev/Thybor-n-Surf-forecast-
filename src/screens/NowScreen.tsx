@@ -12,6 +12,7 @@ import {
   hourlyBlocks,
   horizonDates,
   leeCaption,
+  blockCaveats,
   nowLocalIso,
   type Block,
   type HorizonDays
@@ -19,7 +20,8 @@ import {
 import { loadHorizonDays, saveHorizonDays } from "../lib/settings";
 import { scoreColor } from "../lib/colors";
 import { fmtClock, fmtDayLabel, todayIso } from "../lib/time";
-import { fmt, compass } from "../lib/format";
+import { fmt, fmtLevel, compass } from "../lib/format";
+import type { Row } from "../model/model";
 import { sunTimes, fmtSunHour } from "../lib/sun";
 import { SpotCards } from "../components/SpotCards";
 import { Barograph } from "../components/Barograph";
@@ -126,10 +128,11 @@ function NuHelp() {
           se, om det er lige på kanten.
         </p>
         <p>
-          <strong>Bølge</strong> er bølgehøjden i meter. "Ren dønning" under tallet betyder, at
-          vejrtjenesten har skilt dønningen fra den sø, vinden pisker op lige nu, og tallet er
-          dønningen alene. "Samlet sø" betyder, at den ikke kunne skille dem ad, og tallet er det
-          hele.
+          <strong>Bølge</strong> er den samlede bølgehøjde i meter, som DMI's kort også viser den.
+          Under skalaen står, hvad søen består af: <strong>dønning</strong>, rejst af et blæsevejr
+          langt væk, og <strong>vindsø</strong>, rejst af vinden her, hver med højde, periode og
+          retning. Perioden ved mærket er den dominerende dels topperiode, for en blandet søs
+          middelperiode trækkes ned af vindsøen.
         </p>
         <p>
           <strong>Periode</strong> er sekunder mellem bølgerne. Høj periode (8+) = kraft og
@@ -142,6 +145,20 @@ function NuHelp() {
           bagfra, tæller slet ikke. Løber bølgerne langs kysten, vælger du størrelsen ved at gå
           nord eller syd: sydpå er man mest udsat, nordpå skygger Thyborøns mole.{" "}
           <strong>Stød</strong> er vindstødene. Over 14 m/s trækker de fra i scoren.
+        </p>
+        <p>
+          <strong>Fralandsvind</strong> er en gave op til omkring 5 m/s. Over det holder den
+          bølgerne oppe, så de knækker sent og tæt på stranden, og man kan ikke padle ind i dem;
+          fra 12 m/s er fradraget fuldt. <strong>Vandstand</strong> er vejrtjenestens vandstand i
+          forhold til middel: tidevand og lufttryk, ikke en stormflodsmodel. Tidevandet ved
+          Thyborøn er kun en halv meter; det er vinden, der flytter vandet. Over +0,4 m ruller
+          bølgerne over revlen og knækker inde ved stranden, under −0,6 m knækker de langt ude.
+        </p>
+        <p>
+          <strong>Advarslerne</strong> øverst i tallene er de regler, der trækker scoren ned lige
+          nu: hård fralandsvind, høj eller lav vandstand, og ved Indsejlingen, Færgehavnen og
+          Thorsminde en mole, der kaster store bølger tilbage, så den udadgående bølge spiser den
+          næste. Reglerne og forskningen bag dem står i appens vidensfil (docs/surf-science.md).
         </p>
         <p>
           <strong>Tegningen</strong> er høfden set fra oven, nord er op. Det mørke er land, den lyse
@@ -191,8 +208,17 @@ function SpotCheck({ spot, onCheck }: { spot: Spot; onCheck: () => void }) {
   );
 }
 
+// Delene af søen i ord: "dønning 1,2 m / 9,0 s NV · vindsø 0,8 m / 4,5 s S".
+function waveParts(r: Row): string {
+  const parts: string[] = [];
+  if (r.swell) parts.push(`dønning ${fmt(r.swell.hs)} m / ${fmt(r.swell.tp)} s ${compass(r.swell.dir)}`);
+  if (r.windSea) parts.push(`vindsø ${fmt(r.windSea.hs)} m / ${fmt(r.windSea.tp)} s ${compass(r.windSea.dir)}`);
+  return parts.length ? parts.join(" · ") : "dønning og vindsø: ikke opdelt af kilden";
+}
+
 function BlockDetail({ block, spot }: { block: Block; spot: Spot }) {
   const r = block.row;
+  const warnings = blockCaveats(spot, block);
   const color = scoreColor(block.score);
   const cal = correctionFor(spot.id);
   return (
@@ -211,6 +237,13 @@ function BlockDetail({ block, spot }: { block: Block; spot: Spot }) {
           {fmt(cal.correction)} lært af dine {cal.n} sessions
         </p>
       )}
+      {warnings.length > 0 && (
+        <ul className="caveats">
+          {warnings.map((c) => (
+            <li key={c.key}>{c.text}</li>
+          ))}
+        </ul>
+      )}
       <div className="detail-body">
         <div className="swell-block">
           <div className="swell-line">
@@ -218,14 +251,12 @@ function BlockDetail({ block, spot }: { block: Block; spot: Spot }) {
             <span className="swell-tp">{fmt(r.tp)} s</span>
           </div>
           <SwellGauge tp={r.tp} />
+          <div className="wave-parts">{waveParts(r)}</div>
         </div>
         <dl className="detail-grid">
           <div>
             <dt>Bølge</dt>
-            <dd>
-              {fmt(r.hs)} m
-              <span className="dd-note">{r.source === "swell" ? "ren dønning" : "samlet sø"}</span>
-            </dd>
+            <dd>{fmt(r.hs)} m</dd>
           </div>
           <div>
             <dt>Periode</dt>
@@ -250,6 +281,13 @@ function BlockDetail({ block, spot }: { block: Block; spot: Spot }) {
           <div>
             <dt>Luft</dt>
             <dd>{r.temp == null ? "—" : fmt(r.temp) + " °C"}</dd>
+          </div>
+          <div>
+            <dt>Vandstand</dt>
+            <dd>
+              {r.level == null ? "—" : fmtLevel(r.level)}
+              <span className="dd-note">{r.level == null ? "ikke oplyst" : "ift. middel"}</span>
+            </dd>
           </div>
         </dl>
         <div className="plan-box">

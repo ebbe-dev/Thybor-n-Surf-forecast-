@@ -32,8 +32,9 @@ export interface HistoryData {
   areas: Record<string, AreaHistory>;
 }
 
-// v2: område-opdelt
-const KEY = "bygtangen.history2";
+// v3 (13/10/2026): rækken bærer den samlede sø (se openMeteo.ts); v2 bar
+// dønningen alene og ignoreres.
+const KEY = "bygtangen.history3";
 
 export function loadCachedHistory(): HistoryData | null {
   try {

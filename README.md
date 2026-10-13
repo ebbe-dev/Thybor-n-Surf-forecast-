@@ -81,15 +81,20 @@ Hierarki via flader og runde hjørner, ikke via kanter:
 ## Arkitektur
 
 - `src/model/model.ts` — **alle** scoringskonstanter og -funktioner.
-  Kalibreret mod faktiske sessions; justér kun her. Skæve bølger aftager
-  som en cosinus, der først når nul ved 140° (`OBLIQUE_CUTOFF`): en bølge
-  langs kysten tæller omkring halvt, ikke nul (13/10/2026, sydbølge langs
-  Harboøre Tange).
+  Reglerne og forskningen bag dem står i `docs/surf-science.md`. Skæve
+  bølger aftager som en cosinus, der først når nul ved 140°
+  (`OBLIQUE_CUTOFF`): en bølge langs kysten tæller omkring halvt, ikke nul.
+  Fralandsvind er kun en gave op til 5 m/s og et fradrag fra 12
+  (`offshoreStrength`), en mole kaster store bølger tilbage ved spots med
+  `reflective` (`reflectionFactor`), og vandstanden trækker ned over +0,4 m
+  og under −0,6 m (`levelFactor`). `caveats` siger, hvilke regler der er
+  slået til, og fladen viser dem som advarsler.
 - `src/config/spots.ts` — spots med egen kystnormal + gridpunkter.
 - `src/lib/colors.ts` — farveskalaen; samme farve = samme betydning overalt.
 - `src/lib/swell.ts` — ground swell / wind swell afgøres af perioden (≥ 8 s);
   chip, skala, stribe, lys bund og kortets skilte læser alle herfra.
-- `src/api/openMeteo.ts` — henter/fletter forecast; swell-null → fallback
-  til vindsø, markeret pr. række (vist som "ren dønning"/"samlet sø" under
-  bølgehøjden — typen ground/wind regnes ikke af det, men af perioden).
-  Manglende timer vises som huller.
+- `src/api/openMeteo.ts` — henter/fletter forecast. Rækken bærer den
+  SAMLEDE sø (højde, retning), med dønning og vindsø som dele og vandstanden
+  over middel; perioden er den dominerende dels topperiode. Vindsø og
+  vandstand hentes i et ekstra kald, der må fejle. Manglende timer vises
+  som huller.

@@ -1730,3 +1730,38 @@ input[type="range"] {
   border-radius: 3px;
   background: var(--fg);
 }
+
+/* ---- hvorfor scoren er trukket ned: advarsler fra reglerne ---- */
+.caveats {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--fg);
+}
+.caveats li {
+  position: relative;
+  padding-left: 18px;
+  margin-top: 3px;
+}
+.caveats li::before {
+  content: "⚠";
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+.hero-caveat {
+  margin-top: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--fg);
+}
+/* delene af søen under skalaen */
+.wave-parts {
+  margin-top: 10px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--muted);
+}

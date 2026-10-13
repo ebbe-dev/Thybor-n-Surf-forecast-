@@ -4,17 +4,34 @@
 // `holes`; er et områdes bølgecelle tør, markeres området — de andre
 // områder kører videre.
 //
-// Swell-felterne er ofte null i Nordsøen (ingen dønning at skille fra
-// vindsøen). Så falder vi tilbage på wave_height/wave_period/wave_direction
-// og markerer rækken med source: "vindsø".
+// Rækken bærer den SAMLEDE sø (wave_*): det er den, der bryder på revlen,
+// og det er den, DMI's kort viser. Dønningen (swell_*) og vindsøen
+// (wind_wave_*) står ved siden af som dele, så appen kan sige, hvad søen
+// består af. Til 13/10/2026 bar rækken dønningen alene, når modellen kunne
+// skille den ud: på en dag med 1,5 m vindsø fra syd stod appen så med en
+// lille NV-dønning, mens surferne stod i sydbølgen (docs/surf-science.md).
+//
+// Perioden i rækken er den dominerende dels TOPPERIODE, når den del bærer
+// mindst halvdelen af energien; ellers den samlede middelperiode. Middel-
+// perioden for en blandet sø trækkes ned af vindsøen, og det er toppen,
+// surfere læser.
+//
+// Vindsøen og vandstanden hentes i et EKSTRA kald, der må fejle: kernen
+// (højde, retning, periode, dønning, vind) falder aldrig på dem.
 
-import type { Row } from "../model/model";
+import type { Row, WavePart } from "../model/model";
 import { AREAS } from "../config/spots";
 import type { CachedForecast, AreaForecast } from "../lib/storage";
 
 export const MARINE_HOURLY =
   "wave_height,wave_direction,wave_period," +
   "swell_wave_height,swell_wave_period,swell_wave_direction,swell_wave_peak_period";
+
+// Ekstra, fail-open: vindsøen med topperiode og vandstanden over middel
+// (tidevand + lufttryk + havmodellens overfladehøjde; ikke en kystnær
+// stormflodsmodel — docs/surf-science.md, afsnittet om vandstand).
+export const MARINE_EXTRA_HOURLY =
+  "wind_wave_height,wind_wave_period,wind_wave_direction,wind_wave_peak_period,sea_level_height_msl";
 
 export const WIND_HOURLY =
   "wind_speed_10m,wind_direction_10m,wind_gusts_10m,temperature_2m";
@@ -30,6 +47,10 @@ const WIND_COORDS =
 export const MARINE_BASE =
   `https://marine-api.open-meteo.com/v1/marine?${WAVE_COORDS}` +
   `&hourly=${MARINE_HOURLY}&timezone=Europe%2FCopenhagen`;
+
+export const MARINE_EXTRA_BASE =
+  `https://marine-api.open-meteo.com/v1/marine?${WAVE_COORDS}` +
+  `&hourly=${MARINE_EXTRA_HOURLY}&timezone=Europe%2FCopenhagen`;
 
 export const WIND_BASE =
   `https://api.open-meteo.com/v1/forecast?${WIND_COORDS}` +
@@ -47,6 +68,16 @@ export interface MarineHourly {
   swell_wave_height: (number | null)[];
   swell_wave_period: (number | null)[];
   swell_wave_direction: (number | null)[];
+  swell_wave_peak_period?: (number | null)[];
+}
+
+export interface MarineExtraHourly {
+  time: string[];
+  wind_wave_height?: (number | null)[];
+  wind_wave_period?: (number | null)[];
+  wind_wave_direction?: (number | null)[];
+  wind_wave_peak_period?: (number | null)[];
+  sea_level_height_msl?: (number | null)[];
 }
 
 export interface WindHourly {
@@ -71,60 +102,90 @@ export function asArray<T>(x: T | T[]): T[] {
   return Array.isArray(x) ? x : [x];
 }
 
+const at = (arr: (number | null)[] | undefined, i: number | undefined): number | null =>
+  arr && i != null ? (arr[i] ?? null) : null;
+
+function wavePart(hs: number | null, tp: number | null, dir: number | null): WavePart | null {
+  return hs != null && tp != null && dir != null ? { hs, tp, dir } : null;
+}
+
+// Den del, der bærer mindst halvdelen af energien (højde²), giver rækkens
+// periode — sin topperiode. Ingen del gør det → null, og kalderen falder
+// tilbage på den samlede middelperiode.
+export function dominantPeriod(
+  hs: number | null,
+  swell: WavePart | null,
+  windSea: WavePart | null
+): number | null {
+  if (hs == null || hs <= 0) return null;
+  const parts = [swell, windSea].filter((p): p is WavePart => p !== null);
+  if (parts.length === 0) return null;
+  const top = parts.reduce((a, b) => (b.hs > a.hs ? b : a));
+  return top.hs * top.hs >= 0.5 * hs * hs ? top.tp : null;
+}
+
 // Fletter marine- og vindtimer til Rows. Bruges af både forecast og arkiv,
-// så fallback-reglerne er garanteret ens alle steder.
-export function mergeHourly(m: MarineHourly, w: WindHourly): { rows: Row[]; holes: string[] } {
+// så fallback-reglerne er garanteret ens alle steder. Ekstra-delen
+// (vindsø, vandstand) er valgfri og matches på tidsstemplet.
+export function mergeHourly(
+  m: MarineHourly,
+  w: WindHourly,
+  x: MarineExtraHourly | null = null
+): { rows: Row[]; holes: string[] } {
   const windAt = new Map<string, number>();
   w.time.forEach((t, i) => windAt.set(t, i));
+  const extraAt = new Map<string, number>();
+  x?.time.forEach((t, i) => extraAt.set(t, i));
 
   const rows: Row[] = [];
   const holes: string[] = [];
 
   m.time.forEach((t, i) => {
     const wi = windAt.get(t);
-    const wspd = wi != null ? w.wind_speed_10m[wi] : null;
-    const wdir = wi != null ? w.wind_direction_10m[wi] : null;
-    const gust = wi != null ? w.wind_gusts_10m[wi] : null;
-    const temp = wi != null ? (w.temperature_2m[wi] ?? null) : null;
+    const wspd = at(w.wind_speed_10m, wi);
+    const wdir = at(w.wind_direction_10m, wi);
+    const gust = at(w.wind_gusts_10m, wi);
+    const temp = at(w.temperature_2m, wi);
 
-    const swellOk =
-      m.swell_wave_height[i] != null &&
-      m.swell_wave_period[i] != null &&
-      m.swell_wave_direction[i] != null;
+    const swell = wavePart(
+      at(m.swell_wave_height, i),
+      at(m.swell_wave_peak_period, i) ?? at(m.swell_wave_period, i),
+      at(m.swell_wave_direction, i)
+    );
+    const xi = extraAt.get(t);
+    const windSea = wavePart(
+      at(x?.wind_wave_height, xi),
+      at(x?.wind_wave_peak_period, xi) ?? at(x?.wind_wave_period, xi),
+      at(x?.wind_wave_direction, xi)
+    );
+    const level = at(x?.sea_level_height_msl, xi);
 
-    const hs = swellOk ? m.swell_wave_height[i] : m.wave_height[i];
-    const tp = swellOk ? m.swell_wave_period[i] : m.wave_period[i];
-    const swdir = swellOk ? m.swell_wave_direction[i] : m.wave_direction[i];
+    // Samlet sø; mangler den, bærer dønningen rækken (ældre svar).
+    const hs = at(m.wave_height, i) ?? swell?.hs ?? null;
+    const swdir = at(m.wave_direction, i) ?? swell?.dir ?? null;
+    const tp = dominantPeriod(hs, swell, windSea) ?? at(m.wave_period, i) ?? swell?.tp ?? null;
 
     if (hs == null || tp == null || swdir == null || wspd == null || wdir == null || gust == null) {
       holes.push(t);
       return;
     }
 
-    rows.push({
-      time: t,
-      hs,
-      tp,
-      swdir,
-      wdir,
-      wspd,
-      gust,
-      temp,
-      source: swellOk ? "swell" : "vindsø"
-    });
+    rows.push({ time: t, hs, tp, swdir, swell, windSea, level, wdir, wspd, gust, temp });
   });
 
   return { rows, holes };
 }
 
 type MarineResp = { hourly: MarineHourly };
+type MarineExtraResp = { hourly: MarineExtraHourly };
 type WindResp = { hourly: WindHourly };
 
 // Bygger område-opdelte forecasts af parallelle API-svar (samme index-
 // rækkefølge som AREAS, da URL'erne bygges af AREAS).
 export function splitByArea(
   marines: MarineResp[],
-  winds: WindResp[]
+  winds: WindResp[],
+  extras: (MarineExtraResp | null)[] | null = null
 ): Record<string, AreaForecast> {
   const areas: Record<string, AreaForecast> = {};
   AREAS.forEach((a, i) => {
@@ -134,8 +195,9 @@ export function splitByArea(
       areas[a.id] = { rows: [], holes: [], dry: true };
       return;
     }
+    const x = extras?.[i]?.hourly ?? null;
     const dry = m.wave_height.every((v) => v == null);
-    const merged = dry ? { rows: [], holes: [] } : mergeHourly(m, w);
+    const merged = dry ? { rows: [], holes: [] } : mergeHourly(m, w, x);
     areas[a.id] = { ...merged, dry };
   });
   return areas;
@@ -144,12 +206,21 @@ export function splitByArea(
 export async function fetchForecast(): Promise<CachedForecast> {
   // 7 dage bagud + 7 frem: barografen kan swipes tilbage, og snapshots til
   // sessions logget bagudrettet findes uden at åbne historikken først.
-  const [marineRes, windRes] = await Promise.all([
-    getJson<MarineResp | MarineResp[]>(MARINE_BASE + "&past_days=7&forecast_days=7"),
-    getJson<WindResp | WindResp[]>(WIND_BASE + "&past_days=7&forecast_days=7")
+  const span = "&past_days=7&forecast_days=7";
+  const [marineRes, windRes, extraRes] = await Promise.all([
+    getJson<MarineResp | MarineResp[]>(MARINE_BASE + span),
+    getJson<WindResp | WindResp[]>(WIND_BASE + span),
+    getJson<MarineExtraResp | MarineExtraResp[]>(MARINE_EXTRA_BASE + span).catch((e: unknown) => {
+      console.warn("Open-Meteo: vindsø og vandstand faldt fra —", e);
+      return null;
+    })
   ]);
 
-  const areas = splitByArea(asArray(marineRes), asArray(windRes));
+  const areas = splitByArea(
+    asArray(marineRes),
+    asArray(windRes),
+    extraRes ? asArray(extraRes) : null
+  );
 
   if (Object.values(areas).every((a) => a.dry)) {
     throw new Error(

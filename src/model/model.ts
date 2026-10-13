@@ -23,19 +23,32 @@ export const SIZE_GATE_M = 0.5;
 export const GUST_LIMIT = 14;
 export const GUST_PENALTY = 0.85;
 
-// Én times forhold, klar til scoring. source fortæller om bølgetallene
-// kommer fra swell-felterne eller er faldet tilbage på total vindsø.
+// En del af søen: dønningen (rejst af et blæsevejr langt væk) eller
+// vindsøen (rejst af vinden her). Højde m, topperiode s, retning grader fra.
+export interface WavePart {
+  hs: number;
+  tp: number;
+  dir: number;
+}
+
+// Én times forhold, klar til scoring. Rækken bærer den SAMLEDE sø — det er
+// den, der bryder på revlen — og delene står ved siden af, hvis kilden har
+// dem (api/openMeteo.ts, docs/surf-science.md).
 export interface Row {
   time: string; // ISO, Europe/Copenhagen
-  hs: number; // bølgehøjde m (swell eller total)
-  tp: number; // periode s
-  swdir: number; // bølgeretning grader
+  hs: number; // samlet signifikant bølgehøjde m
+  tp: number; // periode s: den dominerende dels topperiode, ellers samlet middel
+  swdir: number; // samlet bølgeretning grader (hvor søen kommer fra)
+  swell: WavePart | null; // dønningen, hvis modellen skiller den ud
+  windSea: WavePart | null; // vindsøen, hvis hentet
+  level: number | null; // vandstand m over middel, hvis hentet
   wdir: number; // vindretning grader
   wspd: number; // vind m/s
   gust: number; // stød m/s
   temp: number | null; // lufttemperatur °C
-  source: "swell" | "vindsø";
 }
+
+const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 
 export function angDiff(a: number, b: number): number {
   const d = Math.abs(a - b) % 360;
@@ -92,7 +105,60 @@ export function windQuality(
   q = q + (1 - q) * calm;
   const north = angDiff(wdir, 350);
   if (north < 45 && wspd < 9) q += 0.15 * (1 - north / 45);
+  // Hård fralandsvind (docs/surf-science.md, afsnit 5): over
+  // OFFSHORE_IDEAL_MAX holder vinden bølgerne oppe, så de knækker sent og
+  // tæt på stranden (Douglass 1990), og man kan ikke padle ind i dem.
+  // Fradraget vokser til OFFSHORE_STRONG_PENALTY ved OFFSHORE_TOO_STRONG og
+  // rammer kun vindens fralands-del. 11/10/2026: appen sagde over 7 i hård
+  // fralandsvind og høje bølger, og bølgerne knækkede for langt inde.
+  q -= offshoreStrength(wdir, wspd, offshore) * OFFSHORE_STRONG_PENALTY;
   return Math.max(0, Math.min(1, q));
+}
+
+export const OFFSHORE_IDEAL_MAX = 5; // m/s (~10 knob): hertil er fralandsvind kun en gave
+export const OFFSHORE_TOO_STRONG = 12; // m/s (~23 knob): herfra fuldt fradrag
+export const OFFSHORE_STRONG_PENALTY = 0.6;
+
+// Hvor hård fralandsvinden er, 0..1: fralands-andelen af vinden (cos til
+// fralandsretningen, kvadreret, så en side-fralandsvind rammes blødt og
+// aldrig ender under ren sidevind) gange styrken over det ideelle.
+export function offshoreStrength(wdir: number, wspd: number, offshore: number): number {
+  const along = Math.max(0, Math.cos((angDiff(wdir, offshore) * Math.PI) / 180));
+  const strong = clamp01((wspd - OFFSHORE_IDEAL_MAX) / (OFFSHORE_TOO_STRONG - OFFSHORE_IDEAL_MAX));
+  return along * along * strong;
+}
+
+// Refleksion fra en mole (docs/surf-science.md, afsnit 7): ved et spot op
+// ad en lang mole kastes bølgerne tilbage, og den udadgående bølge spiser
+// den næste. Virkningen vokser med højden: fra REFLECTION_FROM_HS til fuldt
+// fradrag ved REFLECTION_FULL_HS. Kun spots med `reflective` (config/spots).
+export const REFLECTION_FROM_HS = 1.0;
+export const REFLECTION_FULL_HS = 2.0;
+export const REFLECTION_MAX_PENALTY = 0.5;
+
+export function reflectionFactor(hs: number): number {
+  return 1 - REFLECTION_MAX_PENALTY * clamp01((hs - REFLECTION_FROM_HS) / (REFLECTION_FULL_HS - REFLECTION_FROM_HS));
+}
+
+// Vandstand (docs/surf-science.md, afsnit 6): revlen bryder bedst ved lav
+// til middel vandstand. Står vandet højt, ruller bølgerne over revlen og
+// knækker inde ved stranden; står det meget lavt, knækker de langt ude og
+// hårdt. Tidevandet ved Thyborøn er kun en halv meter — det er vinden, der
+// flytter vandet. Uden vandstand (null) regnes intet.
+export const LEVEL_HIGH_FROM = 0.4; // m over middel
+export const LEVEL_HIGH_FULL = 1.0;
+export const LEVEL_HIGH_PENALTY = 0.4;
+export const LEVEL_LOW_FROM = -0.6;
+export const LEVEL_LOW_FULL = -1.2;
+export const LEVEL_LOW_PENALTY = 0.15;
+
+export function levelFactor(level: number | null): number {
+  if (level == null) return 1;
+  if (level > LEVEL_HIGH_FROM)
+    return 1 - LEVEL_HIGH_PENALTY * clamp01((level - LEVEL_HIGH_FROM) / (LEVEL_HIGH_FULL - LEVEL_HIGH_FROM));
+  if (level < LEVEL_LOW_FROM)
+    return 1 - LEVEL_LOW_PENALTY * clamp01((LEVEL_LOW_FROM - level) / (LEVEL_LOW_FROM - LEVEL_LOW_FULL));
+  return 1;
 }
 
 // Enkeltsidede spots (surfes kun på én side af høfden/molen, fx Høfde Q
@@ -114,6 +180,7 @@ export const OFFSHORE_SIDE_DEADZONE = 45;
 export interface SpotOpts {
   offshore?: number; // se windQuality
   fixedSide?: "nord" | "syd"; // spottet surfes kun på denne side
+  reflective?: boolean; // op ad en mole, der kaster bølgerne tilbage (reflectionFactor)
 }
 
 // Samme formel som scoreWest fra kalibreringen, men med kystnormalen som
@@ -131,7 +198,47 @@ export function scoreSpot(r: Row, normal = SHORE_NORMAL, opts?: SpotOpts): numbe
   const eNorm = Math.min(1, e / ENERGY_NORM);
   const sizeGate = r.hs < SIZE_GATE_M ? r.hs / SIZE_GATE_M : 1;
   const gust = r.gust > GUST_LIMIT ? GUST_PENALTY : 1;
-  return 10 * Math.pow(eNorm, 0.6) * (0.35 + 0.65 * wq) * sizeGate * gust;
+  const reflection = opts?.reflective ? reflectionFactor(r.hs) : 1;
+  return 10 * Math.pow(eNorm, 0.6) * (0.35 + 0.65 * wq) * sizeGate * gust * reflection * levelFactor(r.level);
+}
+
+// Hvorfor scoren er trukket ned: de regler, der er slået til for timen,
+// med ord til kortet (short) og til tallene (text). Samme tærskler som
+// reglerne selv, så en advarsel aldrig står uden et fradrag — eller omvendt.
+export interface Caveat {
+  key: "offshore-hard" | "reflection" | "level-high" | "level-low";
+  short: string;
+  text: string;
+}
+
+export function caveats(r: Row, normal = SHORE_NORMAL, opts?: SpotOpts): Caveat[] {
+  const out: Caveat[] = [];
+  const offshore = opts?.offshore ?? (normal + 180) % 360;
+  if (offshoreStrength(r.wdir, r.wspd, offshore) >= 0.3)
+    out.push({
+      key: "offshore-hard",
+      short: "hård fralandsvind",
+      text: "Hård fralandsvind: bølgerne holdes oppe, knækker sent og tæt på stranden, og de er svære at padle ind i."
+    });
+  if (opts?.reflective && reflectionFactor(r.hs) < 0.9)
+    out.push({
+      key: "reflection",
+      short: "molen kaster bølgerne tilbage",
+      text: "Molen kaster bølgerne tilbage ved den størrelse: den udadgående bølge spiser den næste."
+    });
+  if (r.level != null && r.level > LEVEL_HIGH_FROM)
+    out.push({
+      key: "level-high",
+      short: "høj vandstand",
+      text: "Høj vandstand: bølgerne ruller over revlen og knækker inde ved stranden."
+    });
+  if (r.level != null && r.level < LEVEL_LOW_FROM)
+    out.push({
+      key: "level-low",
+      short: "lav vandstand",
+      text: "Lav vandstand: bølgerne knækker langt ude på yderrevlen, lavt og hårdt."
+    });
+  return out;
 }
 
 export const scoreWest = (r: Row) => scoreSpot(r, SHORE_NORMAL);
