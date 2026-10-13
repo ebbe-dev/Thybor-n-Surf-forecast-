@@ -42,16 +42,33 @@ export function angDiff(a: number, b: number): number {
   return d > 180 ? 360 - d : d;
 }
 
+// Skæve bølger: energien aftager med vinklen mellem bølge og kyst som en
+// cosinus, der først når nul ved OBLIQUE_CUTOFF grader — ikke ved 90. Til
+// 13/10/2026 var det ren cos, og en bølge langs kysten (90°) gav nul. Den
+// dag løb en sydbølge parallelt med kysten (DMI: 1,5 m fra S, vind SSV
+// 10 m/s), og appen sagde "Bliv hjemme" ved Terrassen og 0 ved alle de
+// NV-vendte Thyborøn-spots, mens en erfaren surfer pegede på netop stykket
+// Langerhuse–Terrassen: man vælger størrelsen ved at gå nord eller syd.
+// Bølger bøjer ind mod stranden på det lave vand, og høfder og revler
+// fanger dem, så en bølge langs kysten giver surf — bare mindre. Med 140:
+// 45° → 0,88, 90° → 0,53, 110° → 0,33, 130° → 0,11, fra 140° intet. En
+// bølge ret på kysten er uændret 1, så kalibreringsankeret (26/7) holder.
+// Det er en hypotese — loggen retter den, spot for spot.
+export const OBLIQUE_CUTOFF = 140;
+
+export function obliqueFactor(deltaDeg: number): number {
+  if (deltaDeg >= OBLIQUE_CUTOFF) return 0;
+  return Math.cos(((deltaDeg / OBLIQUE_CUTOFF) * Math.PI) / 2);
+}
+
 // Energi-indeks. Skaleret så 1,6 m / 7 s ≈ 269 (matcher surf-forecast.com's kJ).
-// cos-leddet straffer skæve swellvinkler — en VSV-swell rammer skævt her.
 export function energy(
   hs: number,
   tp: number,
   swdir: number,
   normal = SHORE_NORMAL
 ): number {
-  const oblique = Math.max(0, Math.cos((angDiff(swdir, normal) * Math.PI) / 180));
-  return 15 * hs * hs * tp * oblique;
+  return 15 * hs * hs * tp * obliqueFactor(angDiff(swdir, normal));
 }
 
 // Vindkvalitet 0..1.

@@ -137,8 +137,11 @@ function NuHelp() {
         </p>
         <p>
           <strong>Bølgeretning</strong> og <strong>vind</strong> er der, hvor bølge og vind kommer{" "}
-          <em>fra</em>. <strong>Stød</strong> er vindstødene. Over 14 m/s trækker de fra i
-          scoren.
+          <em>fra</em>. En bølge ret på kysten tæller fuldt; en bølge langs kysten tæller omkring
+          halvt, for den bøjer ind mod stranden på det lave vand, og først en bølge, der kommer
+          bagfra, tæller slet ikke. Løber bølgerne langs kysten, vælger du størrelsen ved at gå
+          nord eller syd: sydpå er man mest udsat, nordpå skygger Thyborøns mole.{" "}
+          <strong>Stød</strong> er vindstødene. Over 14 m/s trækker de fra i scoren.
         </p>
         <p>
           <strong>Tegningen</strong> er høfden set fra oven, nord er op. Det mørke er land, den lyse

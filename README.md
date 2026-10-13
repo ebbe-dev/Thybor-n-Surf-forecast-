@@ -81,7 +81,10 @@ Hierarki via flader og runde hjørner, ikke via kanter:
 ## Arkitektur
 
 - `src/model/model.ts` — **alle** scoringskonstanter og -funktioner.
-  Kalibreret mod faktiske sessions; justér kun her.
+  Kalibreret mod faktiske sessions; justér kun her. Skæve bølger aftager
+  som en cosinus, der først når nul ved 140° (`OBLIQUE_CUTOFF`): en bølge
+  langs kysten tæller omkring halvt, ikke nul (13/10/2026, sydbølge langs
+  Harboøre Tange).
 - `src/config/spots.ts` — spots med egen kystnormal + gridpunkter.
 - `src/lib/colors.ts` — farveskalaen; samme farve = samme betydning overalt.
 - `src/lib/swell.ts` — ground swell / wind swell afgøres af perioden (≥ 8 s);
