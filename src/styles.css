@@ -784,7 +784,7 @@ textarea {
   margin-top: 1px;
   white-space: nowrap;
 }
-/* kilden under bølgehøjden: "ren dønning" / "samlet sø" */
+/* lille note under et tal i tallene, fx vandstandens "ift. middel" */
 .dd-note {
   display: block;
   font-size: 10.5px;
