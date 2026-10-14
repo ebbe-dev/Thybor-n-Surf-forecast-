@@ -224,7 +224,14 @@ overgangene. **Ikke i modellen endnu:** det kræver revlens hældning pr. spot
   op til dobbelt mandshøjde; sandbankerne flytter sig med bølger og vind, så
   det kan tage en dag at finde den rigtige; øvede og opefter.
 - **Høfde Q:** klassisk højrebølge, lang og hul på gode dage; surfes syd for
-  høfden; de sidste 3–4 høfder mod syd er bedst; øvet/ekspert.
+  høfden; de sidste 3–4 høfder mod syd er bedst; øvet/ekspert. Visit Agger
+  (efterset 14/10): "fungerer som et lille point break. Man går i vandet på
+  indersiden af den sydvendte mole og padler lige ud i takeoff-zonen",
+  kræver vind fra N–NNØ (det lægger læet på sydsiden), og man skal ikke
+  drive ind foran molen i et stort sæt. Høfde Q blev anlagt 1934
+  (Kystdirektoratet). Geometrien: en højrebølge på en vestkyst rides mod
+  syd, og V/NV-swell bøjer rundt om høfdehovedet og peeler langs sydsiden;
+  nordsiden ville kun give en venstre ved SV-swell.
 - **Thorsminde:** højrebølge langs den store mole, surfes mod syd.
 - **Gradienten 13/10** (erfaren surfer): ved sydbølge langs tangen er man
   mest udsat sydpå (Q: større, mere rodet); nordpå skygger Thyborøns mole, så
@@ -326,6 +333,11 @@ Score = 10 · energi^0,6 · (0,35 + 0,65 · vind) · gate · stød · mole · va
 - Revler (Lex, Livredning.dk): https://lex.dk/kyst og http://livredning.dk/revler.html
 - Surfspot Harboøre (Visit Nordvestkysten):
   https://www.visitnordvestkysten.dk/nordvestkysten/planlaeg-din-tur/surfspot-harbooere-gdk1106791
+- Surfspot Høfde Q (Visit Nordvestkysten):
+  https://www.visitnordvestkysten.dk/nordvestkysten/planlaeg-din-tur/surfspot-hoefde-q-gdk1106885
+- Surfspots ved Agger og Høfde Q (Visit Agger): https://www.visitagger.dk/surfspots
+- Kystdirektoratet, høfderne Bovbjerg–Fjaltring (feltbesøg):
+  https://kyst.dk/media/q1io1szu/bwn_fieldtrip.pdf
 - Surfing in Thyborøn (Sessions Travel):
   https://sessionstravel.com/destinations/denmark/surfing-in-thyboron/
 - Open-Meteo Marine Weather API: https://open-meteo.com/en/docs/marine-weather-api

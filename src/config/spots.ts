@@ -144,6 +144,13 @@ export const SPOTS: Spot[] = [
     // HØJRE-bølge, lang og hul på gode dage; der surfes SYD for høfden
     // (ind på indersiden af sydsiden, padl ud til takeoff). Sydenden med
     // de sidste 3-4 høfder er bedst. Niveau: øvet/ekspert.
+    // Efterset 14/10/2026 (visitagger.dk/surfspots): "fungerer som et lille
+    // point break. Man går i vandet på indersiden af den sydvendte mole og
+    // padler lige ud i takeoff-zonen"; kræver vind fra N–NNØ (læ på
+    // sydsiden), og man skal ikke drive ind foran molen i et stort sæt.
+    // Geometrien siger det samme: en højrebølge på en vestkyst rides mod
+    // syd, og V/NV-swell bøjer rundt om høfdehovedet og peeler langs
+    // sydsiden. Nordsiden ville kun give en venstre ved SV-swell.
     id: "hoefde-q",
     name: "Høfde Q — højre, surfes syd for høfden (Fjaltring)",
     shortName: "Høfde Q",
