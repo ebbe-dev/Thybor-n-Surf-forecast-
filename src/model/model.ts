@@ -115,6 +115,22 @@ export function windQuality(
   return Math.max(0, Math.min(1, q));
 }
 
+// Hård pålandsvind (docs/surf-science.md, afsnit 5): lidt påland dæmper
+// kun (gulvet på 0,35 i scoren), men over ONSHORE_BLOWOUT_FROM lige på
+// land er søen blæst ud og rodet, og høfden giver intet læ. Fradraget vokser
+// til ONSHORE_BLOWOUT_PENALTY ved ONSHORE_BLOWOUT_FULL og rammer kun vindens
+// pålands-del (cos², så sidevind går fri — der har høfden læ). 14/10/2026:
+// hård vestenvind, og gulvet stod på 3,5 uanset styrke.
+export const ONSHORE_BLOWOUT_FROM = 6; // m/s
+export const ONSHORE_BLOWOUT_FULL = 14; // m/s
+export const ONSHORE_BLOWOUT_PENALTY = 0.7;
+
+export function onshoreBlowout(wdir: number, wspd: number, normal: number): number {
+  const along = Math.max(0, Math.cos((angDiff(wdir, normal) * Math.PI) / 180)); // 1 = lige på land
+  const strong = clamp01((wspd - ONSHORE_BLOWOUT_FROM) / (ONSHORE_BLOWOUT_FULL - ONSHORE_BLOWOUT_FROM));
+  return along * along * strong;
+}
+
 export const OFFSHORE_IDEAL_MAX = 5; // m/s (~10 knob): hertil er fralandsvind kun en gave
 export const OFFSHORE_TOO_STRONG = 12; // m/s (~23 knob): herfra fuldt fradrag
 export const OFFSHORE_STRONG_PENALTY = 0.6;
@@ -173,6 +189,19 @@ export function levelFactor(level: number | null): number {
 export const SIDE_SHELTER_MIN = 0.75;
 export const SIDE_MISMATCH = 0.5;
 export const SIDE_SHELTER_MAX_WIND = 12;
+
+// Høfdens læ er kun så godt, som vinden står på tværs af høfden: vind
+// langs kysten (90° på spottets retning) giver fuldt læ, vind lige på land
+// eller lige fra land (langs høfden) giver intet. 0..1.
+// Tosidede høfdespots (Langerhuse, Terrassen, Sneglehuset) får læet også:
+// man går på læsiden, og det er det, teksten "læ på nordsiden" lover.
+// Indtil 14/10/2026 fik kun enkeltsidede spots løftet, så 13/10 kl. 12–14
+// ved Langerhuse H (sydbølge, sydvind 10 m/s, "helt fantastisk") stod
+// vinden som en ren sidevind på 0,44 i scoren, mens appen samtidig skrev
+// "læ på nordsiden".
+export function groyneShelter(wdir: number, normal: number): number {
+  return Math.sin((angDiff(wdir, normal) * Math.PI) / 180);
+}
 // Kommer vinden fra land (inden for denne vinkel fra offshore), er hele
 // kysten i læ, og høfdens side er ligegyldig: hverken løft eller straf.
 export const OFFSHORE_SIDE_DEADZONE = 45;
@@ -180,6 +209,7 @@ export const OFFSHORE_SIDE_DEADZONE = 45;
 export interface SpotOpts {
   offshore?: number; // se windQuality
   fixedSide?: "nord" | "syd"; // spottet surfes kun på denne side
+  groynes?: boolean; // spottet har høfder, og man går på læsiden (groyneShelter)
   reflective?: boolean; // op ad en mole, der kaster bølgerne tilbage (reflectionFactor)
 }
 
@@ -188,25 +218,31 @@ export interface SpotOpts {
 export function scoreSpot(r: Row, normal = SHORE_NORMAL, opts?: SpotOpts): number {
   const e = energy(r.hs, r.tp, r.swdir, normal);
   let wq = windQuality(r.wdir, r.wspd, normal, opts?.offshore ?? (normal + 180) % 360);
-  if (opts?.fixedSide && !isOffshoreWind(r.wdir, normal)) {
-    if (leeSide(r.wdir, normal) === opts.fixedSide) {
-      if (r.wspd <= SIDE_SHELTER_MAX_WIND) wq = Math.max(wq, SIDE_SHELTER_MIN);
-    } else {
-      wq = wq * SIDE_MISMATCH;
+  if (!isOffshoreWind(r.wdir, normal)) {
+    const shelter =
+      r.wspd <= SIDE_SHELTER_MAX_WIND ? SIDE_SHELTER_MIN * groyneShelter(r.wdir, normal) : 0;
+    if (opts?.fixedSide) {
+      if (leeSide(r.wdir, normal) === opts.fixedSide) wq = Math.max(wq, shelter);
+      else wq = wq * SIDE_MISMATCH;
+    } else if (opts?.groynes) {
+      wq = Math.max(wq, shelter);
     }
   }
   const eNorm = Math.min(1, e / ENERGY_NORM);
   const sizeGate = r.hs < SIZE_GATE_M ? r.hs / SIZE_GATE_M : 1;
   const gust = r.gust > GUST_LIMIT ? GUST_PENALTY : 1;
   const reflection = opts?.reflective ? reflectionFactor(r.hs) : 1;
-  return 10 * Math.pow(eNorm, 0.6) * (0.35 + 0.65 * wq) * sizeGate * gust * reflection * levelFactor(r.level);
+  const blowout = 1 - ONSHORE_BLOWOUT_PENALTY * onshoreBlowout(r.wdir, r.wspd, normal);
+  return (
+    10 * Math.pow(eNorm, 0.6) * (0.35 + 0.65 * wq) * sizeGate * gust * reflection * levelFactor(r.level) * blowout
+  );
 }
 
 // Hvorfor scoren er trukket ned: de regler, der er slået til for timen,
 // med ord til kortet (short) og til tallene (text). Samme tærskler som
 // reglerne selv, så en advarsel aldrig står uden et fradrag — eller omvendt.
 export interface Caveat {
-  key: "offshore-hard" | "reflection" | "level-high" | "level-low";
+  key: "offshore-hard" | "onshore-hard" | "reflection" | "level-high" | "level-low";
   short: string;
   text: string;
 }
@@ -219,6 +255,12 @@ export function caveats(r: Row, normal = SHORE_NORMAL, opts?: SpotOpts): Caveat[
       key: "offshore-hard",
       short: "hård fralandsvind",
       text: "Hård fralandsvind: bølgerne holdes oppe, knækker sent og tæt på stranden, og de er svære at padle ind i."
+    });
+  if (onshoreBlowout(r.wdir, r.wspd, normal) >= 0.3)
+    out.push({
+      key: "onshore-hard",
+      short: "hård pålandsvind",
+      text: "Hård pålandsvind: søen er blæst ud og rodet, og høfden giver intet læ."
     });
   if (opts?.reflective && reflectionFactor(r.hs) < 0.9)
     out.push({

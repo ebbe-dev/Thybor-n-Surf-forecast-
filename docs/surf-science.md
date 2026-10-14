@@ -15,7 +15,9 @@ Tre observationer, der har formet reglerne:
 - **13/10/2026:** sydbølge langs Harboøre Tange (DMI: 1,5 m fra S, vind SSV
   10 m/s). Appen gav 0 ved alle NV-vendte Thyborøn-spots, mens en erfaren surfer
   pegede på stykket Langerhuse–Terrassen og sagde: man vælger størrelsen ved at
-  gå nord eller syd. (Afsnit 2 og 3.)
+  gå nord eller syd. (Afsnit 2 og 3.) Kl. 12–14 var det "helt fantastisk" ved
+  Langerhuse H; appen stod under 5, fordi sydvinden talte som ren sidevind,
+  selvom teksten skrev "læ på nordsiden" (afsnit 5, høfdens læ).
 
 ## 1. Peel-vinklen: den skrå bølge, der peeler
 
@@ -130,6 +132,22 @@ dage er samlet ≈ dønning, så ankeret fra 26/7 holder.
 Det er 11/10 i ét afsnit: hård fralandsvind, høje bølger, og bølgerne
 "knækkede for langt inde".
 
+**Pålandsvind.** Lidt påland dæmper kun: scoren har et gulv på 0,35 af
+energien. Men over 6 m/s lige på land er søen blæst ud og rodet, og høfden
+giver intet læ (vinden står langs den). Appen (`onshoreBlowout`): fradrag fra
+6 m/s, fuldt (0,7) fra 14 m/s, ganget med pålands-andelen i anden, så
+sidevind går fri. Vestenvind 12 m/s ved Q med 2 m: 3,5 før, 1,7 nu. (14/10:
+"det blæser en halv pelikan fra vest, det bliver blæst ud og rodet".)
+
+**Høfdens læ.** Står vinden på tværs af høfden, er vandet glat på læsiden,
+og man går derhen. Læet er kun så godt, som vinden står på tværs: vind langs
+høfden (lige på land eller lige fra land) giver intet. Appen
+(`groyneShelter`): vindkvaliteten løftes til mindst 0,75 · sin(vinklen
+mellem vind og spottets retning), op til 12 m/s, for alle spots med høfder;
+enkeltsidede spots (Q, Thorsminde) får det kun, når læet ligger på den side,
+der surfes, og halveres ellers. Vind lige på land giver stadig 0: der er
+ingen læ at gå i, og søen er rodet.
+
 **Appens regel** (`offshoreStrength`): fralandsvind over 5 m/s
 (`OFFSHORE_IDEAL_MAX`) trækker vindkvaliteten ned, fuldt fradrag på 0,6
 (`OFFSHORE_STRONG_PENALTY`) fra 12 m/s (`OFFSHORE_TOO_STRONG`), ganget med
@@ -238,13 +256,14 @@ overgangene. **Ikke i modellen endnu:** det kræver revlens hældning pr. spot
 | Energi = 15·H²·T·vinkelfaktor, loft 170 | `ENERGY_NORM`, `OBLIQUE_CUTOFF = 140` | `energy`, `obliqueFactor` |
 | Vindkvalitet: fraland 1, sidevind 0,5, påland 0; glas under 6 m/s; N-bonus | `GLASS_WIND` | `windQuality` |
 | Hård fralandsvind: fradrag fra 5 m/s, fuldt (0,6) fra 12 | `OFFSHORE_IDEAL_MAX/TOO_STRONG/STRONG_PENALTY` | `offshoreStrength` |
-| Enkeltsidede spots: læ på den rigtige side løfter til 0,75, forkert side halverer | `SIDE_SHELTER_MIN`, `SIDE_MISMATCH` | `scoreSpot` |
+| Hård pålandsvind: fradrag fra 6 m/s lige på land, fuldt (0,7) fra 14 | `ONSHORE_BLOWOUT_*` | `onshoreBlowout` |
+| Høfdens læ: tværvind løfter til 0,75·sin(vinkel), op til 12 m/s; enkeltsidede spots kun på deres side, forkert side halverer | `SIDE_SHELTER_MIN`, `SIDE_MISMATCH`, `groyneShelter` | `scoreSpot` |
 | Mole: fradrag fra 1,0 m, 0,5 ved 2,0 m | `REFLECTION_*` | `reflectionFactor` |
 | Vandstand: ned til 0,6 over +0,4…+1,0 m; ned til 0,85 under −0,6…−1,2 m | `LEVEL_*` | `levelFactor` |
 | Størrelsesgate under 0,5 m; stød over 14 m/s koster 15 % | `SIZE_GATE_M`, `GUST_LIMIT` | `scoreSpot` |
 | Ground swell fra 8 s (den dominerende dels topperiode) | `GROUND_SWELL_MIN_TP` | `lib/swell.ts` |
 
-Score = 10 · energi^0,6 · (0,35 + 0,65 · vind) · gate · stød · mole · vandstand.
+Score = 10 · energi^0,6 · (0,35 + 0,65 · vind) · gate · stød · mole · vandstand · påland.
 
 ## 12. Åbne spørgsmål
 

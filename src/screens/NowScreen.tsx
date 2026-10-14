@@ -149,14 +149,16 @@ function NuHelp() {
         <p>
           <strong>Fralandsvind</strong> er en gave op til omkring 5 m/s. Over det holder den
           bølgerne oppe, så de knækker sent og tæt på stranden, og man kan ikke padle ind i dem;
-          fra 12 m/s er fradraget fuldt. <strong>Vandstand</strong> er vejrtjenestens vandstand i
+          fra 12 m/s er fradraget fuldt. <strong>Pålandsvind</strong> dæmper, og over 6 m/s lige
+          på land blæser den søen ud; fra 14 m/s er fradraget fuldt. Sidevind går fri, for der
+          giver høfden læ, og man går på læsiden. <strong>Vandstand</strong> er vejrtjenestens vandstand i
           forhold til middel: tidevand og lufttryk, ikke en stormflodsmodel. Tidevandet ved
           Thyborøn er kun en halv meter; det er vinden, der flytter vandet. Over +0,4 m ruller
           bølgerne over revlen og knækker inde ved stranden, under −0,6 m knækker de langt ude.
         </p>
         <p>
           <strong>Advarslerne</strong> øverst i tallene er de regler, der trækker scoren ned lige
-          nu: hård fralandsvind, høj eller lav vandstand, og ved Indsejlingen, Færgehavnen og
+          nu: hård fralandsvind, hård pålandsvind, høj eller lav vandstand, og ved Indsejlingen, Færgehavnen og
           Thorsminde en mole, der kaster store bølger tilbage, så den udadgående bølge spiser den
           næste. Reglerne og forskningen bag dem står i appens vidensfil (docs/surf-science.md).
         </p>

@@ -174,7 +174,12 @@ export const SPOTS: Spot[] = [
 // Det, modellen skal vide om spottet ud over retningen — ét sted, så
 // ugen, kortet og session-snapshottet regner ens.
 export function spotOpts(spot: Spot): SpotOpts {
-  return { offshore: spot.offshoreDir, fixedSide: spot.fixedSide, reflective: spot.reflective };
+  return {
+    offshore: spot.offshoreDir,
+    fixedSide: spot.fixedSide,
+    groynes: spot.groynes !== undefined,
+    reflective: spot.reflective
+  };
 }
 
 const NORMAL_KEY = "bygtangen.normal.";
