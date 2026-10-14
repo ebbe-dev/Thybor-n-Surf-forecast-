@@ -21,7 +21,7 @@ import {
   type SpotGeometry
 } from "../config/spots";
 import { hourlyBlocks, leeCaption, blockCaveats, nowLocalIso, type Block } from "../lib/blocks";
-import { isOffshoreWind } from "../model/model";
+import { isOffshoreWind, angDiff } from "../model/model";
 import { scoreColor, scoreLabel, scoreTextColor, BG, FG, MUTED } from "../lib/colors";
 import { fmtDayLabel, fmtClock } from "../lib/time";
 import { fmt, fmtLevel, compass } from "../lib/format";
@@ -109,16 +109,22 @@ const signIcon = (area: Area, row: Row | null) =>
 // Pilene ved et spot (fra ARROWS_ZOOM): vinden står dér, den kommer fra,
 // bølgerne længere ude, dér de kommer fra, med ground/wind swell under —
 // så de kan læses mod høfden og læ-feltet. Boksen er pixels om prikken, så
-// afstanden holder i alle zoom.
-const ARROW_BOX = 230;
+// afstanden holder i alle zoom. Kommer vind og bølger fra næsten samme
+// retning (inden for ARROW_APART), ville teksterne ligge oven i hinanden —
+// så skubbes bølgerne længere ud (14/10/2026: "WIND SWELL" lå over "VIND").
+const ARROW_BOX = 330; // skal matche .spot-arrows i styles.css
+const ARROW_APART = 75;
+const WIND_R = 60;
+const WAVE_R = 96;
+const WAVE_R_FAR = 150;
 function spotArrowsHtml(row: Row): string {
   const c = ARROW_BOX / 2;
   const at = (deg: number, r: number) => {
     const a = (deg * Math.PI) / 180;
     return { x: c + r * Math.sin(a), y: c - r * Math.cos(a) };
   };
-  const w = at(row.wdir, 60);
-  const s = at(row.swdir, 96);
+  const w = at(row.wdir, WIND_R);
+  const s = at(row.swdir, angDiff(row.wdir, row.swdir) < ARROW_APART ? WAVE_R_FAR : WAVE_R);
   return (
     `<div class="spot-arrows">` +
     `<div class="sa" style="left:${w.x.toFixed(0)}px;top:${w.y.toFixed(0)}px">${arrowSvg(row.wdir, 38, false)}<span>vind ${fmt(row.wspd, 0)} m/s</span></div>` +
@@ -282,12 +288,24 @@ function MapHelp() {
   );
 }
 
+// Dobbelttryk på NU: kortet åbner på spottet, skyderen står på tidspunktet,
+// og nålens pop-up er åben. `key` gør, at samme spot og tid kan åbnes igen.
+export interface MapFocus {
+  spotId: string;
+  time: string;
+  key: number;
+}
+
+// Zoom, kortet åbner i ved et dobbelttryk: pile og læ er synlige herfra.
+const FOCUS_ZOOM = 15;
+
 interface Props {
   checkSpotId: string | null; // spottet der tjekkes (fra NU), ellers null
   onCheckDone: () => void; // bekræftet eller annulleret → App går tilbage til NU
+  focus: MapFocus | null; // spot og tidspunkt fra et dobbelttryk på NU
 }
 
-export function MapScreen({ checkSpotId, onCheckDone }: Props) {
+export function MapScreen({ checkSpotId, onCheckDone, focus }: Props) {
   const { forecast } = useForecast();
   const mapEl = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -346,6 +364,21 @@ export function MapScreen({ checkSpotId, onCheckDone }: Props) {
     layoutRef.current?.();
   }, [check]);
 
+  // ---- Dobbelttryk fra NU: skyderen på tidspunktet, kortet på spottet, pop-up åben.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || !focus || timeline.length === 0) return;
+    const spot = SPOTS.find((s) => s.id === focus.spotId);
+    if (!spot) return;
+    const i = timeline.indexOf(focus.time);
+    if (i >= 0) setIdx(i);
+    const g = effectiveGeometry(spot);
+    map.setView([g.lat, g.lon], Math.max(map.getZoom(), FOCUS_ZOOM));
+    // pop-up'en åbnes, når nålen har fået tidspunktets tal
+    const t = window.setTimeout(() => markersRef.current.get(spot.id)?.openPopup(), 250);
+    return () => window.clearTimeout(t);
+  }, [focus, mapReady, timeline]);
+
   // ---- Afspilning: trin i PLAY_STEPS_MS (-1 = pause). Stopper ved enden.
   const [playStep, setPlayStep] = useState(-1);
   const playing = playStep >= 0;
@@ -387,7 +420,7 @@ export function MapScreen({ checkSpotId, onCheckDone }: Props) {
     // i hinanden (Thyborøn-spottene ligger inden for få km); LÆ-mærket på
     // læ-felterne et trin senere.
     const NAME_ZOOM = 12;
-    const LEE_ZOOM = 13;
+    const LEE_ZOOM = 15; // LÆ-mærket: først når feltet er bredere end ordet (14/10: lå over navnet ved 13-14)
     const ARROWS_ZOOM = 15; // pile ved spottet: tæt nok på til, at nabospots ikke ligger oven i
     const updateNames = () => {
       const z = map.getZoom();
@@ -520,9 +553,16 @@ export function MapScreen({ checkSpotId, onCheckDone }: Props) {
         if (map.hasLayer(lee)) lee.remove();
         continue;
       }
-      lee.setLatLngs(leeShadowLatLngs(geo, spot.groynes, row.wdir));
+      const ll = leeShadowLatLngs(geo, spot.groynes, row.wdir);
+      lee.setLatLngs(ll);
       if (!map.hasLayer(lee)) lee.addTo(map);
-      lee.getTooltip()?.setLatLng(lee.getCenter());
+      // Mærket står i feltets fjerne ende, væk fra prikken og spotnavnet:
+      // 80 % af vejen fra høfden til feltets yderkant (14/10/2026: i midten
+      // lå "LÆ" oven i navnet ved zoom 15).
+      const [root, tip, tipDown, rootDown] = ll.map((p) => L.latLng(p));
+      const near = L.latLng((root.lat + tip.lat) / 2, (root.lng + tip.lng) / 2);
+      const far = L.latLng((tipDown.lat + rootDown.lat) / 2, (tipDown.lng + rootDown.lng) / 2);
+      lee.getTooltip()?.setLatLng([near.lat + 0.8 * (far.lat - near.lat), near.lng + 0.8 * (far.lng - near.lng)]);
     }
   }, [forecast, time, mapReady, check, checkSpot]);
 

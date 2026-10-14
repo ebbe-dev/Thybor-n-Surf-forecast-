@@ -69,7 +69,9 @@ Hierarki via flader og runde hjørner, ikke via kanter:
   en skala, hvor perioden ligger i forhold til grænsen.
 - **Rangeringen** af alle spots nedenunder. Rækkefølgen er rangeringen,
   scoren står i en pille (`ScorePill`) med tekstfarve efter kontrast, så
-  tallet altid kan læses.
+  tallet altid kan læses. Et dobbelttryk på et spot, på kortet øverst eller
+  i listen, åbner KORT på spottet til det tidspunkt (`lib/double-tap.ts`,
+  `MapFocus`).
 - **Chips** (`SpotChips`) til spot-valg på NU, HISTORIK og LOG.
 - **Én ?-knap pr. skærm** (`ScreenHeader`) folder forklaringerne ud.
 - Kortet kører på OpenStreetMaps fliser, gjort mørke med et CSS-filter på

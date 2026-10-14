@@ -57,8 +57,9 @@ function NuHelp() {
           dommen, listen og graferne, og det huskes.
         </p>
         <p>
-          <strong>Swipe kortet</strong> til siden for det næste spot i rækkefølgen — ugen
-          nedenunder følger med. <strong>Grafen</strong> på kortet er spottets score time for
+          <strong>Tryk to gange</strong> på et spot, på kortet øverst eller i listen, og KORT
+          åbner på spottet til det tidspunkt med pile, læ og tal. <strong>Swipe kortet</strong>{" "}
+          til siden for det næste spot i rækkefølgen — ugen nedenunder følger med. <strong>Grafen</strong> på kortet er spottets score time for
           time fra nu til horisontens ende: bunden er 0 og toppen 10 på alle kort, fladen har
           skalaens farver, nætterne er mørke, og prikken er det vindue, kortet handler om. Den
           lyse stribe under grafen er timerne med ground swell.
@@ -310,9 +311,10 @@ function BlockDetail({ block, spot }: { block: Block; spot: Spot }) {
 interface Props {
   initialSpotId: string | null; // spottet ugen åbner på (efter et tjek på kortet)
   onCheckOnMap: (spotId: string) => void; // App skifter til kortet med spottet
+  onOpenMap: (spotId: string, time: string) => void; // dobbelttryk: kortet på spot og tid
 }
 
-export function NowScreen({ initialSpotId, onCheckOnMap }: Props) {
+export function NowScreen({ initialSpotId, onCheckOnMap, onOpenMap }: Props) {
   const { forecast, status, error } = useForecast();
   const [spotId, setSpotId] = useState<string | null>(initialSpotId);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
@@ -415,6 +417,7 @@ export function NowScreen({ initialSpotId, onCheckOnMap }: Props) {
           setSpotId(id);
           setSelectedTime(time);
         }}
+        onOpenMap={onOpenMap}
         sun={sun}
       />
 
@@ -425,6 +428,7 @@ export function NowScreen({ initialSpotId, onCheckOnMap }: Props) {
           setSpotId(id);
           setSelectedTime(time);
         }}
+        onOpenMap={onOpenMap}
       />
 
       <div className="sec-h">

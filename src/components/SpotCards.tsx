@@ -14,6 +14,8 @@ import { fmtClock, relativeDayLabel } from "../lib/time";
 import { fmt, compass } from "../lib/format";
 import { ScoreSparkline } from "./ScoreSparkline";
 import { SwellChip } from "./SwellChip";
+import { isDoubleTap } from "../lib/double-tap";
+import { correctionFor } from "../lib/calibration";
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const GAP = 10; // afstand mellem kortene — skal matche .spot-cards i styles.css
@@ -29,6 +31,7 @@ interface Props {
   onHorizon: (days: HorizonDays) => void;
   selectedId: string;
   onSelect: (spotId: string, time: string) => void;
+  onOpenMap: (spotId: string, time: string) => void; // dobbelttryk på kortet
   sun: string | null;
 }
 
@@ -58,8 +61,7 @@ export function SpotCards({
   onHorizon,
   selectedId,
   onSelect,
-  sun
-}: Props) {
+  sun, onOpenMap }: Props) {
   const scroller = useRef<HTMLDivElement>(null);
   const settleRef = useRef<number | null>(null);
   // Et rul sat i gang af listen/chips er på vej til ét bestemt kort; de
@@ -117,6 +119,7 @@ export function SpotCards({
     }, SETTLE_MS);
   };
   // Rører brugeren skærmen, er det brugerens rul fra nu af.
+  const taps = useRef(new Map<string, number>()); // dobbelttryk pr. spot
   const onPointerDown = () => {
     travelRef.current = null;
   };
@@ -159,6 +162,13 @@ export function SpotCards({
           const color = scoreColor(block.score);
           const hourly = perSpot.get(spot.id);
           const warn = blockCaveats(spot, block);
+          // personlig korrektion fra loggen (lib/calibration.ts) — den står
+          // i tallet, så den skal kunne ses
+          const ci = correctionFor(spot.id);
+          const cal =
+            Math.abs(ci.correction) >= 0.05
+              ? `${ci.correction > 0 ? "+" : "−"}${fmt(Math.abs(ci.correction))} fra loggen`
+              : null;
           return (
             <section
               className="hero"
@@ -167,7 +177,12 @@ export function SpotCards({
               aria-label={`${i + 1} af ${entries.length}: ${spot.shortName}`}
             >
               {eyebrow}
-              <div className="hero-row">
+              <div
+                className="hero-row"
+                onClick={() => {
+                  if (isDoubleTap(taps.current, spot.id)) onOpenMap(spot.id, block.time);
+                }}
+              >
                 <div className="hero-main">
                   <h1 className="hero-label" style={{ color }}>
                     {scoreLabel(block.score)}
@@ -202,6 +217,7 @@ export function SpotCards({
                     {fmt(block.score)}
                   </div>
                   <div className="d">af 10</div>
+                  {cal && <div className="cal">{cal}</div>}
                 </div>
               </div>
               {hourly && (

@@ -1264,8 +1264,8 @@ input[type="range"] {
 .spot-arrows {
   display: none;
   position: relative;
-  width: 230px;
-  height: 230px;
+  width: 330px; /* ARROW_BOX i MapScreen.tsx */
+  height: 330px;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 .arrows-on .spot-arrows {
@@ -1764,4 +1764,24 @@ input[type="range"] {
   font-size: 12px;
   line-height: 1.45;
   color: var(--muted);
+}
+
+/* ---- dobbelttryk på et spot åbner kortet ---- */
+.rank-row,
+.hero-row {
+  touch-action: manipulation; /* intet dobbelttryk-zoom, intet klik-delay */
+}
+.card-h-hint {
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: none;
+  font-weight: 600;
+  white-space: nowrap;
+}
+/* korrektionen fra loggen under scoren */
+.hero-score .cal {
+  margin-top: 3px;
+  font-size: 10.5px;
+  color: var(--muted);
+  white-space: nowrap;
 }
