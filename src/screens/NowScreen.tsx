@@ -58,7 +58,7 @@ function NuHelp() {
         </p>
         <p>
           <strong>Tryk to gange</strong> på et spot, på kortet øverst eller i listen, og KORT
-          åbner på spottet til det tidspunkt med pile, læ og tal. <strong>Swipe kortet</strong>{" "}
+          åbner på spottet til det tidspunkt med pile og læ. <strong>Swipe kortet</strong>{" "}
           til siden for det næste spot i rækkefølgen — ugen nedenunder følger med. <strong>Grafen</strong> på kortet er spottets score time for
           time fra nu til horisontens ende: bunden er 0 og toppen 10 på alle kort, fladen har
           skalaens farver, nætterne er mørke, og prikken er det vindue, kortet handler om. Den

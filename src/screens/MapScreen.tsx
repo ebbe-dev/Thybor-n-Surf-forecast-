@@ -288,8 +288,10 @@ function MapHelp() {
   );
 }
 
-// Dobbelttryk på NU: kortet åbner på spottet, skyderen står på tidspunktet,
-// og nålens pop-up er åben. `key` gør, at samme spot og tid kan åbnes igen.
+// Dobbelttryk på NU: kortet åbner på spottet, og skyderen står på
+// tidspunktet. Ingen pop-up: tallet står i prikken, og pilene og læet er
+// det, man kom for (14/10/2026). `key` gør, at samme spot og tid kan
+// åbnes igen.
 export interface MapFocus {
   spotId: string;
   time: string;
@@ -364,7 +366,7 @@ export function MapScreen({ checkSpotId, onCheckDone, focus }: Props) {
     layoutRef.current?.();
   }, [check]);
 
-  // ---- Dobbelttryk fra NU: skyderen på tidspunktet, kortet på spottet, pop-up åben.
+  // ---- Dobbelttryk fra NU: skyderen på tidspunktet, kortet på spottet.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady || !focus || timeline.length === 0) return;
@@ -373,10 +375,8 @@ export function MapScreen({ checkSpotId, onCheckDone, focus }: Props) {
     const i = timeline.indexOf(focus.time);
     if (i >= 0) setIdx(i);
     const g = effectiveGeometry(spot);
+    map.closePopup();
     map.setView([g.lat, g.lon], Math.max(map.getZoom(), FOCUS_ZOOM));
-    // pop-up'en åbnes, når nålen har fået tidspunktets tal
-    const t = window.setTimeout(() => markersRef.current.get(spot.id)?.openPopup(), 250);
-    return () => window.clearTimeout(t);
   }, [focus, mapReady, timeline]);
 
   // ---- Afspilning: trin i PLAY_STEPS_MS (-1 = pause). Stopper ved enden.
