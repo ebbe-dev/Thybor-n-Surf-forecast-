@@ -3,13 +3,19 @@
 // Kører i GitHub Actions hver halve time (.github/workflows/obs.yml).
 //
 // Kilder:
-// - Kystdirektoratets bølgebøje ved Fjaltring (ud for Høfde Q, 17,5 m vand):
+// - Kystdirektoratets bølgebøje ved Fjaltring (ud for Høfde Q, 17,5 m vand,
+//   ETRS89/UTM32 441896/6259258):
 //   https://kystatlas.kyst.dk/data/boelge/response.aspx?ident=…&startdate=…&enddate=…&format=csv
-//   Hvert 30. minut: H_s, T_s, H_max og retning. Idents for Fjaltring er
-//   taget fra Kystdirektoratets arkiv; den, der svarer med friske rækker,
-//   bruges.
+//   Hvert 30. minut. Ident 2035 er den AKTIVE måler (start_dato 2023-08-18,
+//   ingen slut_dato); 2031 var den gamle på samme sted, 1991-12-11 til
+//   2023-08-18 (fundet 16/10/2026 ved at prøve ident 2000-2199). Datoerne
+//   skal være ÅÅÅÅMMDD, og enddate er EKSKLUSIV ud over kl. 00:00 — skal
+//   dagen i dag med, er enddate i morgen. Kolonner: H_M0 (signifikant
+//   højde), T_s (tom hos 2035), H_max, T_max, H_1_3, H_avg, T_avg, T_z
+//   (middelperiode), Dir, Dybde, East, North, start_dato, slut_dato.
 // - DMI's åbne vandstands-API (ingen nøgle): stationer og observationer,
-//   sealev_dvr (cm over DVR90 ≈ middelvandstand) hvert 10. minut.
+//   sea_reg (cm over DVR90 ≈ middelvandstand) hvert 10. minut — Thyborøn
+//   Kyst 9004203 (Havn 9004201 stoppede i april 2026).
 //
 // Ingen opfundne data: fejler en kilde, står den tom i obs.json med fejlen,
 // og appen viser "ikke målt". PROBE=1 skriver svar-hoveder og første linjer
@@ -18,7 +24,7 @@
 import { writeFileSync } from "node:fs";
 
 const PROBE = process.env.PROBE === "1" || process.env.PROBE === "2";
-const KDI_IDENTS = (process.env.KDI_IDENTS ?? "2133,2042,2032,2031,2022,2012,2123")
+const KDI_IDENTS = (process.env.KDI_IDENTS ?? "2035")
   .split(",").map((s) => s.trim()).filter(Boolean);
 const KDI_TZ = process.env.KDI_TZ ?? "Europe/Copenhagen"; // bøjens tidsstempler
 const HOURS = 48; // så langt tilbage obs.json rækker
@@ -73,24 +79,40 @@ function parseKdiCsv(text) {
   const col = (names) => header.findIndex((h) => names.some((n) => h.toLowerCase().replace(/\s/g, "") === n));
   const iT = col(["datotid", "dato", "tid", "datetime", "time"]);
   const iHs = col(["h_s", "hs", "hm0", "h_m0"]);
-  const iTs = col(["t_s", "ts", "tp", "t_p", "tz", "t_z", "t02", "tm02"]);
+  const iH13 = col(["h_1_3", "h13"]); // reserve, når H_M0 er tom
+  const iTs = col(["t_s", "ts", "tp", "t_p"]); // spektral signifikant periode ≈ topperioden
+  const iTz = col(["t_z", "tz", "t02", "tm02"]); // middelperiode
+  const iTavg = col(["t_avg", "tavg"]);
   const iHmax = col(["h_max", "hmax"]);
+  const iTmax = col(["t_max", "tmax"]);
   const iDir = col(["dir", "retning", "mdir", "dir_m"]);
+  const pick = (c, ...idx) => {
+    for (const i of idx) if (i >= 0) { const v = num(c[i]); if (v != null) return v; }
+    return null;
+  };
   const rows = [];
   for (const line of lines.slice(1)) {
     const c = line.split(delim);
     const time = iT >= 0 ? parseKdiTime(c[iT] ?? "") : null;
-    const hs = iHs >= 0 ? num(c[iHs]) : null;
+    const hs = pick(c, iHs, iH13);
     if (!time || hs == null) continue;
-    rows.push({ time, hs, tp: iTs >= 0 ? num(c[iTs]) : null, hmax: iHmax >= 0 ? num(c[iHmax]) : null, dir: iDir >= 0 ? num(c[iDir]) : null });
+    rows.push({
+      time, hs,
+      tp: pick(c, iTs), // null hos 2035 — T_s er tom
+      tz: pick(c, iTz, iTavg),
+      hmax: pick(c, iHmax),
+      tmax: pick(c, iTmax),
+      dir: pick(c, iDir)
+    });
   }
   return { header: header.join(" | "), rows };
 }
 
 async function fetchBuoy() {
   const start = new Date(now.getTime() - 3 * 86400_000);
+  const end = new Date(now.getTime() + 86400_000); // enddate er eksklusiv: i morgen giver dagen i dag med
   for (const ident of KDI_IDENTS) {
-    const url = `https://kystatlas.kyst.dk/data/boelge/response.aspx?ident=${ident}&startdate=${ymd(start)}&enddate=${ymd(now)}&format=csv`;
+    const url = `https://kystatlas.kyst.dk/data/boelge/response.aspx?ident=${ident}&startdate=${ymd(start)}&enddate=${ymd(end)}&format=csv`;
     try {
       const text = await get(url, "text/csv,text/plain,*/*");
       const { header, rows } = parseKdiCsv(text);
@@ -98,7 +120,14 @@ async function fetchBuoy() {
       log(`bøje ident ${ident}: ${rows.length} rækker, ${fresh.length} inden for ${HOURS} t · kolonner: ${header}`);
       if (fresh.length > 0) {
         fresh.sort((a, b) => (a.time < b.time ? -1 : 1));
-        return { ident, name: "Fjaltring", source: url.replace(/startdate=.*$/, "…"), header, rows: fresh };
+        // Tidszone-kontrol: læst som ${KDI_TZ} må den nyeste række hverken
+        // ligge i fremtiden (stemplerne er så UTC) eller være timer gammel
+        // (stemplerne er så lokale, men læst som UTC). Loggen viser det.
+        const newest = fresh.at(-1);
+        const ageMin = Math.round((now.getTime() - Date.parse(newest.time)) / 60_000);
+        log(`bøje: nyeste række ${newest.time} læst som ${KDI_TZ} er ${ageMin} min gammel ved hentning ${now.toISOString()}`);
+        if (ageMin < -15) errors.push(`bøje: nyeste række ligger ${-ageMin} min i fremtiden — KDI_TZ=${KDI_TZ} er nok forkert`);
+        return { ident, name: "Fjaltring", source: url.replace(/startdate=.*$/, "…"), header, rows: fresh, period: newest.tp != null ? "T_s" : "T_z" };
       }
     } catch (e) {
       errors.push(`bøje ${ident}: ${e.message}`);
