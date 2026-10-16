@@ -13,7 +13,7 @@
 
 import type { Obs, BuoyRow, LevelRow } from "../api/obs";
 import type { Row } from "../model/model";
-import { fmt, fmtLevel, compass } from "./format";
+import { fmt, compass } from "./format";
 
 export const BUOY_AREA = "thorsminde";
 export const LEVEL_AREA = "thyboroen";
@@ -194,4 +194,3 @@ export function checkVerdict(c: BuoyCheck): "over" | "under" | "tæt på" {
   return "tæt på";
 }
 
-export { fmtLevel };
