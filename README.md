@@ -99,4 +99,14 @@ Hierarki via flader og runde hjørner, ikke via kanter:
   SAMLEDE sø (højde, retning), med dønning og vindsø som dele og vandstanden
   over middel; perioden er den dominerende dels topperiode. Vindsø og
   vandstand hentes i et ekstra kald, der må fejle. Manglende timer vises
-  som huller.
+
+- **Målt nu** (`src/api/obs.ts`, `src/lib/obs.ts`, `MeasuredNow`): Kystdirektoratets
+  bølgemåler ved Fjaltring (ident 2035, hver halve time: højde, middelperiode,
+  retning, største bølge) og DMI's vandstand ved Thyborøn Kyst (hvert 10. minut)
+  vises ved siden af forecasten — på NU, som "målt" under tallene i detaljen og i
+  kortets stribe for passerede tidspunkter — og modellen holdes op mod bøjen
+  over de sidste 48 t (kun højden; bøjens periode er middelperioden). Kilderne
+  sender ingen CORS-hoveder, så `.github/workflows/obs.yml` henter dem hver
+  halve time og lægger `obs.json` på grenen `data`, som appen læser fra
+  raw.githubusercontent.com. Fail-open med cache (`bygtangen.obs1`); rører
+  aldrig scoren. Detaljer i `docs/surf-science.md` §10.  som huller.

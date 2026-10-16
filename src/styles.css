@@ -1785,3 +1785,83 @@ input[type="range"] {
   color: var(--muted);
   white-space: nowrap;
 }
+
+/* ---- Målt nu: bøjen ved Fjaltring og vandstanden ved Thyborøn Kyst ---- */
+.measured .meas-body {
+  padding: 0 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.meas-lab {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--muted);
+  font-weight: 700;
+}
+.meas-row .meas-lab {
+  margin-bottom: 2px;
+}
+.meas-val {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.meas-val strong {
+  font-size: 16px;
+  font-weight: 800;
+}
+.meas-sub {
+  font-size: 12px;
+  color: var(--muted);
+}
+.meas-when {
+  font-size: 12px;
+  color: var(--muted);
+  margin-left: auto;
+  white-space: nowrap;
+}
+.meas-when.stale {
+  color: var(--fg);
+  opacity: 0.8;
+}
+.meas-check {
+  font-size: 12.5px;
+  line-height: 1.45;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+  font-variant-numeric: tabular-nums;
+}
+.meas-check:empty {
+  display: none;
+}
+.meas-check .meas-lab {
+  margin-right: 2px;
+}
+/* målt under et tal i detaljen */
+.dd-note.meas {
+  color: var(--fg);
+  opacity: 0.85;
+}
+/* målt i kortets stribe */
+.area-meas {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg);
+  flex-basis: 100%;
+  white-space: normal;
+}
+.meas-tag {
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.9px;
+  border: 1px solid var(--line2);
+  border-radius: 4px;
+  padding: 0 4px;
+  color: var(--muted);
+}

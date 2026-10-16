@@ -26,7 +26,11 @@ import { writeFileSync } from "node:fs";
 const PROBE = process.env.PROBE === "1" || process.env.PROBE === "2";
 const KDI_IDENTS = (process.env.KDI_IDENTS ?? "2035")
   .split(",").map((s) => s.trim()).filter(Boolean);
-const KDI_TZ = process.env.KDI_TZ ?? "Europe/Copenhagen"; // bøjens tidsstempler
+// Bøjens tidsstempler står uden zone og er UTC (målt 16/10/2026: læst som
+// dansk tid passede Open-Meteo bedst forskudt +2..+3 t, og den nyeste række
+// var 131 min gammel; læst som UTC er den ~10 min gammel). KDI_TZ kan
+// sættes til Europe/Copenhagen, hvis tjenesten skifter.
+const KDI_TZ = process.env.KDI_TZ ?? "UTC";
 const HOURS = 48; // så langt tilbage obs.json rækker
 
 const now = new Date();
@@ -142,10 +146,12 @@ async function fetchBuoy() {
 }
 
 // PROBE: bøjens højde holdt op mod Open-Meteos bølgehøjde for bøjens eget
-// punkt (56,49 N 8,10 Ø), forskudt −3..+3 timer. Det forskud, der passer
-// bedst, siger om bøjens stempler er læst i den rigtige zone: passer 0 bedst,
-// er KDI_TZ rigtig; passer −2 bedst (bøjen læst 2 t for tidligt), er
-// stemplerne UTC. Kun til loggen — rører ikke obs.json.
+// punkt (56,49 N 8,10 Ø), forskudt −6..+6 timer. Det forskud, der passer
+// bedst, siger om bøjens stempler er læst i den rigtige zone: passer 0 (eller
+// +1, modellen halter lidt) bedst, er KDI_TZ rigtig; passer +2 bedst, er
+// bøjen læst 2 t for tidligt (stemplerne er UTC, men læst som dansk tid).
+// 16/10/2026 læst som Europe/Copenhagen: spredning 0,143 m ved 0, 0,099 ved
+// +2, 0,093 ved +3 → stemplerne er UTC. Kun til loggen — rører ikke obs.json.
 async function lagProbe(rows) {
   try {
     const url = "https://marine-api.open-meteo.com/v1/marine?latitude=56.49&longitude=8.10&hourly=wave_height&past_days=3&forecast_days=1&timezone=UTC";
@@ -153,7 +159,7 @@ async function lagProbe(rows) {
     const model = new Map();
     j.hourly.time.forEach((t, i) => { if (j.hourly.wave_height[i] != null) model.set(Date.parse(t + ":00Z"), j.hourly.wave_height[i]); });
     const out = [];
-    for (let lagH = -3; lagH <= 3; lagH++) {
+    for (let lagH = -6; lagH <= 6; lagH++) {
       const diffs = [];
       for (const r of rows) {
         const t = Date.parse(r.time) + lagH * 3600_000;

@@ -5,6 +5,10 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useForecast } from "../hooks/useForecast";
+import { useObs } from "../hooks/useObs";
+import type { Obs } from "../api/obs";
+import { buoyAt, buoyPeriod, levelAt, fmtObsClock } from "../lib/obs";
+import { MeasuredNow } from "../components/MeasuredNow";
 import { SPOTS, effectiveNormal, checkedOnMapAt, isOverridden, type Spot } from "../config/spots";
 import {
   buildDays,
@@ -164,6 +168,11 @@ function NuHelp() {
           næste. Reglerne og forskningen bag dem står i appens vidensfil (docs/surf-science.md).
         </p>
         <p>
+          <strong>Målt</strong> under et tal er det, havet faktisk gjorde på det tidspunkt:
+          bøjen ved Fjaltring (højde, periode, retning) og vandstanden ved Thyborøn Kyst, når
+          der findes en måling inden for en halv times tid af blokken. Se "Hvad er målt nu?".
+        </p>
+        <p>
           <strong>Tegningen</strong> er høfden set fra oven, nord er op. Det mørke er land, den lyse
           streg er høfden, og N og S står på dens to sider. Pilen <strong>VIND</strong> kommer ind
           fra den vej, vinden blæser fra (tallet er m/s); de stiplede pile er bølgerne. Det lyse
@@ -171,6 +180,33 @@ function NuHelp() {
           den side, teksten mener med "læ på nordsiden". Blæser vinden lige ind på kysten eller
           lige ud fra land, bliver feltet smalt — så giver høfden ingen læ. Samme felt ligger på
           kortet.
+        </p>
+      </Info>
+      <Info q="Hvad er målt nu?">
+        <p>
+          Kortet <strong>Målt nu</strong> viser det, havet faktisk gør, ved siden af forecasten.{" "}
+          <strong>Bøjen ved Fjaltring</strong> er Kystdirektoratets bølgemåler ud for Høfde Q på
+          17,5 m vand: bølgehøjde, periode og retning hver halve time, og den største enkeltbølge
+          i den halve time. <strong>Vandstanden</strong> måles ved Thyborøn Kyst hvert 10. minut
+          og står i forhold til middel. Klokkeslættet er målingens eget. Tallene hentes hver
+          halve time; uden net står de sidst hentede med deres tidspunkt.
+        </p>
+        <p>
+          Bøjen angiver <strong>middelperioden</strong> (T<sub>z</sub>), appen bruger{" "}
+          <strong>topperioden</strong>. Middelperioden ligger typisk 20–30 % under: 6,5 s i middel
+          ved bøjen er omkring 8 s i top, altså ground swell. Derfor står der "middel" ved bøjens
+          periode, og derfor sammenlignes perioden ikke med modellen.
+        </p>
+        <p>
+          <strong>Modellen mod bøjen</strong> holder forecastens bølgehøjde for det sydlige
+          vejr-område op mod bøjen over de sidste to døgn, måling for måling: "+0,3 m i snit"
+          betyder, at modellen har ligget 0,3 m over havet; spredningen er den gennemsnitlige
+          afvigelse uanset fortegn. Ligger modellen over, er dagens tal nok også for høje. Tallet
+          rører ikke scoren — det fortæller, hvor meget du skal tro på den.
+        </p>
+        <p>
+          Bøjen ligger 20 km syd for Thyborøn. Ved Thyborøn-spots er den stadig den nærmeste
+          måling af søen udenfor, men molen og Tangen former bølgerne derfra og ind.
         </p>
       </Info>
     </>
@@ -219,11 +255,16 @@ function waveParts(r: Row): string {
   return parts.length ? parts.join(" · ") : "dønning og vindsø: ikke opdelt af kilden";
 }
 
-function BlockDetail({ block, spot }: { block: Block; spot: Spot }) {
+function BlockDetail({ block, spot, obs }: { block: Block; spot: Spot; obs: Obs | null }) {
   const r = block.row;
   const warnings = blockCaveats(spot, block);
   const color = scoreColor(block.score);
   const cal = correctionFor(spot.id);
+  // målt på blokkens tidspunkt (lib/obs.ts) — kun når en måling findes
+  // inden for vinduet; fremtiden har ingen
+  const mb = buoyAt(obs, block.time);
+  const ml = levelAt(obs, block.time);
+  const mbPer = mb ? buoyPeriod(mb) : null;
   return (
     <section className="card detail">
       <header className="detail-head">
@@ -259,16 +300,31 @@ function BlockDetail({ block, spot }: { block: Block; spot: Spot }) {
         <dl className="detail-grid">
           <div>
             <dt>Bølge</dt>
-            <dd>{fmt(r.hs)} m</dd>
+            <dd>
+              {fmt(r.hs)} m
+              {mb && <span className="dd-note meas">målt {fmt(mb.hs)} m {fmtObsClock(mb.time)}</span>}
+            </dd>
           </div>
           <div>
             <dt>Periode</dt>
-            <dd>{fmt(r.tp)} s</dd>
+            <dd>
+              {fmt(r.tp)} s
+              {mbPer && (
+                <span className="dd-note meas">
+                  målt {fmt(mbPer.s)} s{mbPer.kind === "middel" ? " middel" : ""}
+                </span>
+              )}
+            </dd>
           </div>
           <div>
             <dt>Bølgeretning</dt>
             <dd>
               {compass(r.swdir)} {Math.round(r.swdir)}°
+              {mb?.dir != null && (
+                <span className="dd-note meas">
+                  målt {compass(mb.dir)} {Math.round(mb.dir)}°
+                </span>
+              )}
             </dd>
           </div>
           <div>
@@ -290,6 +346,7 @@ function BlockDetail({ block, spot }: { block: Block; spot: Spot }) {
             <dd>
               {r.level == null ? "—" : fmtLevel(r.level)}
               <span className="dd-note">{r.level == null ? "ikke oplyst" : "ift. middel"}</span>
+              {ml && <span className="dd-note meas">målt {fmtLevel(ml.m, 2)} {fmtObsClock(ml.time)}</span>}
             </dd>
           </div>
         </dl>
@@ -316,6 +373,7 @@ interface Props {
 
 export function NowScreen({ initialSpotId, onCheckOnMap, onOpenMap }: Props) {
   const { forecast, status, error } = useForecast();
+  const { obs, status: obsStatus } = useObs();
   const [spotId, setSpotId] = useState<string | null>(initialSpotId);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [horizon, setHorizon] = useState<HorizonDays>(() => loadHorizonDays());
@@ -431,6 +489,8 @@ export function NowScreen({ initialSpotId, onCheckOnMap, onOpenMap }: Props) {
         onOpenMap={onOpenMap}
       />
 
+      <MeasuredNow obs={obs} status={obsStatus} forecast={forecast} />
+
       <div className="sec-h">
         <span>Ugen for {spot.shortName}</span>
       </div>
@@ -454,7 +514,7 @@ export function NowScreen({ initialSpotId, onCheckOnMap, onOpenMap }: Props) {
 
       {selected && (
         <div ref={detailRef}>
-          <BlockDetail block={selected} spot={spot} />
+          <BlockDetail block={selected} spot={spot} obs={obs} />
         </div>
       )}
 

@@ -246,15 +246,54 @@ overgangene. **Ikke i modellen endnu:** det kræver revlens hældning pr. spot
 
 ## 10. Datakilder
 
+**Forecast (det, scoren regnes af):**
+
 - **Open-Meteo marine** (gratis, uden nøgle): `wave_height/direction/period`
   (samlet), `swell_wave_*` og `wind_wave_*` med `*_peak_period`,
   `sea_level_height_msl`. Globalt DWD-bølgemodel 28 km, europæisk 5 km (de
   første 3 dage). Appen henter kernen i ét kald og vindsø + vandstand i et
-  ekstra kald, der må fejle.
+  ekstra kald, der må fejle. To bølgepunkter: ud for Thyborøn (56,66 N 8,13 Ø)
+  og ud for Bovbjerg/Thorsminde (56,45 N 8,00 Ø). Flere modelpunkter giver
+  ikke mere: det er samme model, samme fejl.
 - **DMI:** kort over bølgehøjde og vind (det, surferen læste 13/10), tidevands-
-  tabeller, varsler om forhøjet vandstand. DMI's åbne data kræver nøgle og er
-  ikke koblet på.
-- **Thyborøn Havn:** vind og vandstand live (web, ikke API).
+  tabeller, varsler om forhøjet vandstand.
+
+**Målt (det, havet faktisk gør — rører aldrig scoren):**
+
+- **Kystdirektoratets bølgemåler ved Fjaltring**, ident **2035** (aktiv siden
+  18/8-2023; 2031 var den gamle på samme sted 1991-2023), ETRS89/UTM32
+  441896/6259258 ≈ 56,49 N 8,10 Ø, 17,5 m vand — ud for Høfde Q, nærmest
+  det sydlige bølgepunkt. Hver halve time: `H_M0` (signifikant højde),
+  `T_z` (middelperiode), `H_max`, `T_max`, `Dir` (spektrets top). `T_s` står
+  som 0 (pladsholder). Webtjeneste:
+  `https://kystatlas.kyst.dk/data/boelge/response.aspx?ident=2035&startdate=ÅÅÅÅMMDD&enddate=ÅÅÅÅMMDD&format=csv`
+  — datoerne SKAL være ÅÅÅÅMMDD, og `enddate` er eksklusiv ud over kl.
+  00:00, så dagen i dag kræver `enddate` i morgen. Fundet 16/10/2026 ved at
+  prøve ident 2000-2199: tjenestens egne sider (graf, kort, metadata) ligger
+  bag JavaScript, og kyst.dk's kort er en Next.js-side uden idents i HTML'en.
+  `Datotid` er UTC (§12, punkt 6).
+- **DMI's åbne vandstands-API** (ingen nøgle): `opendataapi.dmi.dk/v2/oceanObs`,
+  station **9004203 Thyborøn Kyst**, parameter `sea_reg` (Kystdirektoratets
+  egne målere; `sealev_dvr`/`sealev_ln` svarer tomt), cm over middel hvert
+  10. minut. Thyborøn Havn (9004201) stoppede i april 2026.
+- **Vejen ind i appen:** hverken kyst.dk eller DMI sender CORS-hoveder, så
+  browseren kan ikke hente dem selv. GitHub Actions
+  (`.github/workflows/obs.yml`, `scripts/fetch-obs.mjs`) henter begge hver
+  halve time og lægger `obs.json` (sidste 48 t) på grenen `data`;
+  `raw.githubusercontent.com` tillader kald fra appen (op til 5 min cache).
+  Appen viser dem som **Målt nu** på NU, som "målt" under tallene i detaljen
+  og i kortets stribe for tidspunkter, der er passeret — og holder modellen op
+  mod bøjen over de sidste to døgn (`src/lib/obs.ts`).
+
+**Periode mod periode.** Bøjen giver middelperioden T_z (zero-crossing /
+spektral m0/m2), appen bruger topperioden T_p. For et JONSWAP-spektrum er
+T_p ≈ 1,2–1,3 · T_z; for en blandet sø er forholdet større. Derfor står der
+"middel" ved bøjens periode, den får aldrig ground swell-mærket, og modellen
+mod bøjen sammenligner KUN højden (begge er signifikant bølgehøjde). En 6,5 s
+middelperiode ved bøjen svarer til omkring 8 s i top — grænsen for ground
+swell i appen.
+
+**Thyborøn Havn:** vind og vandstand live (web, ikke API) — ikke koblet på.
 
 ## 11. Reglerne i appen, samlet
 
@@ -286,6 +325,13 @@ Score = 10 · energi^0,6 · (0,35 + 0,65 · vind) · gate · stød · mole · va
    sydbølge er ikke i modellen: alle Thyborøn-spots deler ét bølgepunkt.
 5. **Efterprøvning.** Hver session, der logges (spot, karakter, *Form*),
    er stadig den eneste måde at se, om reglerne rammer.
+6. **Bøjens tidsstempler — afgjort 16/10/2026: UTC.** `Datotid` i
+   Kystdirektoratets fil står uden zone. `probe=true` i workflowet holder
+   bøjens højde op mod Open-Meteo for bøjens punkt, forskudt −6..+6 timer.
+   Læst som dansk tid passede modellen bedst forskudt +2..+3 t (spredning
+   0,143 m ved 0, 0,099 m ved +2, 0,093 m ved +3), og den nyeste række var
+   131 min gammel; læst som UTC er den ~10 min gammel. Stemplerne er UTC
+   (`KDI_TZ=UTC`). Prøven ligger i loggen, hvis tjenesten skifter.
 
 ## Kilder
 

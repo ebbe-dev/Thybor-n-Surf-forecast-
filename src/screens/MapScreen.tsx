@@ -10,6 +10,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useForecast } from "../hooks/useForecast";
+import { useObs } from "../hooks/useObs";
+import { BUOY_AREA, LEVEL_AREA, buoyFor, levelFor, fmtBuoy, fmtObsClock } from "../lib/obs";
 import {
   SPOTS,
   AREAS,
@@ -261,7 +263,11 @@ function MapHelp() {
           høfden og læ-feltet: vinden dér, den kommer fra, bølgerne længere ude med mærket under.
         </p>
         <p>
-          Linjen under skyderen viser vind og bølge pr. vejr-område til det valgte tidspunkt. En{" "}
+          Linjen under skyderen viser vind og bølge pr. vejr-område til det valgte tidspunkt, og
+          for tidspunkter, der er passeret, også det <strong>målte</strong>: bøjen ved Fjaltring
+          (højde, periode som middelperiode, retning) under Bovbjerg/Thorsminde og vandstanden
+          ved Thyborøn Kyst under Thyborøn, hver med målingens klokkeslæt. Forklaringen står på
+          NU under "Hvad er målt nu?". En{" "}
           <strong>stiplet ring</strong> betyder ukalibreret spot. De små lyse streger er
           høfderne, og det <strong>lyse felt</strong> ved en høfde er dens læ: vindskyggen bag
           den til det valgte tidspunkt (fra zoom 13 står der LÆ i det). Blæser vinden langs
@@ -309,6 +315,7 @@ interface Props {
 
 export function MapScreen({ checkSpotId, onCheckDone, focus }: Props) {
   const { forecast } = useForecast();
+  const { obs } = useObs();
   const mapEl = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const [mapReady, setMapReady] = useState(false);
@@ -342,12 +349,21 @@ export function MapScreen({ checkSpotId, onCheckDone, focus }: Props) {
 
   // Vind og bølge pr. vejr-område til det valgte tidspunkt.
   const areaRows = useMemo(() => {
-    if (!forecast || !time) return [] as { label: string; row: Row }[];
+    if (!forecast || !time) return [] as { id: string; label: string; row: Row }[];
     return AREAS.flatMap((a) => {
       const row = forecast.areas[a.id]?.rows.find((r) => r.time === time);
-      return row ? [{ label: a.label, row }] : [];
+      return row ? [{ id: a.id, label: a.label, row }] : [];
     });
   }, [forecast, time]);
+
+  // Målt til det valgte tidspunkt: bøjen i det sydlige område, vandstanden
+  // i det nordlige (lib/obs.ts). Nu og den næste time får den seneste
+  // måling; længere fremme findes ingen.
+  const measured = useMemo(() => {
+    if (!time) return { buoy: null, level: null };
+    const now = Date.now();
+    return { buoy: buoyFor(obs, time, now), level: levelFor(obs, time, now) };
+  }, [obs, time]);
 
   // ---- Tjek på kortet: sted og retning, der trækkes på, men ikke er gemt.
   const checkSpot = useMemo(() => SPOTS.find((s) => s.id === checkSpotId) ?? null, [checkSpotId]);
@@ -775,7 +791,7 @@ export function MapScreen({ checkSpotId, onCheckDone, focus }: Props) {
             </div>
             {areaRows.length > 0 && (
               <div className="area-strip" aria-label="vind, bølge og bølgetype pr. område">
-                {areaRows.map(({ label, row }) => (
+                {areaRows.map(({ id, label, row }) => (
                   <div className="area-cell" key={label}>
                     <div className="area-lab">{label}</div>
                     <div className="area-vals">
@@ -793,6 +809,18 @@ export function MapScreen({ checkSpotId, onCheckDone, focus }: Props) {
                       </span>
                       {row.level != null && (
                         <span className="area-val area-kind">vandstand {fmtLevel(row.level)}</span>
+                      )}
+                      {id === BUOY_AREA && measured.buoy && (
+                        <span className="area-val area-meas">
+                          <span className="meas-tag">målt</span>
+                          {fmtBuoy(measured.buoy)} {fmtObsClock(measured.buoy.time)}
+                        </span>
+                      )}
+                      {id === LEVEL_AREA && measured.level && (
+                        <span className="area-val area-meas">
+                          <span className="meas-tag">målt</span>
+                          vandstand {fmtLevel(measured.level.m, 2)} {fmtObsClock(measured.level.time)}
+                        </span>
                       )}
                     </div>
                   </div>
