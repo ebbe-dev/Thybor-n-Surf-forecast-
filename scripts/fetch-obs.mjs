@@ -191,7 +191,26 @@ async function deepProbe() {
     const html = await res.text();
     log("\n### boelge_webtjeneste.html som tekst:\n    " + html.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 3500));
   } catch (e) { log("    fejl:", e.message); }
+  // Ident 2031 var Fjaltring 1991-12-11 til 2023-08-18 (slut_dato i svaret).
+  // Den aktive måler har et andet ident: prøv alle 2000-2199 for de sidste 3
+  // døgn, og læs kystatlas' egne sider (graf, kort, metadata) for navne.
+  const start3 = new Date(now.getTime() - 3 * 86400_000);
+  const found = [];
+  for (let ident = 2000; ident < 2200; ident++) {
+    try {
+      const res = await fetch(`https://kystatlas.kyst.dk/data/boelge/response.aspx?ident=${ident}&startdate=${ymd(start3)}&enddate=${ymd(now)}&format=csv`, { headers: { "user-agent": "byg-tangen-obs/1" } });
+      const text = await res.text();
+      const lines = text.split(/\r?\n/).filter((l) => l.trim());
+      if (lines.length > 1 && !/<html|<br>/i.test(lines[0])) found.push(`${ident}: ${lines.length - 1} rækker · sidste: ${lines.at(-1)}`);
+    } catch (e) { log(`    ident ${ident}: ${e.message}`); }
+  }
+  log("\n### idents med friske rækker (2000-2199):\n    " + (found.join("\n    ") || "ingen"));
   for (const url of [
+    "https://kystatlas.kyst.dk/data/boelge/boelge_graf.html",
+    "https://kystatlas.kyst.dk/data/boelge/boelge_kort.html",
+    "https://kystatlas.kyst.dk/data/boelge/boelge_metadata.html",
+    "https://kystatlas.kyst.dk/data/boelge/boelge_arkiv.html",
+    "https://kystatlas.kyst.dk/data/boelge/boelge_graf_en.html",
     "https://kyst.dk/hav-og-anlaeg/maalinger-og-data/boelgemaalinger/kort-over-kystdirektoratets-boelgemaalere",
     "https://kyst.dk/hav-og-anlaeg/maalinger-og-data/boelgemaalinger",
     "https://kystatlas.kyst.dk/data/boelge/boelge_webtjeneste.html"
@@ -201,7 +220,9 @@ async function deepProbe() {
       const html = await res.text();
       log(`\n### ${url} · status ${res.status} · ${html.length} tegn`);
       const hits = [...html.matchAll(/Fjaltring/gi)].slice(0, 12);
-      for (const h of hits) log("    …" + html.slice(Math.max(0, h.index - 160), h.index + 160).replace(/\s+/g, " ") + "…");
+      for (const h of hits) log("    …" + html.slice(Math.max(0, h.index - 220), h.index + 220).replace(/\s+/g, " ") + "…");
+      const scripts = [...html.matchAll(/<script[^>]*src="([^"]+)"/gi)].map((m) => m[1]).slice(0, 20);
+      if (scripts.length) log("    scripts:", scripts.join(" · "));
       const opts = [...html.matchAll(/<option[^>]*value="?(\d{3,5})"?[^>]*>([^<]{0,60})/gi)].slice(0, 60);
       if (opts.length) log("    options:", opts.map((m) => `${m[1]}=${m[2].trim()}`).join(" · "));
       const srcs = [...html.matchAll(/(?:src|href|data-src|data-url)="([^"]*(?:kystatlas|boelge|bolge|wave|arcgis|api)[^"]*)"/gi)].map((m) => m[1]).slice(0, 40);
