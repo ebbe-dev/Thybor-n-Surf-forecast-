@@ -3,9 +3,17 @@ name: Målinger fra kysten (obs.json)
 # Hver halve time: Kystdirektoratets bølgebøje ved Fjaltring og DMI's
 # vandstand ved Thyborøn → obs.json på grenen "data", som appen læser.
 # Kør manuelt med probe=true for at se svar-hoveder og format i loggen.
+#
+# GitHubs schedule er best-effort: 16/10/2026 affyrede den ingen af de
+# første seks planlagte kørsler (7,37 * * * *) i tre timer efter, at filen
+# kom på default-grenen, mens manuelle kørsler virkede. Minuttallet er
+# skiftet for at få GitHub til at registrere schedulen igen (en ændring i
+# filen på default-grenen gør det). Appen viser altid målingens eget
+# klokkeslæt og mærker målinger over tre timer som gamle, så en forsinket
+# kørsel kan aldrig udgive sig for frisk.
 on:
   schedule:
-    - cron: "7,37 * * * *"
+    - cron: "11,41 * * * *"
   workflow_dispatch:
     inputs:
       probe:
