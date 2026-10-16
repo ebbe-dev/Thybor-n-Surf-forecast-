@@ -17,7 +17,7 @@
 
 import { writeFileSync } from "node:fs";
 
-const PROBE = process.env.PROBE === "1";
+const PROBE = process.env.PROBE === "1" || process.env.PROBE === "2";
 const KDI_IDENTS = (process.env.KDI_IDENTS ?? "2133,2042,2032,2031,2022,2012,2123")
   .split(",").map((s) => s.trim()).filter(Boolean);
 const KDI_TZ = process.env.KDI_TZ ?? "Europe/Copenhagen"; // bøjens tidsstempler
@@ -142,6 +142,48 @@ async function fetchLevel() {
   errors.push("vandstand: ingen station gav rækker");
   return null;
 }
+
+// PROBE=2: dyb undersøgelse af kilderne, når de svarer tomt — hvilke
+// idents har data, hvilket tidsformat, hvilke parametre og tider DMI har.
+async function deepProbe() {
+  const base = "https://opendataapi.dmi.dk/v2/oceanObs/collections";
+  for (const st of ["9004203", "9004201"]) {
+    for (const q of [
+      `observation/items?stationId=${st}&limit=3&sortorder=observed,DESC`,
+      `observation/items?stationId=${st}&parameterId=sea_reg&limit=3&sortorder=observed,DESC`,
+      `observation/items?stationId=${st}&parameterId=sealev_dvr&limit=3&sortorder=observed,DESC`,
+      `observation/items?stationId=${st}&parameterId=sealev_dvr&limit=3`,
+      `station/items?stationId=${st}`
+    ]) {
+      try { await get(`${base}/${q}`); } catch (e) { log("    fejl:", e.message); }
+    }
+  }
+  for (const ident of KDI_IDENTS) {
+    for (const [a, b] of [["20250601", "20250603"], ["20261001", "20261015"]]) {
+      try {
+        const text = await get(`https://kystatlas.kyst.dk/data/boelge/response.aspx?ident=${ident}&startdate=${a}&enddate=${b}&format=csv`, "text/csv,*/*");
+        const lines = text.split(/\r?\n/).filter((l) => l.trim());
+        log(`    ident ${ident} ${a}-${b}: ${lines.length - 1} rækker · første: ${lines[1] ?? "-"} · sidste: ${lines.at(-1) ?? "-"}`);
+      } catch (e) { log("    fejl:", e.message); }
+    }
+  }
+  for (const url of [
+    "https://kyst.dk/hav-og-anlaeg/maalinger-og-data/boelgemaalinger/kort-over-kystdirektoratets-boelgemaalere",
+    "https://kyst.dk/hav-og-anlaeg/maalinger-og-data/boelgemaalinger",
+    "https://kystatlas.kyst.dk/data/boelge/boelge_webtjeneste.html"
+  ]) {
+    try {
+      const res = await fetch(url, { headers: { "user-agent": "byg-tangen-obs/1" } });
+      const html = await res.text();
+      log(`\n### ${url} · status ${res.status} · ${html.length} tegn`);
+      const hits = [...html.matchAll(/Fjaltring/gi)].slice(0, 12);
+      for (const h of hits) log("    …" + html.slice(Math.max(0, h.index - 160), h.index + 160).replace(/\s+/g, " ") + "…");
+      const opts = [...html.matchAll(/<option[^>]*value="?(\d{3,5})"?[^>]*>([^<]{0,60})/gi)].slice(0, 60);
+      if (opts.length) log("    options:", opts.map((m) => `${m[1]}=${m[2].trim()}`).join(" · "));
+    } catch (e) { log("    fejl:", e.message); }
+  }
+}
+if (process.env.PROBE === "2") await deepProbe();
 
 const [buoy, level] = await Promise.all([
   fetchBuoy().catch((e) => { errors.push("bøje: " + e.message); return null; }),

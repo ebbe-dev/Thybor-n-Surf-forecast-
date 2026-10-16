@@ -16,6 +16,10 @@ on:
         description: "Bøjens tidszone (Europe/Copenhagen eller UTC)"
         type: string
         default: "Europe/Copenhagen"
+      deep:
+        description: "Dyb undersøgelse af kilderne (idents, parametre, sider)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -34,7 +38,7 @@ jobs:
           node-version: 22
       - name: Hent målinger
         env:
-          PROBE: ${{ inputs.probe && '1' || '0' }}
+          PROBE: ${{ inputs.deep && '2' || (inputs.probe && '1' || '0') }}
           KDI_TZ: ${{ inputs.kdi_tz || 'Europe/Copenhagen' }}
         run: node scripts/fetch-obs.mjs
       - name: Læg obs.json på grenen data
