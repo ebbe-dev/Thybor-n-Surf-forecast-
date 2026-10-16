@@ -330,8 +330,10 @@ Score = 10 · energi^0,6 · (0,35 + 0,65 · vind) · gate · stød · mole · va
    bøjens højde op mod Open-Meteo for bøjens punkt, forskudt −6..+6 timer.
    Læst som dansk tid passede modellen bedst forskudt +2..+3 t (spredning
    0,143 m ved 0, 0,099 m ved +2, 0,093 m ved +3), og den nyeste række var
-   131 min gammel; læst som UTC er den ~10 min gammel. Stemplerne er UTC
-   (`KDI_TZ=UTC`). Prøven ligger i loggen, hvis tjenesten skifter.
+   131 min gammel. Læst som UTC ligger minimum ved 0 (spredning 0,107 m ved
+   0, 0,110 ved +1, 0,140 ved −2), og den nyeste række er 10-20 min gammel.
+   Stemplerne er UTC (`KDI_TZ=UTC`). Prøven ligger i loggen, hvis tjenesten
+   skifter. Samme prøve viste modellen ~0,1 m under bøjen de to døgn.
 
 ## Kilder
 
