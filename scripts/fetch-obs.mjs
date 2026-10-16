@@ -117,12 +117,14 @@ async function fetchLevel() {
   const thy = feats.filter((p) => /thybor/i.test(p.name ?? ""));
   log("DMI-stationer med Thyborøn i navnet:", thy.map((p) => `${p.stationId} ${p.name} (${p.status ?? ""})`).join(" · ") || "ingen");
   if (thy.length === 0) { errors.push("vandstand: ingen DMI-station med Thyborøn i navnet"); return null; }
-  // kysten først, så havnen; aktive først
+  // kysten først, så havnen; aktive først. Parameteren er sea_reg hos
+  // Kystdirektoratets målere (målt 16/10/2026: Thyborøn Kyst 9004203 svarer
+  // hvert 10. minut; Thyborøn Havn 9004201 stoppede i april 2026).
   thy.sort((a, b) => (/kyst/i.test(b.name) ? 1 : 0) - (/kyst/i.test(a.name) ? 1 : 0) || ((b.status === "Active") - (a.status === "Active")));
   const from = new Date(now.getTime() - HOURS * 3600_000).toISOString().replace(/\.\d{3}Z$/, "Z");
   const to = now.toISOString().replace(/\.\d{3}Z$/, "Z");
   for (const s of thy) {
-    for (const param of ["sealev_dvr", "sealev_ln"]) {
+    for (const param of ["sea_reg", "sealev_dvr", "sealev_ln"]) {
       try {
         const text = await get(`${base}/observation/items?stationId=${s.stationId}&parameterId=${param}&datetime=${from}/${to}&limit=1000`);
         const j = JSON.parse(text);
@@ -167,6 +169,28 @@ async function deepProbe() {
       } catch (e) { log("    fejl:", e.message); }
     }
   }
+  // Kystdirektoratets tjeneste svarede kun med hovedet for alle idents (16/10):
+  // prøv dokumentationens eget eksempel, andre datoformater, dygraph, og
+  // læs tjenestens egen side og kortsidens indlejrede adresser.
+  for (const q of [
+    "ident=2031&startdate=20181001&enddate=20181002&format=csv",
+    "ident=2133&startdate=2026-10-13&enddate=2026-10-16&format=csv",
+    "ident=2133&startdate=20261013&enddate=20261016&format=dygraph",
+    "ident=2133&startdate=20261013&enddate=20261016",
+    "ident=2133",
+    ""
+  ]) {
+    try {
+      const text = await get(`https://kystatlas.kyst.dk/data/boelge/response.aspx?${q}`, "*/*");
+      const lines = text.split(/\r?\n/).filter((l) => l.trim());
+      log(`    [${q}] ${lines.length} linjer · 2.: ${(lines[1] ?? "-").slice(0, 160)}`);
+    } catch (e) { log(`    [${q}] fejl: ${e.message}`); }
+  }
+  try {
+    const res = await fetch("https://kystatlas.kyst.dk/data/boelge/boelge_webtjeneste.html", { headers: { "user-agent": "byg-tangen-obs/1" } });
+    const html = await res.text();
+    log("\n### boelge_webtjeneste.html som tekst:\n    " + html.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 3500));
+  } catch (e) { log("    fejl:", e.message); }
   for (const url of [
     "https://kyst.dk/hav-og-anlaeg/maalinger-og-data/boelgemaalinger/kort-over-kystdirektoratets-boelgemaalere",
     "https://kyst.dk/hav-og-anlaeg/maalinger-og-data/boelgemaalinger",
@@ -180,6 +204,8 @@ async function deepProbe() {
       for (const h of hits) log("    …" + html.slice(Math.max(0, h.index - 160), h.index + 160).replace(/\s+/g, " ") + "…");
       const opts = [...html.matchAll(/<option[^>]*value="?(\d{3,5})"?[^>]*>([^<]{0,60})/gi)].slice(0, 60);
       if (opts.length) log("    options:", opts.map((m) => `${m[1]}=${m[2].trim()}`).join(" · "));
+      const srcs = [...html.matchAll(/(?:src|href|data-src|data-url)="([^"]*(?:kystatlas|boelge|bolge|wave|arcgis|api)[^"]*)"/gi)].map((m) => m[1]).slice(0, 40);
+      if (srcs.length) log("    adresser:", [...new Set(srcs)].join("\n              "));
     } catch (e) { log("    fejl:", e.message); }
   }
 }
