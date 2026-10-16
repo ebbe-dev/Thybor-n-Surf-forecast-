@@ -86,8 +86,10 @@ function parseKdiCsv(text) {
   const iHmax = col(["h_max", "hmax"]);
   const iTmax = col(["t_max", "tmax"]);
   const iDir = col(["dir", "retning", "mdir", "dir_m"]);
+  // Et nul i en periode-kolonne er en pladsholder, ikke en måling (16/10:
+  // T_s står som 0 hos 2035, mens T_z har tal).
   const pick = (c, ...idx) => {
-    for (const i of idx) if (i >= 0) { const v = num(c[i]); if (v != null) return v; }
+    for (const i of idx) if (i >= 0) { const v = num(c[i]); if (v != null && v > 0) return v; }
     return null;
   };
   const rows = [];
@@ -127,6 +129,7 @@ async function fetchBuoy() {
         const ageMin = Math.round((now.getTime() - Date.parse(newest.time)) / 60_000);
         log(`bøje: nyeste række ${newest.time} læst som ${KDI_TZ} er ${ageMin} min gammel ved hentning ${now.toISOString()}`);
         if (ageMin < -15) errors.push(`bøje: nyeste række ligger ${-ageMin} min i fremtiden — KDI_TZ=${KDI_TZ} er nok forkert`);
+        if (PROBE) await lagProbe(fresh);
         return { ident, name: "Fjaltring", source: url.replace(/startdate=.*$/, "…"), header, rows: fresh, period: newest.tp != null ? "T_s" : "T_z" };
       }
     } catch (e) {
@@ -136,6 +139,35 @@ async function fetchBuoy() {
   }
   errors.push("bøje: ingen ident gav friske rækker");
   return null;
+}
+
+// PROBE: bøjens højde holdt op mod Open-Meteos bølgehøjde for bøjens eget
+// punkt (56,49 N 8,10 Ø), forskudt −3..+3 timer. Det forskud, der passer
+// bedst, siger om bøjens stempler er læst i den rigtige zone: passer 0 bedst,
+// er KDI_TZ rigtig; passer −2 bedst (bøjen læst 2 t for tidligt), er
+// stemplerne UTC. Kun til loggen — rører ikke obs.json.
+async function lagProbe(rows) {
+  try {
+    const url = "https://marine-api.open-meteo.com/v1/marine?latitude=56.49&longitude=8.10&hourly=wave_height&past_days=3&forecast_days=1&timezone=UTC";
+    const j = JSON.parse(await get(url));
+    const model = new Map();
+    j.hourly.time.forEach((t, i) => { if (j.hourly.wave_height[i] != null) model.set(Date.parse(t + ":00Z"), j.hourly.wave_height[i]); });
+    const out = [];
+    for (let lagH = -3; lagH <= 3; lagH++) {
+      const diffs = [];
+      for (const r of rows) {
+        const t = Date.parse(r.time) + lagH * 3600_000;
+        if (t % 3600_000 !== 0) continue; // kun hele timer
+        const m = model.get(t);
+        if (m != null) diffs.push(m - r.hs);
+      }
+      if (diffs.length < 6) continue;
+      const mean = diffs.reduce((s, v) => s + v, 0) / diffs.length;
+      const rmse = Math.sqrt(diffs.reduce((s, v) => s + (v - mean) ** 2, 0) / diffs.length);
+      out.push(`forskud ${lagH >= 0 ? "+" : ""}${lagH} t: ${diffs.length} par, model−bøje ${mean.toFixed(2)} m, spredning ${rmse.toFixed(3)} m`);
+    }
+    log("tidszone-prøve (bøjen læst som " + KDI_TZ + "; mindste spredning vinder):\n    " + out.join("\n    "));
+  } catch (e) { log("tidszone-prøve fejlede:", e.message); }
 }
 
 async function fetchLevel() {
