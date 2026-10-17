@@ -115,6 +115,13 @@ export function seedForecast(now = new Date()) {
       );
       const hh = Number(iso.slice(11, 13));
       const c = conditions(dayOff, hh, areaId);
+      // modellernes spænd: enige i dag, uenige i morgen og fra dag 4
+      const hsSpread =
+        dayOff === 1
+          ? { lo: round(c.hs - 0.4), hi: round(c.hs + 0.35), n: 4 }
+          : dayOff >= 4
+            ? { lo: round(c.hs * 0.7), hi: round(c.hs * 1.4), n: 3 }
+            : { lo: round(c.hs - 0.05), hi: round(c.hs + 0.1), n: 5 };
       rows.push({
         time: iso,
         hs: c.hs,
@@ -123,6 +130,7 @@ export function seedForecast(now = new Date()) {
         swell: { hs: round(c.hs * 0.8), tp: c.tp, dir: c.swdir },
         windSea: { hs: round(c.hs * 0.5), tp: 4.5, dir: c.wdir },
         level: c.level,
+        hsSpread,
         wdir: c.wdir,
         wspd: c.wspd,
         gust: c.gust,

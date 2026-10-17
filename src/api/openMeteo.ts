@@ -18,8 +18,13 @@
 //
 // Vindsøen og vandstanden hentes i et EKSTRA kald, der må fejle: kernen
 // (højde, retning, periode, dønning, vind) falder aldrig på dem.
+//
+// Modelspredningen (17/10/2026) er et tredje kald, der også må fejle: den
+// samme højde fra flere bølgemodeller på én gang, så rækken kan bære
+// modellernes spænd (hsSpread) og appen sige "±0,4 m" og "usikker", når de
+// er uenige. Scoren regner stadig på best_match alene.
 
-import type { Row, WavePart } from "../model/model";
+import type { Row, WavePart, HsSpread } from "../model/model";
 import { AREAS } from "../config/spots";
 import type { CachedForecast, AreaForecast } from "../lib/storage";
 
@@ -36,6 +41,15 @@ export const MARINE_EXTRA_HOURLY =
 export const WIND_HOURLY =
   "wind_speed_10m,wind_direction_10m,wind_gusts_10m,temperature_2m";
 
+// Modelspredning, fail-open. Probe fra GitHub Actions 17/10/2026
+// (scripts/probe-openmeteo.mjs): best_match er her Météo-Frances MFWAM
+// (tallene er ens); ewam er DWD's europæiske 5 km-model og rækker 3,3
+// døgn; gwam DWD's globale 28 km, 7 døgn; ecmwf_wam025 ECMWF's 0,25° —
+// tør celle ved Thyborøn-punktet, kun sydpunktet; ncep_gfswave025 NOAA's,
+// 7 døgn. Nøglerne i svaret hedder wave_height_<model>, for best_match
+// wave_height_marine_best_match. Modeller uden tal for en time tæller ikke.
+export const SPREAD_MODELS = ["best_match", "ewam", "gwam", "ecmwf_wam025", "ncep_gfswave025"];
+
 const WAVE_COORDS =
   `latitude=${AREAS.map((a) => a.wave.lat).join(",")}` +
   `&longitude=${AREAS.map((a) => a.wave.lon).join(",")}`;
@@ -51,6 +65,10 @@ export const MARINE_BASE =
 export const MARINE_EXTRA_BASE =
   `https://marine-api.open-meteo.com/v1/marine?${WAVE_COORDS}` +
   `&hourly=${MARINE_EXTRA_HOURLY}&timezone=Europe%2FCopenhagen`;
+
+export const MARINE_SPREAD_BASE =
+  `https://marine-api.open-meteo.com/v1/marine?${WAVE_COORDS}` +
+  `&hourly=wave_height&models=${SPREAD_MODELS.join(",")}&timezone=Europe%2FCopenhagen`;
 
 export const WIND_BASE =
   `https://api.open-meteo.com/v1/forecast?${WIND_COORDS}` +
@@ -78,6 +96,12 @@ export interface MarineExtraHourly {
   wind_wave_direction?: (number | null)[];
   wind_wave_peak_period?: (number | null)[];
   sea_level_height_msl?: (number | null)[];
+}
+
+// Flere modeller i ét kald: wave_height_<model> pr. model.
+export interface MarineSpreadHourly {
+  time: string[];
+  [key: string]: (number | null)[] | string[];
 }
 
 export interface WindHourly {
@@ -124,13 +148,31 @@ export function dominantPeriod(
   return top.hs * top.hs >= 0.5 * hs * hs ? top.tp : null;
 }
 
+// Pr. time: laveste og højeste højde blandt de modeller, der havde et tal,
+// og hvor mange. Én model alene er ikke et spænd.
+export function spreadByTime(h: MarineSpreadHourly | null | undefined): Map<string, HsSpread> {
+  const out = new Map<string, HsSpread>();
+  if (!h || !Array.isArray(h.time)) return out;
+  const keys = Object.keys(h).filter((k) => k.startsWith("wave_height"));
+  h.time.forEach((t, i) => {
+    const vals: number[] = [];
+    for (const k of keys) {
+      const v = (h[k] as (number | null)[])[i];
+      if (typeof v === "number" && Number.isFinite(v)) vals.push(v);
+    }
+    if (vals.length >= 2) out.set(t, { lo: Math.min(...vals), hi: Math.max(...vals), n: vals.length });
+  });
+  return out;
+}
+
 // Fletter marine- og vindtimer til Rows. Bruges af både forecast og arkiv,
 // så fallback-reglerne er garanteret ens alle steder. Ekstra-delen
 // (vindsø, vandstand) er valgfri og matches på tidsstemplet.
 export function mergeHourly(
   m: MarineHourly,
   w: WindHourly,
-  x: MarineExtraHourly | null = null
+  x: MarineExtraHourly | null = null,
+  spread: Map<string, HsSpread> | null = null
 ): { rows: Row[]; holes: string[] } {
   const windAt = new Map<string, number>();
   w.time.forEach((t, i) => windAt.set(t, i));
@@ -170,7 +212,20 @@ export function mergeHourly(
       return;
     }
 
-    rows.push({ time: t, hs, tp, swdir, swell, windSea, level, wdir, wspd, gust, temp });
+    rows.push({
+      time: t,
+      hs,
+      tp,
+      swdir,
+      swell,
+      windSea,
+      level,
+      hsSpread: spread?.get(t) ?? null,
+      wdir,
+      wspd,
+      gust,
+      temp
+    });
   });
 
   return { rows, holes };
@@ -178,6 +233,7 @@ export function mergeHourly(
 
 type MarineResp = { hourly: MarineHourly };
 type MarineExtraResp = { hourly: MarineExtraHourly };
+type MarineSpreadResp = { hourly: MarineSpreadHourly };
 type WindResp = { hourly: WindHourly };
 
 // Bygger område-opdelte forecasts af parallelle API-svar (samme index-
@@ -185,7 +241,8 @@ type WindResp = { hourly: WindHourly };
 export function splitByArea(
   marines: MarineResp[],
   winds: WindResp[],
-  extras: (MarineExtraResp | null)[] | null = null
+  extras: (MarineExtraResp | null)[] | null = null,
+  spreads: (MarineSpreadResp | null)[] | null = null
 ): Record<string, AreaForecast> {
   const areas: Record<string, AreaForecast> = {};
   AREAS.forEach((a, i) => {
@@ -196,8 +253,9 @@ export function splitByArea(
       return;
     }
     const x = extras?.[i]?.hourly ?? null;
+    const sp = spreadByTime(spreads?.[i]?.hourly);
     const dry = m.wave_height.every((v) => v == null);
-    const merged = dry ? { rows: [], holes: [] } : mergeHourly(m, w, x);
+    const merged = dry ? { rows: [], holes: [] } : mergeHourly(m, w, x, sp);
     areas[a.id] = { ...merged, dry };
   });
   return areas;
@@ -207,11 +265,15 @@ export async function fetchForecast(): Promise<CachedForecast> {
   // 7 dage bagud + 7 frem: barografen kan swipes tilbage, og snapshots til
   // sessions logget bagudrettet findes uden at åbne historikken først.
   const span = "&past_days=7&forecast_days=7";
-  const [marineRes, windRes, extraRes] = await Promise.all([
+  const [marineRes, windRes, extraRes, spreadRes] = await Promise.all([
     getJson<MarineResp | MarineResp[]>(MARINE_BASE + span),
     getJson<WindResp | WindResp[]>(WIND_BASE + span),
     getJson<MarineExtraResp | MarineExtraResp[]>(MARINE_EXTRA_BASE + span).catch((e: unknown) => {
       console.warn("Open-Meteo: vindsø og vandstand faldt fra —", e);
+      return null;
+    }),
+    getJson<MarineSpreadResp | MarineSpreadResp[]>(MARINE_SPREAD_BASE + span).catch((e: unknown) => {
+      console.warn("Open-Meteo: modelspredningen faldt fra —", e);
       return null;
     })
   ]);
@@ -219,7 +281,8 @@ export async function fetchForecast(): Promise<CachedForecast> {
   const areas = splitByArea(
     asArray(marineRes),
     asArray(windRes),
-    extraRes ? asArray(extraRes) : null
+    extraRes ? asArray(extraRes) : null,
+    spreadRes ? asArray(spreadRes) : null
   );
 
   if (Object.values(areas).every((a) => a.dry)) {

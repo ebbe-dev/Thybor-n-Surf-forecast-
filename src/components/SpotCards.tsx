@@ -17,6 +17,7 @@ import { SwellChip } from "./SwellChip";
 import { isDoubleTap } from "../lib/double-tap";
 import { correctionFor } from "../lib/calibration";
 import { frontOf, fmtSurfHeight } from "../lib/surfHeight";
+import { spreadOf, fmtHsWithSpread, fmtRange } from "../lib/spread";
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const GAP = 10; // afstand mellem kortene — skal matche .spot-cards i styles.css
@@ -174,6 +175,8 @@ export function SpotCards({
             Math.abs(ci.correction) >= 0.05
               ? `${ci.correction > 0 ? "+" : "−"}${fmt(Math.abs(ci.correction))} fra loggen`
               : null;
+          // modellernes uenighed om højden (lib/spread.ts) toner dommen ned
+          const sp = spreadOf(r);
           return (
             <section
               className="hero"
@@ -206,7 +209,7 @@ export function SpotCards({
                   <div className="hero-sub">
                     <SwellChip tp={r.tp} />{" "}
                     <span className="nw">
-                      {fmt(r.hs)} m / {fmt(r.tp)} s
+                      {fmtHsWithSpread(r)} / {fmt(r.tp)} s
                     </span>
                     {showFront && (
                       <>
@@ -219,6 +222,11 @@ export function SpotCards({
                       vind {compass(r.wdir)} {fmt(r.wspd, 0)} m/s
                     </span>
                   </div>
+                  {sp?.unsure && (
+                    <div className="hero-unsure">
+                      usikker · {sp.n} modeller siger {fmtRange(sp)}
+                    </div>
+                  )}
                   {warn.length > 0 && (
                     <div className="hero-caveat">⚠ {warn.map((c) => c.short).join(" · ")}</div>
                   )}

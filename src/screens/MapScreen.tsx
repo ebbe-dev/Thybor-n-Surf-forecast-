@@ -30,6 +30,7 @@ import { fmt, fmtLevel, compass } from "../lib/format";
 import { swellKind, swellLabel } from "../lib/swell";
 import { loadSurfHeightOn } from "../lib/settings";
 import { frontOf, fmtSurfHeight } from "../lib/surfHeight";
+import { spreadOf, fmtHsWithSpread } from "../lib/spread";
 import {
   bearingOnScreen,
   distanceM,
@@ -93,7 +94,7 @@ const SIGN_DOT = 10;
 function signHtml(area: Area, row: Row | null): string {
   const rows = row
     ? `<div class="sign-row">${arrowSvg(row.wdir, 24, false)}<span>${compass(row.wdir)} ${fmt(row.wspd, 0)} m/s</span></div>` +
-      `<div class="sign-row">${arrowSvg(row.swdir, 24, true)}<span>${compass(row.swdir)} ${fmt(row.hs)} m</span></div>` +
+      `<div class="sign-row">${arrowSvg(row.swdir, 24, true)}<span>${compass(row.swdir)} ${fmtHsWithSpread(row)}</span></div>` +
       `<div class="sign-kind">${swellChipHtml(row.tp)}<span>${fmt(row.tp)} s</span></div>`
     : `<div class="sign-row sign-none">ingen data for timen</div>`;
   return (
@@ -132,7 +133,7 @@ function spotArrowsHtml(row: Row): string {
   return (
     `<div class="spot-arrows">` +
     `<div class="sa" style="left:${w.x.toFixed(0)}px;top:${w.y.toFixed(0)}px">${arrowSvg(row.wdir, 38, false)}<span>vind ${fmt(row.wspd, 0)} m/s</span></div>` +
-    `<div class="sa" style="left:${s.x.toFixed(0)}px;top:${s.y.toFixed(0)}px">${arrowSvg(row.swdir, 38, true)}<span>bølger ${fmt(row.hs)} m</span>${swellChipHtml(row.tp)}</div>` +
+    `<div class="sa" style="left:${s.x.toFixed(0)}px;top:${s.y.toFixed(0)}px">${arrowSvg(row.swdir, 38, true)}<span>bølger ${fmtHsWithSpread(row)}</span>${swellChipHtml(row.tp)}</div>` +
     `</div>`
   );
 }
@@ -180,8 +181,9 @@ function popupHtml(spot: Spot, block: Block | null): string {
     `<strong>${name}</strong><br>` +
     `<span style="font-size:20px;font-weight:800;color:${scoreColor(b.score)}">${fmt(b.score)}</span>` +
     ` — ${scoreLabel(b.score)}<br>` +
-    `${leeCaption(spot, b)} · ${fmt(b.row.hs)} m / ${fmt(b.row.tp)} s · ` +
+    `${leeCaption(spot, b)} · ${fmtHsWithSpread(b.row)} / ${fmt(b.row.tp)} s · ` +
     swellLabel(swellKind(b.row.tp)).toLowerCase() +
+    (spreadOf(b.row)?.unsure ? " · usikker" : "") +
     (loadSurfHeightOn() ? ` · front ${fmtSurfHeight(frontOf(b.row))}` : "") +
     (warn.length ? `<br>⚠ ${warn.map((c) => c.short).join(" · ")}` : "")
   );
@@ -805,7 +807,7 @@ export function MapScreen({ checkSpotId, onCheckDone, focus }: Props) {
                       </span>
                       <span className="area-val">
                         <WaveArrow deg={row.swdir} />
-                        {compass(row.swdir)} {fmt(row.hs)} m
+                        {compass(row.swdir)} {fmtHsWithSpread(row)}
                       </span>
                       <span className="area-val area-kind">
                         <SwellChip tp={row.tp} />

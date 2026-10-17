@@ -93,6 +93,11 @@ if (isMain) {
     await page.waitForTimeout(600);
     await page.screenshot({ path: `${outDir}/nu-top.png` });
     await page.screenshot({ path: `${outDir}/nu-fuld.png`, fullPage: true });
+    // detaljen for i morgen kl. 14 (dagen efter "i dag" i barografen)
+    const tomorrow = page.locator('.baro-day[data-today="1"] + .baro-day .baro-block').nth(3);
+    await tomorrow.click();
+    await page.waitForTimeout(400);
+    await page.locator(".detail").screenshot({ path: `${outDir}/nu-detalje-imorgen.png` });
     await page.getByRole("button", { name: "KORT", exact: true }).click();
     await page.waitForSelector(".leaflet-container");
     await page.waitForTimeout(900);

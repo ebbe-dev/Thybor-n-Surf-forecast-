@@ -31,6 +31,15 @@ export interface WavePart {
   dir: number;
 }
 
+// Modellernes spænd i højden for timen (api/openMeteo.ts): laveste og
+// højeste bølgehøjde blandt de bølgemodeller, der havde et tal, og hvor
+// mange. Vises som "±" og "usikker" (lib/spread.ts). Rører ikke scoren.
+export interface HsSpread {
+  lo: number;
+  hi: number;
+  n: number;
+}
+
 // Én times forhold, klar til scoring. Rækken bærer den SAMLEDE sø — det er
 // den, der bryder på revlen — og delene står ved siden af, hvis kilden har
 // dem (api/openMeteo.ts, docs/surf-science.md).
@@ -42,6 +51,7 @@ export interface Row {
   swell: WavePart | null; // dønningen, hvis modellen skiller den ud
   windSea: WavePart | null; // vindsøen, hvis hentet
   level: number | null; // vandstand m over middel, hvis hentet
+  hsSpread?: HsSpread | null; // modellernes spænd i højden, hvis hentet
   wdir: number; // vindretning grader
   wspd: number; // vind m/s
   gust: number; // stød m/s

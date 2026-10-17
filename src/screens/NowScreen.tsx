@@ -22,7 +22,8 @@ import {
   type HorizonDays
 } from "../lib/blocks";
 import { loadHorizonDays, saveHorizonDays, loadSurfHeightOn, saveSurfHeightOn } from "../lib/settings";
-import { frontOf, fmtSurfHeight } from "../lib/surfHeight";
+import { frontOf, fmtSurfHeight, breakerHeight } from "../lib/surfHeight";
+import { spreadOf, fmtHsWithSpread, fmtRange, SPREAD_UNSURE_M } from "../lib/spread";
 import { scoreColor } from "../lib/colors";
 import { fmtClock, fmtDayLabel, todayIso } from "../lib/time";
 import { fmt, fmtLevel, compass } from "../lib/format";
@@ -146,6 +147,14 @@ function NuHelp() {
           en åben strand uden høfder og revler. Perioden laver bølgen: 1,5 m giver omkring 1,7 m
           front ved 6 s og 2,1 m ved 10 s. Scoren bruger den ikke. Den kan slås fra under
           Indstillinger nederst.
+        </p>
+        <p>
+          <strong>±</strong> ved bølgehøjden og ordet <strong>usikker</strong> betyder, at
+          bølgemodellerne er uenige. Appen henter højden fra op til fem modeller (Météo-France,
+          DWD's europæiske og globale, ECMWF og NOAA) og viser spændet, når det er over{" "}
+          {fmt(SPREAD_UNSURE_M)} m: "1,5 ±0,4 m" er 1,1 til 1,9 m. Er de enige, står tallet
+          alene. Uenigheden ændrer ikke scoren; den siger, hvor meget du skal tro på den, især
+          dag 3 til 7.
         </p>
         <p>
           <strong>Periode</strong> er sekunder mellem bølgerne. Høj periode (8+) = kraft og
@@ -283,6 +292,7 @@ function BlockDetail({
   const mb = buoyAt(obs, block.time);
   const ml = levelAt(obs, block.time);
   const mbPer = mb ? buoyPeriod(mb) : null;
+  const sp = spreadOf(r);
   return (
     <section className="card detail">
       <header className="detail-head">
@@ -297,6 +307,12 @@ function BlockDetail({
         <p className="cal-note">
           inkl. {cal.correction >= 0 ? "+" : ""}
           {fmt(cal.correction)} lært af dine {cal.n} sessions
+        </p>
+      )}
+      {sp?.unsure && (
+        <p className="unsure-note">
+          Usikker: {sp.n} bølgemodeller er uenige om højden, {fmtRange(sp)}. Tag tallene med
+          forbehold.
         </p>
       )}
       {warnings.length > 0 && (
@@ -319,7 +335,8 @@ function BlockDetail({
           <div>
             <dt>Bølge</dt>
             <dd>
-              {fmt(r.hs)} m
+              {fmtHsWithSpread(r)}
+              {sp?.unsure && <span className="dd-note">{sp.n} modeller: {fmtRange(sp)}</span>}
               {mb && <span className="dd-note meas">målt {fmt(mb.hs)} m {fmtObsClock(mb.time)}</span>}
             </dd>
           </div>
@@ -328,7 +345,11 @@ function BlockDetail({
               <dt>Front</dt>
               <dd>
                 {fmtSurfHeight(frontOf(r))}
-                <span className="dd-note">på revlen, af højde og periode</span>
+                <span className="dd-note">
+                  {sp?.unsure
+                    ? `${fmtSurfHeight(breakerHeight(sp.lo, r.tp))}–${fmtSurfHeight(breakerHeight(sp.hi, r.tp))} efter modellerne`
+                    : "på revlen, af højde og periode"}
+                </span>
               </dd>
             </div>
           )}
