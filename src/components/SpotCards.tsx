@@ -16,6 +16,7 @@ import { ScoreSparkline } from "./ScoreSparkline";
 import { SwellChip } from "./SwellChip";
 import { isDoubleTap } from "../lib/double-tap";
 import { correctionFor } from "../lib/calibration";
+import { frontOf, fmtSurfHeight } from "../lib/surfHeight";
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const GAP = 10; // afstand mellem kortene — skal matche .spot-cards i styles.css
@@ -33,6 +34,7 @@ interface Props {
   onSelect: (spotId: string, time: string) => void;
   onOpenMap: (spotId: string, time: string) => void; // dobbelttryk på kortet
   sun: string | null;
+  showFront: boolean; // bølgens front ved tallene (Indstillinger på NU)
 }
 
 function HorizonToggle({ value, onChange }: { value: HorizonDays; onChange: (d: HorizonDays) => void }) {
@@ -61,7 +63,10 @@ export function SpotCards({
   onHorizon,
   selectedId,
   onSelect,
-  sun, onOpenMap }: Props) {
+  sun,
+  onOpenMap,
+  showFront
+}: Props) {
   const scroller = useRef<HTMLDivElement>(null);
   const settleRef = useRef<number | null>(null);
   // Et rul sat i gang af listen/chips er på vej til ét bestemt kort; de
@@ -203,6 +208,12 @@ export function SpotCards({
                     <span className="nw">
                       {fmt(r.hs)} m / {fmt(r.tp)} s
                     </span>
+                    {showFront && (
+                      <>
+                        {" · "}
+                        <span className="nw front">front {fmtSurfHeight(frontOf(r))}</span>
+                      </>
+                    )}
                     {" · "}
                     <span className="nw">
                       vind {compass(r.wdir)} {fmt(r.wspd, 0)} m/s

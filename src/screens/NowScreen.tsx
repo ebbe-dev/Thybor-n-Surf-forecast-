@@ -21,7 +21,8 @@ import {
   type Block,
   type HorizonDays
 } from "../lib/blocks";
-import { loadHorizonDays, saveHorizonDays } from "../lib/settings";
+import { loadHorizonDays, saveHorizonDays, loadSurfHeightOn, saveSurfHeightOn } from "../lib/settings";
+import { frontOf, fmtSurfHeight } from "../lib/surfHeight";
 import { scoreColor } from "../lib/colors";
 import { fmtClock, fmtDayLabel, todayIso } from "../lib/time";
 import { fmt, fmtLevel, compass } from "../lib/format";
@@ -140,6 +141,13 @@ function NuHelp() {
           middelperiode trækkes ned af vindsøen.
         </p>
         <p>
+          <strong>Front</strong> er bølgens højde, når den bryder på revlen: det tal, du ser fra
+          stranden. Den regnes af bølgehøjden og perioden ude på havet (Komar & Gaughan, 1972) for
+          en åben strand uden høfder og revler. Perioden laver bølgen: 1,5 m giver omkring 1,7 m
+          front ved 6 s og 2,1 m ved 10 s. Scoren bruger den ikke. Den kan slås fra under
+          Indstillinger nederst.
+        </p>
+        <p>
           <strong>Periode</strong> er sekunder mellem bølgerne. Høj periode (8+) = kraft og
           orden. Lav (4–5) = tætpakket plaskeri.
         </p>
@@ -255,7 +263,17 @@ function waveParts(r: Row): string {
   return parts.length ? parts.join(" · ") : "dønning og vindsø: ikke opdelt af kilden";
 }
 
-function BlockDetail({ block, spot, obs }: { block: Block; spot: Spot; obs: Obs | null }) {
+function BlockDetail({
+  block,
+  spot,
+  obs,
+  showFront
+}: {
+  block: Block;
+  spot: Spot;
+  obs: Obs | null;
+  showFront: boolean;
+}) {
   const r = block.row;
   const warnings = blockCaveats(spot, block);
   const color = scoreColor(block.score);
@@ -305,6 +323,15 @@ function BlockDetail({ block, spot, obs }: { block: Block; spot: Spot; obs: Obs 
               {mb && <span className="dd-note meas">målt {fmt(mb.hs)} m {fmtObsClock(mb.time)}</span>}
             </dd>
           </div>
+          {showFront && (
+            <div>
+              <dt>Front</dt>
+              <dd>
+                {fmtSurfHeight(frontOf(r))}
+                <span className="dd-note">på revlen, af højde og periode</span>
+              </dd>
+            </div>
+          )}
           <div>
             <dt>Periode</dt>
             <dd>
@@ -377,6 +404,7 @@ export function NowScreen({ initialSpotId, onCheckOnMap, onOpenMap }: Props) {
   const [spotId, setSpotId] = useState<string | null>(initialSpotId);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [horizon, setHorizon] = useState<HorizonDays>(() => loadHorizonDays());
+  const [showFront, setShowFront] = useState<boolean>(() => loadSurfHeightOn());
   const detailRef = useRef<HTMLDivElement>(null);
 
   // Én rangering til kortene og listen (lib/blocks.ts), inden for horisonten.
@@ -477,6 +505,7 @@ export function NowScreen({ initialSpotId, onCheckOnMap, onOpenMap }: Props) {
         }}
         onOpenMap={onOpenMap}
         sun={sun}
+        showFront={showFront}
       />
 
       <QuickPick
@@ -514,7 +543,7 @@ export function NowScreen({ initialSpotId, onCheckOnMap, onOpenMap }: Props) {
 
       {selected && (
         <div ref={detailRef}>
-          <BlockDetail block={selected} spot={spot} obs={obs} />
+          <BlockDetail block={selected} spot={spot} obs={obs} showFront={showFront} />
         </div>
       )}
 
@@ -522,6 +551,30 @@ export function NowScreen({ initialSpotId, onCheckOnMap, onOpenMap }: Props) {
         Stryg i søjlerne for hele ugen · tryk på en søjle for tallene
         {holes > 0 && ` · ${holes} timer mangler i kilden`}
       </p>
+
+      <section className="card">
+        <div className="card-h">
+          <span>Indstillinger</span>
+        </div>
+        <label className="setting-toggle">
+          <input
+            type="checkbox"
+            checked={showFront}
+            onChange={(e) => {
+              saveSurfHeightOn(e.target.checked);
+              setShowFront(e.target.checked);
+            }}
+          />
+          <span>
+            <strong>Vis bølgens front i meter</strong>
+            <span className="cal-status">
+              {showFront
+                ? "højden på revlen, regnet af bølgehøjde og periode, står ved tallene på dommen, i detaljen og på kortet"
+                : "slået fra, appen viser kun havets bølgehøjde"}
+            </span>
+          </span>
+        </label>
+      </section>
     </div>
   );
 }

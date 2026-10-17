@@ -28,6 +28,8 @@ import { scoreColor, scoreLabel, scoreTextColor, BG, FG, MUTED } from "../lib/co
 import { fmtDayLabel, fmtClock } from "../lib/time";
 import { fmt, fmtLevel, compass } from "../lib/format";
 import { swellKind, swellLabel } from "../lib/swell";
+import { loadSurfHeightOn } from "../lib/settings";
+import { frontOf, fmtSurfHeight } from "../lib/surfHeight";
 import {
   bearingOnScreen,
   distanceM,
@@ -180,6 +182,7 @@ function popupHtml(spot: Spot, block: Block | null): string {
     ` — ${scoreLabel(b.score)}<br>` +
     `${leeCaption(spot, b)} · ${fmt(b.row.hs)} m / ${fmt(b.row.tp)} s · ` +
     swellLabel(swellKind(b.row.tp)).toLowerCase() +
+    (loadSurfHeightOn() ? ` · front ${fmtSurfHeight(frontOf(b.row))}` : "") +
     (warn.length ? `<br>⚠ ${warn.map((c) => c.short).join(" · ")}` : "")
   );
 }
@@ -316,6 +319,7 @@ interface Props {
 export function MapScreen({ checkSpotId, onCheckDone, focus }: Props) {
   const { forecast } = useForecast();
   const { obs } = useObs();
+  const showFront = loadSurfHeightOn(); // kontakten står på NU; fanen genmonteres ved skift
   const mapEl = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const [mapReady, setMapReady] = useState(false);
@@ -807,6 +811,9 @@ export function MapScreen({ checkSpotId, onCheckDone, focus }: Props) {
                         <SwellChip tp={row.tp} />
                         {fmt(row.tp)} s
                       </span>
+                      {showFront && (
+                        <span className="area-val area-kind">front {fmtSurfHeight(frontOf(row))}</span>
+                      )}
                       {row.level != null && (
                         <span className="area-val area-kind">vandstand {fmtLevel(row.level)}</span>
                       )}

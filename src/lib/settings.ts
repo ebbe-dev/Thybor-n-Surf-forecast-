@@ -14,3 +14,15 @@ export function loadHorizonDays(): HorizonDays {
 export function saveHorizonDays(days: HorizonDays): void {
   localStorage.setItem(HORIZON_KEY, String(days));
 }
+
+const SURF_HEIGHT_KEY = "bygtangen.surfheight";
+
+// Bølgens front (lib/surfHeight.ts) ved tallene: til (standard) eller fra.
+// Kontakten står under Indstillinger på NU.
+export function loadSurfHeightOn(): boolean {
+  return localStorage.getItem(SURF_HEIGHT_KEY) !== "0";
+}
+
+export function saveSurfHeightOn(on: boolean): void {
+  localStorage.setItem(SURF_HEIGHT_KEY, on ? "1" : "0");
+}
