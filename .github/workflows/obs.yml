@@ -28,6 +28,10 @@ on:
         description: "Dyb undersøgelse af kilderne (idents, parametre, sider)"
         type: boolean
         default: false
+      openmeteo:
+        description: "Probe af Open-Meteo: bølgemodeller (models=), ekstra variabler, DMI i best_match"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -58,3 +62,6 @@ jobs:
           git add obs.json
           git -c user.name=obs-bot -c user.email=obs-bot@users.noreply.github.com commit -q -m "obs $(date -u +%FT%TZ)"
           git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" HEAD:data
+      - name: Probe af Open-Meteo (kun log)
+        if: ${{ inputs.openmeteo }}
+        run: node scripts/probe-openmeteo.mjs
