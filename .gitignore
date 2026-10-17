@@ -2,3 +2,5 @@ node_modules
 dist
 dev-dist
 *.local
+scripts/tests/.bundled
+scripts/tests/out
