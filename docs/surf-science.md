@@ -250,11 +250,21 @@ overgangene. **Ikke i modellen endnu:** det kræver revlens hældning pr. spot
 
 - **Open-Meteo marine** (gratis, uden nøgle): `wave_height/direction/period`
   (samlet), `swell_wave_*` og `wind_wave_*` med `*_peak_period`,
-  `sea_level_height_msl`. Globalt DWD-bølgemodel 28 km, europæisk 5 km (de
-  første 3 dage). Appen henter kernen i ét kald og vindsø + vandstand i et
-  ekstra kald, der må fejle. To bølgepunkter: ud for Thyborøn (56,66 N 8,13 Ø)
-  og ud for Bovbjerg/Thorsminde (56,45 N 8,00 Ø). Flere modelpunkter giver
-  ikke mere: det er samme model, samme fejl.
+  `sea_level_height_msl`, og fra 17/10/2026 `secondary_swell_wave_*` (kun
+  middelperiode) og `sea_surface_temperature`. Appen henter kernen i ét
+  kald, vindsø + vandstand + 2. dønning + vandtemperatur i et ekstra kald,
+  der må fejle, og højden fra fem modeller i et tredje (§14), der også må
+  fejle. To bølgepunkter: ud for Thyborøn (56,66 N 8,13 Ø) og ud for
+  Bovbjerg/Thorsminde (56,45 N 8,00 Ø). Flere modelpunkter giver ikke mere:
+  det er samme model, samme fejl.
+  **Proben 17/10/2026** (`scripts/probe-openmeteo.mjs`, kørt fra GitHub
+  Actions med `openmeteo=true`, fordi containeren ikke når tjenesten):
+  `best_match` er for højden Météo-Frances MFWAM (tallene er identiske
+  time for time), ikke DWD's, som dokumentationen fik det til at lyde;
+  `wave_peak_period` og `tertiary_swell_wave_*` er tomme her;
+  `secondary_swell_wave_peak_period` findes ikke; vandtemperatur og strøm
+  kommer fra Météo-Frances havmodel; ECMWF's 0,25°-model har tør celle ved
+  Thyborøn-punktet.
 - **DMI:** kort over bølgehøjde og vind (det, surferen læste 13/10), tidevands-
   tabeller, varsler om forhøjet vandstand.
 
@@ -311,6 +321,10 @@ swell i appen.
 
 Score = 10 · energi^0,6 · (0,35 + 0,65 · vind) · gate · stød · mole · vandstand · påland.
 
+Vist, men uden for scoren: bølgens front (§13), modellernes spænd med ±
+og "usikker" (§14), ground swell under vindsøen, 2. dønning og
+vandtemperaturen med våddragt (§15), og målingerne (§10).
+
 ## 12. Åbne spørgsmål
 
 1. **Bunden.** Peel-vinkel og brydningstype kræver revlens hældning og
@@ -334,8 +348,117 @@ Score = 10 · energi^0,6 · (0,35 + 0,65 · vind) · gate · stød · mole · va
    0, 0,110 ved +1, 0,140 ved −2), og den nyeste række er 10-20 min gammel.
    Stemplerne er UTC (`KDI_TZ=UTC`). Prøven ligger i loggen, hvis tjenesten
    skifter. Samme prøve viste modellen ~0,1 m under bøjen de to døgn.
+7. **Vindmodellen — afgjort 17/10/2026: best_match er IKKE DMI.** Proben
+   holdt vind-API'ets `best_match` op mod `dmi_seamless` for 56,68 N 8,20 Ø
+   over 48 t: ingen ens timer, snit 1,0 m/s forskel; tættest på
+   `icon_seamless` (0,6 m/s), længst fra ECMWF (2,3 m/s). DMI's HARMONIE
+   (2 km, 2,5 døgn, 3-timers opdatering) kan hentes med
+   `models=dmi_seamless`, men om den rammer bedre ved kysten, kan kun målt
+   vind afgøre (Thyborøn Havn viser den, uden API). Ikke skiftet.
+8. **Fronten pr. spot.** §13 regner fronten for en åben strand. Refraktion
+   fra 17,5 m (Snell, §2) og høfdernes fang ville give den pr. spot.
+
+## 13. Bølgens front: det tal, man ser fra stranden
+
+Hs er havets tal (det, bøjen måler på 17,5 m og modellen regner i). Surferen
+læser bølgens front, når den rejser sig og bryder på revlen. Komar & Gaughan
+(1972) gav den af dybvandshøjden H0 og perioden T med lineær teori og
+breaker-indeks 0,78:
+
+    Hb = 0,39 · g^(1/5) · (T · H0²)^(2/5)
+
+Perioden laver bølgen: den lange dønning rejser sig højere, end den var ude
+på havet.
+
+| Hs ude | 5 s | 6 s | 8 s | 10 s | 12 s |
+|---|---|---|---|---|---|
+| 0,5 m | 0,67 m | 0,72 m | 0,81 m | 0,88 m | 0,95 m |
+| 1,0 m | 1,17 m | 1,26 m | 1,41 m | 1,54 m | 1,65 m |
+| 1,5 m | 1,61 m | 1,74 m | 1,95 m | 2,14 m | 2,29 m |
+| 2,0 m | 2,04 m | 2,20 m | 2,47 m | 2,70 m | 2,90 m |
+
+Forbehold: formlen gælder en åben, jævn strand uden refraktion og
+bundfriktion (begge trækker ned på skrå dage, §2), og den giver den
+*signifikante* brydningshøjde; sættene er større, de største bølger omkring
+1,3 gange. Fronten er altså det typiske, ikke det største.
+
+**Appen** (`lib/surfHeight.ts`, 17/10/2026): fronten står som et tal ved
+siden af Hs — "front 1,9 m" på dommen, FRONT i detaljen, i kortets pop-up
+og stribe — regnet af rækkens samlede højde og dominerende topperiode.
+Under en meter i hele 5 cm ("85 cm"). Kontakten "Vis bølgens front i
+meter" står under Indstillinger nederst på NU (`bygtangen.surfheight`,
+standard til). Ebbe 17/10: hellere meter og centimeter end ord. Scoren
+bruger stadig hs²·tp og rører ikke fronten.
+
+## 14. Modelspredning: hvor meget skal man tro på tallet
+
+En forecast uden usikkerhed er præcis på papiret og forkert i vandet. Det
+ærligste mål er, hvor uenige bølgemodellerne er, især dag 3-7. Open-Meteo
+giver flere modeller i ét kald med `models=`; proben 17/10/2026 fandt for
+appens to punkter:
+
+| Model | Hvad | Rækkevidde | Bemærkning |
+|---|---|---|---|
+| `best_match` | = Météo-Frances MFWAM her | 7 døgn | appens tal (scoren) |
+| `ewam` | DWD's europæiske, 5 km | 3,3 døgn | højest opløst |
+| `gwam` | DWD's globale, 28 km | 7 døgn | |
+| `ecmwf_wam025` | ECMWF, 0,25° | 7 døgn | tør celle ved Thyborøn-punktet, kun sydpunktet |
+| `ncep_gfswave025` | NOAA, 0,25° | 7 døgn | lå lavest 17/10 |
+| `meteofrance_wave` | MFWAM | 7 døgn | identisk med best_match, hentes ikke dobbelt |
+| `ncep_gefswave025`, `era5_ocean`, `meteofrance_currents` | | | ingen bølgetal her |
+
+Eksempel 17/10 kl. 00 UTC, Thyborøn-punktet: ewam 1,98, gwam 1,84, MFWAM
+1,62, NOAA 1,28 m — et spænd på 0,7 m på dag 0. Dag 3: 0,44-0,58 m, enige.
+
+**Appen** (`api/openMeteo.ts`, `lib/spread.ts`): ét ekstra kald henter
+`wave_height` for de fem modeller (nøgler `wave_height_<model>`,
+`wave_height_marine_best_match`); pr. time bærer rækken laveste og højeste
+højde og antallet af modeller med tal (`hsSpread`); appens eget tal hører
+med i spændet. Er spændet over 0,3 m (`SPREAD_UNSURE_M`), står højden med
+± overalt ("1,5 ±0,4 m" er 1,1-1,9 m), detaljen giver frontens spænd, og
+dommen tones ned med linjen "usikker · 4 modeller siger 1,1-1,9 m" —
+dæmpet, uden advarselstegn: det er tvivl, ikke fradrag. Er de enige, står
+tallet alene. Scoren regner stadig på best_match alene.
+
+## 15. Søens dele, ground swell under vindsøen, vandet
+
+**2. dønning.** MFWAM skiller en sekundær dønning ud (højde, middelperiode,
+retning; ingen topperiode). Den står under skalaen i detaljen fra 0,2 m:
+"dønning 1,1 m / 6,0 s S · 2. dønning 0,5 m / 9,0 s VNV · vindsø 0,7 m /
+4,5 s SSV".
+
+**Ground swell under.** Rækkens periode er den dominerende dels (§4), så en
+lang dønning på et par decimeter under en større vindsø får mærket wind
+swell, selvom der er orden i søen. Ligger der en dønnings-del (den primære
+med sin topperiode eller den sekundære med sin middelperiode) med 8 s og
+op og mindst 0,3 m (`UNDER_MIN_HS`), står mærket GROUND SWELL UNDER ved
+siden af wind swell på dommen og i detaljen, med delen i tal. Kun når
+rækken selv siger wind swell. Scoren er uændret: den regner på den
+samlede sø og den dominerende periode.
+
+**Vandet.** `sea_surface_temperature` er overfladetemperaturen ude ved
+bølgepunktet fra Météo-Frances havmodel (ikke en måling). Den står som
+"vand 13 °C" på dommen og i kortets stribe og som VAND i detaljen med en
+tommelfingerregel for våddragten (`lib/water.ts`, ret grænserne, når
+kroppen siger noget andet):
+
+| Vand | Dragt |
+|---|---|
+| 20 °C og op | 3/2 eller shorty |
+| 17-20 °C | 3/2 |
+| 14-17 °C | 3/2 eller 4/3 |
+| 11-14 °C | 4/3 + støvler |
+| 8-11 °C | 5/4 + hætte, støvler og handsker |
+| under 8 °C | 6/5 + hætte, støvler og handsker |
 
 ## Kilder
+
+- Komar, P.D. & Gaughan, M.K. (1972), Airy Wave Theory and Breaker Height
+  Prediction, Proc. 13th Int. Conf. Coastal Engineering:
+  https://icce-ojs-tamu.tdl.org/icce/article/view/2699
+- Open-Meteo, modeller og opdateringer: https://open-meteo.com/en/docs/model-updates
+  og https://openmeteo.substack.com/p/marine-weather-forecast-api
+- Open-Meteo DMI-modellen: https://open-meteo.com/en/docs/dmi-api
 
 - Hutt, Black & Mead (2001), Classification of Surf Breaks in Relation to
   Surfing Skill, J. Coastal Research SI 29:

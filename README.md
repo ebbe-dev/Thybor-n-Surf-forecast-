@@ -96,10 +96,19 @@ Hierarki via flader og runde hjørner, ikke via kanter:
 - `src/lib/swell.ts` — ground swell / wind swell afgøres af perioden (≥ 8 s);
   chip, skala, stribe, lys bund og kortets skilte læser alle herfra.
 - `src/api/openMeteo.ts` — henter/fletter forecast. Rækken bærer den
-  SAMLEDE sø (højde, retning), med dønning og vindsø som dele og vandstanden
-  over middel; perioden er den dominerende dels topperiode. Vindsø og
-  vandstand hentes i et ekstra kald, der må fejle. Manglende timer vises
-
+  SAMLEDE sø (højde, retning), med dønning, 2. dønning og vindsø som dele,
+  vandstanden over middel og vandtemperaturen; perioden er den dominerende
+  dels topperiode. Vindsø, vandstand, 2. dønning og vandtemperatur hentes i
+  et ekstra kald, der må fejle, og højden fra fem bølgemodeller i et tredje
+  (modelspredningen, `hsSpread`), der også må fejle. Manglende timer vises
+  som huller.
+- `src/lib/surfHeight.ts` — bølgens **front** på revlen (Komar & Gaughan),
+  vist i meter ved siden af Hs; kontakt under Indstillinger nederst på NU.
+  `src/lib/spread.ts` — **±** og **usikker**, når bølgemodellerne er uenige
+  over 0,3 m. `src/lib/swell.ts` — ground swell / wind swell og **ground
+  swell under** vindsøen. `src/lib/water.ts` — våddragten af
+  vandtemperaturen. Ingen af dem rører scoren. Detaljer i
+  `docs/surf-science.md` §13-15.
 - **Målt nu** (`src/api/obs.ts`, `src/lib/obs.ts`, `MeasuredNow`): Kystdirektoratets
   bølgemåler ved Fjaltring (ident 2035, hver halve time: højde, middelperiode,
   retning, største bølge) og DMI's vandstand ved Thyborøn Kyst (hvert 10. minut)
@@ -109,4 +118,16 @@ Hierarki via flader og runde hjørner, ikke via kanter:
   sender ingen CORS-hoveder, så `.github/workflows/obs.yml` henter dem hver
   halve time og lægger `obs.json` på grenen `data`, som appen læser fra
   raw.githubusercontent.com. Fail-open med cache (`bygtangen.obs1`); rører
-  aldrig scoren. Detaljer i `docs/surf-science.md` §10.  som huller.
+  aldrig scoren. Detaljer i `docs/surf-science.md` §10.
+
+## Test
+
+`npm test` bundler og kører `scripts/tests/*.test.mts` (modellen og
+referencedagene, målingerne, fronten, modelspredningen, dønningen) med
+rolldown — ingen testramme, ét tal til sidst. `npm run test:shots <mappe>`
+tager skærmbilleder af NU og KORT med seedede data og uden net (Playwright
+mod `vite preview` på `dist/`, så byg først). Playwright henter ikke selv en
+browser; i Claude-containeren bruger scriptet `/opt/pw-browsers/chromium`.
+`.github/workflows/obs.yml` med `openmeteo=true` kører
+`scripts/probe-openmeteo.mjs`, der efterprøver Open-Meteos modeller og
+variabler fra GitHub Actions (containeren når ikke tjenesten).
