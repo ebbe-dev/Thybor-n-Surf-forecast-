@@ -147,9 +147,9 @@ høfdens læ, molerne, vandstanden og bøjen at måle sig mod.
 5. **Refraktion.** Retningen på stranden regnet med Snell fra 17,5 m (bøjens
    dybde) til brydningsdybden (~1,3 · Hb), i stedet for den håndsatte
    140°-regel. Tabellen og fysikken står i `docs/surf-science.md` §2-3.
-   Præcis på dage som 13/10 med bølger langs kysten. Pris: mellem; husk, at
-   `parseMarketFromCampaignName`-lignende sidegevinster ikke findes her — men
-   `obliqueFactor` bruges i scoren OG i leeCaption-logikken, så test begge.
+   Præcis på dage som 13/10 med bølger langs kysten. Pris: mellem.
+   `obliqueFactor` bruges i scoren, så kør modeltestene igen for alle otte
+   spots, før den skiftes ud.
 6. **Alarm.** Et skub ("I morgen kl. 11: Langerhuse H 8,2"), når de næste
    48 t får en blok over 7. Kan køre i `obs.yml` (den regner allerede hver
    halve time) via en gratis push-tjeneste som ntfy.sh (Ebbe installerer
