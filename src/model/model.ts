@@ -49,7 +49,9 @@ export interface Row {
   tp: number; // periode s: den dominerende dels topperiode, ellers samlet middel
   swdir: number; // samlet bølgeretning grader (hvor søen kommer fra)
   swell: WavePart | null; // dønningen, hvis modellen skiller den ud
+  swell2?: WavePart | null; // den sekundære dønning (middelperiode), hvis hentet
   windSea: WavePart | null; // vindsøen, hvis hentet
+  sst?: number | null; // vandtemperatur °C ved overfladen, hvis hentet
   level: number | null; // vandstand m over middel, hvis hentet
   hsSpread?: HsSpread | null; // modellernes spænd i højden, hvis hentet
   wdir: number; // vindretning grader

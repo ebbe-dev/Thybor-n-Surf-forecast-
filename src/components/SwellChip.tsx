@@ -4,6 +4,12 @@
 
 import { swellKind, swellLabel } from "../lib/swell";
 
+// Står ved siden af WIND SWELL, når der ligger en lang dønning under
+// vindsøen (lib/swell.ts, groundSwellUnder).
+export function UnderChip({ big = false }: { big?: boolean }) {
+  return <span className={"swell-chip under" + (big ? " big" : "")}>ground swell under</span>;
+}
+
 export function SwellChip({ tp, big = false }: { tp: number; big?: boolean }) {
   const kind = swellKind(tp);
   return (

@@ -819,6 +819,9 @@ export function MapScreen({ checkSpotId, onCheckDone, focus }: Props) {
                       {row.level != null && (
                         <span className="area-val area-kind">vandstand {fmtLevel(row.level)}</span>
                       )}
+                      {row.sst != null && (
+                        <span className="area-val area-kind">vand {fmt(row.sst, 0)} °C</span>
+                      )}
                       {id === BUOY_AREA && measured.buoy && (
                         <span className="area-val area-meas">
                           <span className="meas-tag">målt</span>

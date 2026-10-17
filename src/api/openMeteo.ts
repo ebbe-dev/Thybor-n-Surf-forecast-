@@ -34,9 +34,13 @@ export const MARINE_HOURLY =
 
 // Ekstra, fail-open: vindsøen med topperiode og vandstanden over middel
 // (tidevand + lufttryk + havmodellens overfladehøjde; ikke en kystnær
-// stormflodsmodel — docs/surf-science.md, afsnittet om vandstand).
+// stormflodsmodel — docs/surf-science.md, afsnittet om vandstand), og fra
+// 17/10/2026 den sekundære dønning (kun middelperiode; MFWAM har den,
+// tertiær er tom her) og vandtemperaturen ved overfladen (Météo-Frances
+// havmodel) — begge efterprøvet med proben fra GitHub Actions.
 export const MARINE_EXTRA_HOURLY =
-  "wind_wave_height,wind_wave_period,wind_wave_direction,wind_wave_peak_period,sea_level_height_msl";
+  "wind_wave_height,wind_wave_period,wind_wave_direction,wind_wave_peak_period,sea_level_height_msl," +
+  "secondary_swell_wave_height,secondary_swell_wave_period,secondary_swell_wave_direction,sea_surface_temperature";
 
 export const WIND_HOURLY =
   "wind_speed_10m,wind_direction_10m,wind_gusts_10m,temperature_2m";
@@ -96,6 +100,10 @@ export interface MarineExtraHourly {
   wind_wave_direction?: (number | null)[];
   wind_wave_peak_period?: (number | null)[];
   sea_level_height_msl?: (number | null)[];
+  secondary_swell_wave_height?: (number | null)[];
+  secondary_swell_wave_period?: (number | null)[];
+  secondary_swell_wave_direction?: (number | null)[];
+  sea_surface_temperature?: (number | null)[];
 }
 
 // Flere modeller i ét kald: wave_height_<model> pr. model.
@@ -201,6 +209,14 @@ export function mergeHourly(
       at(x?.wind_wave_direction, xi)
     );
     const level = at(x?.sea_level_height_msl, xi);
+    // den sekundære dønning: en del uden højde er ingen del (NOAA giver nuller)
+    const swell2raw = wavePart(
+      at(x?.secondary_swell_wave_height, xi),
+      at(x?.secondary_swell_wave_period, xi),
+      at(x?.secondary_swell_wave_direction, xi)
+    );
+    const swell2 = swell2raw && swell2raw.hs > 0 && swell2raw.tp > 0 ? swell2raw : null;
+    const sst = at(x?.sea_surface_temperature, xi);
 
     // Samlet sø; mangler den, bærer dønningen rækken (ældre svar).
     const hs = at(m.wave_height, i) ?? swell?.hs ?? null;
@@ -218,8 +234,10 @@ export function mergeHourly(
       tp,
       swdir,
       swell,
+      swell2,
       windSea,
       level,
+      sst,
       hsSpread: spread?.get(t) ?? null,
       wdir,
       wspd,

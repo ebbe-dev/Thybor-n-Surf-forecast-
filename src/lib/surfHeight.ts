@@ -28,3 +28,12 @@ export function fmtSurfHeight(m: number): string {
   if (cm >= 100) return `${fmt(m)} m`;
   return `${cm} cm`;
 }
+
+// Et spænd: "1,3–2,0 m" med enheden én gang, "85 cm–1,2 m" når de er forskellige.
+export function fmtSurfRange(lo: number, hi: number): string {
+  const a = fmtSurfHeight(lo);
+  const b = fmtSurfHeight(hi);
+  const ua = a.slice(a.lastIndexOf(" "));
+  const ub = b.slice(b.lastIndexOf(" "));
+  return ua === ub ? `${a.slice(0, a.length - ua.length)}–${b}` : `${a}–${b}`;
+}

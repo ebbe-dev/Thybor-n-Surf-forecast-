@@ -122,14 +122,20 @@ export function seedForecast(now = new Date()) {
           : dayOff >= 4
             ? { lo: round(c.hs * 0.7), hi: round(c.hs * 1.4), n: 3 }
             : { lo: round(c.hs - 0.05), hi: round(c.hs + 0.1), n: 5 };
+      // en lang dønning under sydbølgen i morgen (ground swell under), lidt
+      // kort 2. dønning dagen efter, ellers ingen
+      const swell2 =
+        dayOff === 1 ? { hs: 0.5, tp: 9.0, dir: 300 } : dayOff === 2 ? { hs: 0.3, tp: 5.0, dir: 240 } : null;
       rows.push({
         time: iso,
         hs: c.hs,
         tp: c.tp,
         swdir: c.swdir,
         swell: { hs: round(c.hs * 0.8), tp: c.tp, dir: c.swdir },
+        swell2,
         windSea: { hs: round(c.hs * 0.5), tp: 4.5, dir: c.wdir },
         level: c.level,
+        sst: round((areaId === "thorsminde" ? 13.7 : 13.4) - dayOff * 0.05, 1),
         hsSpread,
         wdir: c.wdir,
         wspd: c.wspd,

@@ -22,7 +22,8 @@ import {
   type HorizonDays
 } from "../lib/blocks";
 import { loadHorizonDays, saveHorizonDays, loadSurfHeightOn, saveSurfHeightOn } from "../lib/settings";
-import { frontOf, fmtSurfHeight, breakerHeight } from "../lib/surfHeight";
+import { frontOf, fmtSurfHeight, fmtSurfRange, breakerHeight } from "../lib/surfHeight";
+import { wetsuitHint } from "../lib/water";
 import { spreadOf, fmtHsWithSpread, fmtRange, SPREAD_UNSURE_M } from "../lib/spread";
 import { scoreColor } from "../lib/colors";
 import { fmtClock, fmtDayLabel, todayIso } from "../lib/time";
@@ -36,9 +37,9 @@ import { Info, Legend } from "../components/Info";
 import { QuickPick } from "../components/QuickPick";
 import { ScreenHeader } from "../components/ScreenHeader";
 import { SpotChips } from "../components/SpotChips";
-import { SwellChip } from "../components/SwellChip";
+import { SwellChip, UnderChip } from "../components/SwellChip";
 import { SwellGauge } from "../components/SwellGauge";
-import { GROUND_SWELL_MIN_TP } from "../lib/swell";
+import { GROUND_SWELL_MIN_TP, UNDER_MIN_HS, groundSwellUnder } from "../lib/swell";
 import { correctionFor } from "../lib/calibration";
 
 function fmtFetched(iso: string): string {
@@ -157,6 +158,16 @@ function NuHelp() {
           dag 3 til 7.
         </p>
         <p>
+          <strong>Ground swell under</strong> står ved mærket, når der ligger en dønning med lang
+          periode ({GROUND_SWELL_MIN_TP} s og op) på mindst {fmt(UNDER_MIN_HS)} m under en vindsø,
+          der ellers bestemmer perioden. Så er der orden i søen, selvom mærket siger wind swell.
+          Under skalaen står søens dele: dønning, en eventuel 2. dønning og vindsø, hver med
+          højde, periode og retning. <strong>Vand</strong> er vejrtjenestens overfladetemperatur
+          ude på havet, med en tommelfingerregel for våddragten: over 17 °C en 3/2, 14–17 °C 3/2
+          eller 4/3, 11–14 °C 4/3 med støvler, 8–11 °C 5/4 med hætte, støvler og handsker, og
+          under 8 °C 6/5 med det hele.
+        </p>
+        <p>
           <strong>Periode</strong> er sekunder mellem bølgerne. Høj periode (8+) = kraft og
           orden. Lav (4–5) = tætpakket plaskeri.
         </p>
@@ -265,9 +276,13 @@ function SpotCheck({ spot, onCheck }: { spot: Spot; onCheck: () => void }) {
 }
 
 // Delene af søen i ord: "dønning 1,2 m / 9,0 s NV · vindsø 0,8 m / 4,5 s S".
+const SWELL2_SHOW_MIN = 0.2; // m: en 2. dønning under det er støj i teksten
+
 function waveParts(r: Row): string {
   const parts: string[] = [];
   if (r.swell) parts.push(`dønning ${fmt(r.swell.hs)} m / ${fmt(r.swell.tp)} s ${compass(r.swell.dir)}`);
+  if (r.swell2 && r.swell2.hs >= SWELL2_SHOW_MIN)
+    parts.push(`2. dønning ${fmt(r.swell2.hs)} m / ${fmt(r.swell2.tp)} s ${compass(r.swell2.dir)}`);
   if (r.windSea) parts.push(`vindsø ${fmt(r.windSea.hs)} m / ${fmt(r.windSea.tp)} s ${compass(r.windSea.dir)}`);
   return parts.length ? parts.join(" · ") : "dønning og vindsø: ikke opdelt af kilden";
 }
@@ -293,6 +308,7 @@ function BlockDetail({
   const ml = levelAt(obs, block.time);
   const mbPer = mb ? buoyPeriod(mb) : null;
   const sp = spreadOf(r);
+  const under = groundSwellUnder(r);
   return (
     <section className="card detail">
       <header className="detail-head">
@@ -327,7 +343,13 @@ function BlockDetail({
           <div className="swell-line">
             <SwellChip tp={r.tp} big />
             <span className="swell-tp">{fmt(r.tp)} s</span>
+            {under && <UnderChip />}
           </div>
+          {under && (
+            <div className="swell-under">
+              under vindsøen: {fmt(under.hs)} m / {fmt(under.tp)} s {compass(under.dir)}
+            </div>
+          )}
           <SwellGauge tp={r.tp} />
           <div className="wave-parts">{waveParts(r)}</div>
         </div>
@@ -347,7 +369,7 @@ function BlockDetail({
                 {fmtSurfHeight(frontOf(r))}
                 <span className="dd-note">
                   {sp?.unsure
-                    ? `${fmtSurfHeight(breakerHeight(sp.lo, r.tp))}–${fmtSurfHeight(breakerHeight(sp.hi, r.tp))} efter modellerne`
+                    ? `${fmtSurfRange(breakerHeight(sp.lo, r.tp), breakerHeight(sp.hi, r.tp))} efter modellerne`
                     : "på revlen, af højde og periode"}
                 </span>
               </dd>
@@ -388,6 +410,13 @@ function BlockDetail({
           <div>
             <dt>Luft</dt>
             <dd>{r.temp == null ? "—" : fmt(r.temp) + " °C"}</dd>
+          </div>
+          <div>
+            <dt>Vand</dt>
+            <dd>
+              {r.sst == null ? "—" : fmt(r.sst) + " °C"}
+              <span className="dd-note">{r.sst == null ? "ikke oplyst" : wetsuitHint(r.sst)}</span>
+            </dd>
           </div>
           <div>
             <dt>Vandstand</dt>

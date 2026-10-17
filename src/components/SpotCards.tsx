@@ -13,7 +13,8 @@ import { scoreColor, scoreLabel } from "../lib/colors";
 import { fmtClock, relativeDayLabel } from "../lib/time";
 import { fmt, compass } from "../lib/format";
 import { ScoreSparkline } from "./ScoreSparkline";
-import { SwellChip } from "./SwellChip";
+import { SwellChip, UnderChip } from "./SwellChip";
+import { groundSwellUnder } from "../lib/swell";
 import { isDoubleTap } from "../lib/double-tap";
 import { correctionFor } from "../lib/calibration";
 import { frontOf, fmtSurfHeight } from "../lib/surfHeight";
@@ -207,7 +208,13 @@ export function SpotCards({
                     {leeCaption(spot, block)}
                   </div>
                   <div className="hero-sub">
-                    <SwellChip tp={r.tp} />{" "}
+                    <SwellChip tp={r.tp} />
+                    {groundSwellUnder(r) && (
+                      <>
+                        {" "}
+                        <UnderChip />
+                      </>
+                    )}{" "}
                     <span className="nw">
                       {fmtHsWithSpread(r)} / {fmt(r.tp)} s
                     </span>
@@ -221,6 +228,12 @@ export function SpotCards({
                     <span className="nw">
                       vind {compass(r.wdir)} {fmt(r.wspd, 0)} m/s
                     </span>
+                    {r.sst != null && (
+                      <>
+                        {" · "}
+                        <span className="nw">vand {fmt(r.sst, 0)} °C</span>
+                      </>
+                    )}
                   </div>
                   {sp?.unsure && (
                     <div className="hero-unsure">

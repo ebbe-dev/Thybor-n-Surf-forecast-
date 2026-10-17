@@ -1905,3 +1905,15 @@ input[type="range"] {
   line-height: 1.4;
   color: var(--muted);
 }
+
+/* Ground swell under vindsøen (lib/swell.ts): mærket i kontur med stiplet
+   kant — det er en del af søen, ikke hele søen. */
+.swell-chip.under {
+  border-style: dashed;
+  color: var(--fg);
+}
+.swell-under {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
