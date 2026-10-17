@@ -2,7 +2,7 @@
 // én gennemgang — 12 måneders timer er ~9.000 rækker, det tager millisekunder.
 
 import { scoreSpot, type Row } from "../model/model";
-import { effectiveNormal, type Spot } from "../config/spots";
+import { effectiveNormal, spotOpts, type Spot } from "../config/spots";
 import { dateOf, hourOf } from "./time";
 import { adjustedScore } from "./calibration";
 
@@ -43,7 +43,7 @@ export function computeStats(rows: Row[], spot: Spot): HistoryStats {
 
   for (const row of rows) {
     const score = adjustedScore(
-      scoreSpot(row, normal, { offshore: spot.offshoreDir, fixedSide: spot.fixedSide }),
+      scoreSpot(row, normal, spotOpts(spot)),
       spot.id
     );
     const date = dateOf(row.time);

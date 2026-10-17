@@ -53,7 +53,7 @@ Score = 10 · energi^0,6 · (0,35 + 0,65 · vindkvalitet) · størrelsesport · 
 normeret med `ENERGY_NORM = 170`; skråfaktoren er en cosinus strakt til
 `OBLIQUE_CUTOFF = 140°` (90° ≈ 0,53). Fralandsvind er en gave til 5 m/s, fuldt
 fradrag fra 12 (`OFFSHORE_*`, cos² af fralandskomponenten). Pålandsvind over
-6 m/s blæser søen ud, fuldt (×0,7) fra 14. Høfdens læ = 0,75 · sin(vinkel
+6 m/s blæser søen ud, fradrag på 70 % (faktor 0,3) fra 14. Høfdens læ = 0,75 · sin(vinkel
 mellem vind og spottets retning), kun op til 12 m/s; enkeltsidede spots (Høfde
 Q sydsiden, Thorsminde) halveres på den forkerte side. Moler (Indsejlingen,
 Færgehavnen, Thorsminde, `reflective`) trækker fra 1,0 m, halvt ved 2,0 m.
