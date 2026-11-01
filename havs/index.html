@@ -7,159 +7,191 @@
 <meta name="description" content="Surf-forecast for den danske vestkyst med grej-anbefalinger fra HAVS i Løkken.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;800&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   HAVS-tema. SKIFT HER: de seks farver og to fonte herunder styrer
-   hele appen. Erstat med HAVS' egne brand-koder, når vi har dem.
+   HAVS-tema efter havsstore.dk (mobil-forsiden, nov. 2026):
+   sort topbar, hvide versaler på hav-foto, hvid plade med runde
+   hjørner der overlapper heroen, lysegrå pille-knapper, sort tekst.
+   SKIFT HER: tokens herunder styrer hele appen.
    Layout: én kolonne på mobil, to kolonner (forecast | grej) fra 900px.
    ============================================================ */
 :root{
-  --havs-sand:#F3EEE4;      /* baggrund: strandsand */
-  --havs-foam:#FFFFFF;      /* kort og flader */
-  --havs-ink:#0F2230;       /* tekst og mørke flader: Vesterhavet om natten */
-  --havs-sea:#1C5F7A;       /* accent: Vesterhavet om dagen */
-  --havs-signal:#E4632A;    /* call-to-action: Løkken-solnedgang */
-  --havs-mist:#8A98A1;      /* sekundær tekst og streger */
-  --havs-line:#DDD6C8;
-  --good:#2C8C5A; --mid:#D9A52B; --bad:#B94646; --flat:#9AA5AD;
-  --font-display:"Bricolage Grotesque","Helvetica Neue",Arial,sans-serif;
-  --font-body:"Manrope","Helvetica Neue",Arial,sans-serif;
-  --radius:18px; --radius-s:10px;
-  color-scheme: light;
+  --bg:#FFFFFF;          /* side */
+  --surface:#F3F3F3;     /* deres grå piller og kort */
+  --surface-2:#E8E8E8;
+  --ink:#111111;         /* tekst, sort topbar, primær knap */
+  --mist:#7A7A7A;        /* sekundær tekst */
+  --line:#E2E2E2;
+  --sea:#2B6F9A;         /* Vesterhavet fra deres fotos: links og tags */
+  --sea-deep:#0E3A5C; --sea-sky:#6FB3DA;
+  --good:#2C8C5A; --mid:#D9A52B; --bad:#C24A3A; --flat:#A3A3A3;
+  --font:"Poppins","Helvetica Neue",Arial,sans-serif;
+  --r-card:24px; --r-tile:14px; --r-pill:999px;
+  color-scheme:light;
 }
 *{box-sizing:border-box}
-html,body{margin:0;background:var(--havs-sand);color:var(--havs-ink);font-family:var(--font-body);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
-a{color:var(--havs-sea)}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+a{color:var(--sea)}
 button{font:inherit;color:inherit}
-h1,h2,h3{font-family:var(--font-display);text-wrap:balance;margin:0;line-height:1.1}
+h1,h2,h3{text-wrap:balance;margin:0;line-height:1.1;font-weight:800;text-transform:uppercase;letter-spacing:.01em}
 .num{font-variant-numeric:tabular-nums}
-:focus-visible{outline:3px solid var(--havs-signal);outline-offset:2px}
+:focus-visible{outline:3px solid var(--sea);outline-offset:2px}
 .sr{position:absolute;left:-9999px}
 
-/* ---------- Header ---------- */
-.top{position:sticky;top:0;z-index:5;background:var(--havs-ink);color:#fff}
+/* ---------- Sort topbar (som deres) ---------- */
+.top{background:#000;color:#fff}
 .top-in{max-width:1180px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;gap:14px}
-.brand{display:flex;align-items:baseline;gap:10px;text-decoration:none;color:#fff}
-.brand b{font-family:var(--font-display);font-weight:800;font-size:26px;letter-spacing:.06em}
-.brand span{font-size:13px;color:#BFD3DE;letter-spacing:.02em}
-.top nav{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
-.top nav a{color:#fff;text-decoration:none;font-size:14px;font-weight:600;padding:8px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.25)}
-.top nav a.cta{background:var(--havs-signal);border-color:var(--havs-signal)}
-.top nav a:hover{background:rgba(255,255,255,.12)}
-.top nav a.cta:hover{background:#c95320}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:#fff}
+.brand svg{height:34px;width:auto;display:block}
+.brand span{font-size:12px;color:#C9C9C9;letter-spacing:.02em;font-weight:500}
+.top nav{margin-left:auto;display:flex;gap:6px;flex-wrap:nowrap;justify-content:flex-end}
+@media (max-width:420px){.top nav a{padding:7px 10px;font-size:12px}.brand span{display:none}}
+.top nav a{color:#fff;text-decoration:none;font-size:13px;font-weight:600;padding:8px 14px;border-radius:var(--r-pill);border:1.5px solid rgba(255,255,255,.35)}
+.top nav a.cta{background:#fff;color:#000;border-color:#fff}
+.top nav a:hover{border-color:#fff}
+.strip{background:#000;color:#fff;border-top:1px solid #222;font-size:12px;text-align:center;padding:7px 16px;font-weight:500}
+.strip b{text-decoration:underline;text-underline-offset:3px}
 
-/* ---------- Layout ---------- */
-main{max-width:1180px;margin:0 auto;padding:16px 16px 48px}
-.grid{display:grid;gap:18px;grid-template-columns:1fr}
-@media (min-width:900px){.grid{grid-template-columns:minmax(0,7fr) minmax(0,5fr);align-items:start}.col-right{position:sticky;top:76px}}
-.card{background:var(--havs-foam);border-radius:var(--radius);padding:18px;box-shadow:0 1px 0 rgba(15,34,48,.06),0 8px 24px -18px rgba(15,34,48,.35)}
-.stack{display:grid;gap:18px}
-.eyebrow{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--havs-mist)}
-.muted{color:var(--havs-mist)}
-.small{font-size:13px}
+/* ---------- Hero: hav + hvide versaler ---------- */
+.hero-band{position:relative;color:#fff;overflow:hidden;background:var(--sea-deep)}
+.hero-band svg.art{position:absolute;inset:0;width:100%;height:100%}
+.hero-copy{position:relative;max-width:1180px;margin:0 auto;padding:46px 16px 64px;text-align:center}
+.hero-copy h1{font-size:clamp(34px,7vw,64px);line-height:1.02;text-shadow:0 2px 18px rgba(0,0,0,.25)}
+.hero-copy .squig{display:block;margin:14px auto 10px;width:64px;height:12px}
+.hero-copy p{margin:0 auto;max-width:34ch;font-weight:500;color:#EAF3F8;text-shadow:0 1px 10px rgba(0,0,0,.3)}
 
-/* ---------- Spot-chips ---------- */
-.spots{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 10px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+/* ---------- Hvid plade med runde hjørner ---------- */
+.sheet{position:relative;background:var(--bg);border-radius:28px 28px 0 0;margin-top:-30px;max-width:1180px;margin-left:auto;margin-right:auto;padding:18px 16px 48px}
+@media (min-width:1212px){.sheet{border-radius:28px}}
+.grid{display:grid;gap:16px;grid-template-columns:1fr}
+@media (min-width:900px){.grid{grid-template-columns:minmax(0,7fr) minmax(0,5fr);align-items:start}.col-right{position:sticky;top:12px}}
+.card{background:var(--surface);border-radius:var(--r-card);padding:18px}
+.stack{display:grid;gap:16px}
+.eyebrow{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--mist)}
+.muted{color:var(--mist)}
+.small{font-size:12px}
+
+/* ---------- Spot-piller (deres grå menu-piller) ---------- */
+.spots{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 14px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .spots::-webkit-scrollbar{display:none}
-.chip{flex:0 0 auto;display:flex;align-items:center;gap:8px;border:1.5px solid var(--havs-line);background:var(--havs-foam);border-radius:999px;padding:8px 12px 8px 14px;cursor:pointer;font-weight:600;font-size:14px;white-space:nowrap}
-.chip[aria-pressed="true"]{background:var(--havs-ink);color:#fff;border-color:var(--havs-ink)}
-.pill{display:inline-grid;place-items:center;min-width:30px;height:24px;padding:0 7px;border-radius:999px;font-weight:800;font-size:13px;color:#fff;font-family:var(--font-display)}
-.pill.good{background:var(--good)}.pill.mid{background:var(--mid);color:var(--havs-ink)}.pill.bad{background:var(--bad)}.pill.flat{background:var(--flat)}
+.chip{flex:0 0 auto;display:flex;align-items:center;gap:8px;border:0;background:var(--surface);border-radius:var(--r-pill);padding:10px 12px 10px 16px;cursor:pointer;font-weight:500;font-size:14px;white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--ink);color:#fff}
+.pill{display:inline-grid;place-items:center;min-width:30px;height:24px;padding:0 7px;border-radius:var(--r-pill);font-weight:800;font-size:12px;color:#fff}
+.pill.good{background:var(--good)}.pill.mid{background:var(--mid);color:var(--ink)}.pill.bad{background:var(--bad)}.pill.flat{background:var(--flat)}
 
-/* ---------- Hero ---------- */
-.hero{position:relative;overflow:hidden}
+/* ---------- Spot-kort ---------- */
 .hero-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
-.hero h1{font-size:clamp(30px,5vw,44px);font-weight:800;letter-spacing:-.01em}
-.hero .when{font-weight:600;color:var(--havs-sea)}
-.hero-grid{display:grid;gap:14px;grid-template-columns:auto 1fr;align-items:stretch}
+.hero h1{font-size:clamp(28px,5vw,40px)}
+.hero .when{font-weight:600;color:var(--sea);font-size:14px}
+.hero-grid{display:grid;gap:12px;grid-template-columns:auto 1fr;align-items:stretch}
 @media (max-width:520px){.hero-grid{grid-template-columns:1fr}}
-.score{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;border-radius:var(--radius);padding:14px 16px;color:#fff;min-width:200px}
-.score.good{background:var(--good)}.score.mid{background:var(--mid);color:var(--havs-ink)}.score.bad{background:var(--bad)}.score.flat{background:var(--flat)}
-.score .big{font-family:var(--font-display);font-size:56px;font-weight:800;line-height:1;letter-spacing:-.03em}
-.score .lbl{font-weight:700;font-size:17px;line-height:1.15}
+.score{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;border-radius:var(--r-card);padding:14px 18px;color:#fff;min-width:210px}
+.score.good{background:var(--good)}.score.mid{background:var(--mid);color:var(--ink)}.score.bad{background:var(--bad)}.score.flat{background:var(--flat)}
+.score .big{font-size:56px;font-weight:800;line-height:1;letter-spacing:-.03em}
+.score .lbl{font-weight:800;font-size:16px;line-height:1.15;text-transform:uppercase}
 .score .sub{font-size:12px;opacity:.85}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
-.stat{background:var(--havs-sand);border-radius:var(--radius-s);padding:10px 12px}
-.stat .k{font-size:12px;font-weight:700;color:var(--havs-mist);letter-spacing:.06em;text-transform:uppercase}
-.stat .v{font-family:var(--font-display);font-size:24px;font-weight:700;line-height:1.15}
-.stat .d{font-size:12px;color:var(--havs-mist)}
-.verdict{margin:14px 0 0;font-size:17px;line-height:1.45}
-.verdict strong{color:var(--havs-sea)}
+.stat{background:#fff;border-radius:var(--r-tile);padding:10px 12px}
+.stat .k{font-size:11px;font-weight:600;color:var(--mist);letter-spacing:.08em;text-transform:uppercase}
+.stat .v{font-size:23px;font-weight:800;line-height:1.15}
+.stat .d{font-size:12px;color:var(--mist)}
+.verdict{margin:14px 0 0;font-size:16px;line-height:1.45}
+.verdict strong{color:var(--ink)}
 .wind-arrow{display:inline-block;transform-origin:50% 50%;font-size:18px;line-height:1;vertical-align:-2px}
-.tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:999px;background:var(--havs-sand);color:var(--havs-sea)}
-.tag.demo{background:#FBE9DE;color:#9a3f12}
+.tag{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;border-radius:var(--r-pill);background:#fff;color:var(--ink)}
+.tag.demo{background:#FFF1E6;color:#9a3f12}
 .tag.live{background:#DCEFE4;color:#1f6a43}
 
 /* ---------- Ugen ---------- */
 .days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
-.day{border:1.5px solid var(--havs-line);background:var(--havs-foam);border-radius:12px;padding:8px 4px 6px;cursor:pointer;text-align:center;display:grid;gap:4px;justify-items:center}
-.day[aria-pressed="true"]{border-color:var(--havs-ink);box-shadow:inset 0 0 0 1.5px var(--havs-ink)}
-.day .dn{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
-.day .dh{font-size:12px;color:var(--havs-mist)}
+.day{border:0;background:#fff;border-radius:14px;padding:8px 4px 6px;cursor:pointer;text-align:center;display:grid;gap:4px;justify-items:center}
+.day[aria-pressed="true"]{box-shadow:inset 0 0 0 2px var(--ink)}
+.day .dn{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+.day .dh{font-size:11px;color:var(--mist)}
 @media (max-width:420px){.day .dh{display:none}}
 .chart{margin-top:14px}
 .chart svg{width:100%;height:auto;display:block}
 .slider{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;margin-top:8px}
-input[type=range]{width:100%;accent-color:var(--havs-sea)}
-.hour{font-family:var(--font-display);font-weight:800;font-size:22px;min-width:64px;text-align:right}
-.sun{font-size:13px;color:var(--havs-mist);margin-top:6px}
+input[type=range]{width:100%;accent-color:var(--ink)}
+.hour{font-weight:800;font-size:22px;min-width:64px;text-align:right}
+.sun{font-size:12px;color:var(--mist);margin-top:6px}
 
 /* ---------- Grej ---------- */
 .gear-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px}
-.gear-head h2{font-size:24px;font-weight:800}
-.lead{margin:0 0 14px;color:var(--havs-ink)}
+.gear-head h2{font-size:18px}
+.lead{margin:0 0 14px}
 .kit{display:grid;gap:10px}
-.item{display:grid;grid-template-columns:56px 1fr auto;gap:12px;align-items:center;border:1.5px solid var(--havs-line);border-radius:14px;padding:10px 12px;background:var(--havs-foam)}
-.item.must{border-color:var(--havs-sea);background:#F2F8FA}
-.item .ic{width:56px;height:56px;border-radius:12px;background:var(--havs-sand);display:grid;place-items:center}
-.item .ic svg{width:36px;height:36px;stroke:var(--havs-ink);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.item .why{font-size:12px;color:var(--havs-sea);font-weight:700;letter-spacing:.04em;text-transform:uppercase}
-.item .nm{font-weight:700;line-height:1.25}
-.item .bd{font-size:13px;color:var(--havs-mist)}
+.item{display:grid;grid-template-columns:56px 1fr auto;gap:12px;align-items:center;border-radius:18px;padding:10px 12px;background:#fff}
+.item.must{box-shadow:inset 0 0 0 2px var(--ink)}
+.item .ic{width:56px;height:56px;border-radius:14px;background:var(--surface);display:grid;place-items:center}
+.item .ic svg{width:34px;height:34px;stroke:var(--ink);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.item .why{font-size:11px;color:var(--sea);font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.item.must .why{color:var(--ink)}
+.item .nm{font-weight:600;line-height:1.25}
+.item .bd{font-size:12px;color:var(--mist)}
 .item .pr{text-align:right;display:grid;gap:6px;justify-items:end}
-.price{font-family:var(--font-display);font-weight:800;font-size:17px;white-space:nowrap}
-.price s{color:var(--havs-mist);font-weight:500;font-size:13px;margin-right:4px}
-.btn{display:inline-block;text-decoration:none;font-weight:700;font-size:13px;padding:7px 11px;border-radius:999px;background:var(--havs-ink);color:#fff;white-space:nowrap}
-.btn.sig{background:var(--havs-signal)}
-.btn:hover{filter:brightness(1.1)}
+.price{font-weight:800;font-size:16px;white-space:nowrap}
+.price s{color:var(--mist);font-weight:400;font-size:12px;margin-right:4px}
+.btn{display:inline-block;text-decoration:none;font-weight:600;font-size:13px;padding:8px 14px;border-radius:var(--r-pill);background:var(--ink);color:#fff;white-space:nowrap}
+.btn.sig{background:var(--sea)}
+.btn:hover{filter:brightness(1.15)}
 @media (max-width:420px){.item{grid-template-columns:48px 1fr}.item .pr{grid-column:2;justify-items:start;grid-auto-flow:column;align-items:center;gap:10px}.item .ic{width:48px;height:48px}}
-.total{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px;padding-top:12px;border-top:1px dashed var(--havs-line);font-size:14px}
-.total b{font-family:var(--font-display);font-size:18px}
-.nudge{background:var(--havs-ink);color:#fff;border-radius:var(--radius);padding:18px}
-.nudge h3{font-size:20px;font-weight:800;margin-bottom:6px}
-.nudge p{margin:0 0 12px;color:#D4E1E8}
+.total{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);font-size:13px}
+.total b{font-size:17px}
+.nudge{background:#000;color:#fff;border-radius:var(--r-card);padding:18px}
+.nudge h3{font-size:18px;margin-bottom:6px}
+.nudge p{margin:0 0 12px;color:#D6D6D6}
 .nudge .row{display:flex;gap:8px;flex-wrap:wrap}
-.nudge .btn{background:#fff;color:var(--havs-ink)}
-.nudge .btn.sig{background:var(--havs-signal);color:#fff}
+.nudge .btn{background:#fff;color:#000}
+.nudge .btn.sig{background:var(--sea);color:#fff}
 
 /* ---------- Rangering + koncept ---------- */
-.rank{display:grid;gap:6px}
-.rank .r{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--havs-line);cursor:pointer;background:none;border-left:0;border-right:0;border-top:0;text-align:left;width:100%}
-.rank .r:last-child{border-bottom:0}
-.rank .r .n{font-weight:700}
-.rank .r .c{font-size:13px;color:var(--havs-mist)}
-details.how{border-top:1px solid var(--havs-line);margin-top:8px;padding-top:8px}
-details.how summary{cursor:pointer;font-weight:700;color:var(--havs-sea)}
+.rank{display:grid;gap:4px}
+.rank .r{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:8px 10px;border-radius:14px;cursor:pointer;background:#fff;border:0;text-align:left;width:100%}
+.rank .r .n{font-weight:600}
+.rank .r .c{font-size:12px;color:var(--mist)}
+@media (max-width:520px){.rank .r{grid-template-columns:auto 1fr}.rank .r>.c{grid-column:2;text-align:left}}
+details.how{border-top:1px solid var(--line);margin-top:10px;padding-top:10px}
+details.how summary{cursor:pointer;font-weight:600;color:var(--sea)}
 details.how ol{padding-left:20px;margin:8px 0 0}
-details.how li{margin:4px 0;font-size:14px}
-footer{max-width:1180px;margin:0 auto;padding:0 16px 40px;font-size:13px;color:var(--havs-mist)}
+details.how li{margin:4px 0;font-size:13px}
+footer{max-width:1180px;margin:0 auto;padding:0 16px 40px;font-size:12px;color:var(--mist)}
 footer a{color:inherit}
-@media (prefers-reduced-motion:no-preference){.item,.chip,.day{transition:background .15s,border-color .15s}}
+@media (prefers-reduced-motion:no-preference){.item,.chip,.day{transition:background .15s,box-shadow .15s}}
 </style>
 </head>
 <body>
 <header class="top">
   <div class="top-in">
-    <a class="brand" href="https://havsstore.dk" rel="noopener"><b>HAVS</b><span>Surf-forecast · Vestkysten</span></a>
+    <a class="brand" href="https://havsstore.dk" rel="noopener" aria-label="HAVS">
+      <svg viewBox="0 0 128 44" aria-hidden="true"><text x="0" y="36" font-family="Poppins, Arial, sans-serif" font-weight="800" font-size="40" fill="#fff" letter-spacing="0">HAV</text><path d="M122 10 C118 3 106 3 103 11 C100 19 116 20 117 28 C118 36 106 40 100 34" fill="none" stroke="#fff" stroke-width="5.5" stroke-linecap="round"/></svg>
+      <span>Surf-forecast</span>
+    </a>
     <nav aria-label="HAVS">
       <a href="https://havsstore.dk/shop/booking-189s1.html" rel="noopener">Book kursus</a>
       <a class="cta" href="https://havsstore.dk/shop/frontpage.html" rel="noopener">Shop</a>
     </nav>
   </div>
+  <div class="strip">Fri fragt over <b>999 kr.</b> · Gratis afhentning og retur i Løkken</div>
 </header>
 
-<main>
+<section class="hero-band" aria-label="Intro">
+  <svg class="art" viewBox="0 0 1200 420" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <defs><linearGradient id="sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8CC4E3"/><stop offset=".45" stop-color="#3C84B0"/><stop offset="1" stop-color="#0E3A5C"/></linearGradient></defs>
+    <rect width="1200" height="420" fill="url(#sea)"/>
+    <path d="M0 250 C200 220 300 280 500 250 S800 220 1000 252 S1150 270 1200 258 V420 H0Z" fill="#fff" opacity=".10"/>
+    <path d="M0 300 C180 280 320 330 520 300 S820 280 1020 306 S1160 320 1200 310 V420 H0Z" fill="#fff" opacity=".12"/>
+    <path d="M0 350 C200 330 350 370 550 350 S850 330 1050 356 S1170 362 1200 358 V420 H0Z" fill="#fff" opacity=".18"/>
+  </svg>
+  <div class="hero-copy">
+    <h1>Bølger i vandkanten</h1>
+    <svg class="squig" viewBox="0 0 64 12" aria-hidden="true"><path d="M2 6 C8 0 14 0 20 6 S32 12 38 6 S50 0 56 6 L62 6" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>
+    <p>Forecast for Vestkysten, og grejet der passer til vejret i dag.</p>
+  </div>
+</section>
+
+<main class="sheet">
   <div class="spots" id="spots" role="group" aria-label="Vælg spot"></div>
 
   <div class="grid">
@@ -186,7 +218,7 @@ footer a{color:inherit}
       </section>
 
       <section class="card" aria-labelledby="ugen">
-        <div class="gear-head"><h2 id="ugen" style="font-size:20px">Ugen på spottet</h2><span class="small muted">tryk på en dag, træk i timen</span></div>
+        <div class="gear-head"><h2 id="ugen">Ugen på spottet</h2><span class="small muted">tryk på en dag, træk i timen</span></div>
         <div class="days" id="days"></div>
         <div class="chart" id="chart"></div>
         <div class="slider">
@@ -198,7 +230,7 @@ footer a{color:inherit}
       </section>
 
       <section class="card" aria-labelledby="rank-h">
-        <div class="gear-head"><h2 id="rank-h" style="font-size:20px">Bedste spot lige nu</h2><span class="small muted" id="rank-sub"></span></div>
+        <div class="gear-head"><h2 id="rank-h">Bedste spot lige nu</h2><span class="small muted" id="rank-sub"></span></div>
         <div class="rank" id="rank"></div>
         <details class="how">
           <summary>Sådan regner vi</summary>
