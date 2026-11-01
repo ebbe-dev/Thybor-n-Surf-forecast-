@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HAVS Surf-forecast</title>
+<meta name="description" content="Surf-forecast for den danske vestkyst med grej-anbefalinger fra HAVS i Løkken.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   HAVS-tema. SKIFT HER: de seks farver og to fonte herunder styrer
+   hele appen. Erstat med HAVS' egne brand-koder, når vi har dem.
+   Layout: én kolonne på mobil, to kolonner (forecast | grej) fra 900px.
+   ============================================================ */
+:root{
+  --havs-sand:#F3EEE4;      /* baggrund: strandsand */
+  --havs-foam:#FFFFFF;      /* kort og flader */
+  --havs-ink:#0F2230;       /* tekst og mørke flader: Vesterhavet om natten */
+  --havs-sea:#1C5F7A;       /* accent: Vesterhavet om dagen */
+  --havs-signal:#E4632A;    /* call-to-action: Løkken-solnedgang */
+  --havs-mist:#8A98A1;      /* sekundær tekst og streger */
+  --havs-line:#DDD6C8;
+  --good:#2C8C5A; --mid:#D9A52B; --bad:#B94646; --flat:#9AA5AD;
+  --font-display:"Bricolage Grotesque","Helvetica Neue",Arial,sans-serif;
+  --font-body:"Manrope","Helvetica Neue",Arial,sans-serif;
+  --radius:18px; --radius-s:10px;
+  color-scheme: light;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--havs-sand);color:var(--havs-ink);font-family:var(--font-body);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+a{color:var(--havs-sea)}
+button{font:inherit;color:inherit}
+h1,h2,h3{font-family:var(--font-display);text-wrap:balance;margin:0;line-height:1.1}
+.num{font-variant-numeric:tabular-nums}
+:focus-visible{outline:3px solid var(--havs-signal);outline-offset:2px}
+.sr{position:absolute;left:-9999px}
+
+/* ---------- Header ---------- */
+.top{position:sticky;top:0;z-index:5;background:var(--havs-ink);color:#fff}
+.top-in{max-width:1180px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;gap:14px}
+.brand{display:flex;align-items:baseline;gap:10px;text-decoration:none;color:#fff}
+.brand b{font-family:var(--font-display);font-weight:800;font-size:26px;letter-spacing:.06em}
+.brand span{font-size:13px;color:#BFD3DE;letter-spacing:.02em}
+.top nav{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.top nav a{color:#fff;text-decoration:none;font-size:14px;font-weight:600;padding:8px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.25)}
+.top nav a.cta{background:var(--havs-signal);border-color:var(--havs-signal)}
+.top nav a:hover{background:rgba(255,255,255,.12)}
+.top nav a.cta:hover{background:#c95320}
+
+/* ---------- Layout ---------- */
+main{max-width:1180px;margin:0 auto;padding:16px 16px 48px}
+.grid{display:grid;gap:18px;grid-template-columns:1fr}
+@media (min-width:900px){.grid{grid-template-columns:minmax(0,7fr) minmax(0,5fr);align-items:start}.col-right{position:sticky;top:76px}}
+.card{background:var(--havs-foam);border-radius:var(--radius);padding:18px;box-shadow:0 1px 0 rgba(15,34,48,.06),0 8px 24px -18px rgba(15,34,48,.35)}
+.stack{display:grid;gap:18px}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--havs-mist)}
+.muted{color:var(--havs-mist)}
+.small{font-size:13px}
+
+/* ---------- Spot-chips ---------- */
+.spots{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 10px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.spots::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;display:flex;align-items:center;gap:8px;border:1.5px solid var(--havs-line);background:var(--havs-foam);border-radius:999px;padding:8px 12px 8px 14px;cursor:pointer;font-weight:600;font-size:14px;white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--havs-ink);color:#fff;border-color:var(--havs-ink)}
+.pill{display:inline-grid;place-items:center;min-width:30px;height:24px;padding:0 7px;border-radius:999px;font-weight:800;font-size:13px;color:#fff;font-family:var(--font-display)}
+.pill.good{background:var(--good)}.pill.mid{background:var(--mid);color:var(--havs-ink)}.pill.bad{background:var(--bad)}.pill.flat{background:var(--flat)}
+
+/* ---------- Hero ---------- */
+.hero{position:relative;overflow:hidden}
+.hero-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.hero h1{font-size:clamp(30px,5vw,44px);font-weight:800;letter-spacing:-.01em}
+.hero .when{font-weight:600;color:var(--havs-sea)}
+.hero-grid{display:grid;gap:14px;grid-template-columns:auto 1fr;align-items:stretch}
+@media (max-width:520px){.hero-grid{grid-template-columns:1fr}}
+.score{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;border-radius:var(--radius);padding:14px 16px;color:#fff;min-width:200px}
+.score.good{background:var(--good)}.score.mid{background:var(--mid);color:var(--havs-ink)}.score.bad{background:var(--bad)}.score.flat{background:var(--flat)}
+.score .big{font-family:var(--font-display);font-size:56px;font-weight:800;line-height:1;letter-spacing:-.03em}
+.score .lbl{font-weight:700;font-size:17px;line-height:1.15}
+.score .sub{font-size:12px;opacity:.85}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.stat{background:var(--havs-sand);border-radius:var(--radius-s);padding:10px 12px}
+.stat .k{font-size:12px;font-weight:700;color:var(--havs-mist);letter-spacing:.06em;text-transform:uppercase}
+.stat .v{font-family:var(--font-display);font-size:24px;font-weight:700;line-height:1.15}
+.stat .d{font-size:12px;color:var(--havs-mist)}
+.verdict{margin:14px 0 0;font-size:17px;line-height:1.45}
+.verdict strong{color:var(--havs-sea)}
+.wind-arrow{display:inline-block;transform-origin:50% 50%;font-size:18px;line-height:1;vertical-align:-2px}
+.tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:999px;background:var(--havs-sand);color:var(--havs-sea)}
+.tag.demo{background:#FBE9DE;color:#9a3f12}
+.tag.live{background:#DCEFE4;color:#1f6a43}
+
+/* ---------- Ugen ---------- */
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.day{border:1.5px solid var(--havs-line);background:var(--havs-foam);border-radius:12px;padding:8px 4px 6px;cursor:pointer;text-align:center;display:grid;gap:4px;justify-items:center}
+.day[aria-pressed="true"]{border-color:var(--havs-ink);box-shadow:inset 0 0 0 1.5px var(--havs-ink)}
+.day .dn{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+.day .dh{font-size:12px;color:var(--havs-mist)}
+@media (max-width:420px){.day .dh{display:none}}
+.chart{margin-top:14px}
+.chart svg{width:100%;height:auto;display:block}
+.slider{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;margin-top:8px}
+input[type=range]{width:100%;accent-color:var(--havs-sea)}
+.hour{font-family:var(--font-display);font-weight:800;font-size:22px;min-width:64px;text-align:right}
+.sun{font-size:13px;color:var(--havs-mist);margin-top:6px}
+
+/* ---------- Grej ---------- */
+.gear-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.gear-head h2{font-size:24px;font-weight:800}
+.lead{margin:0 0 14px;color:var(--havs-ink)}
+.kit{display:grid;gap:10px}
+.item{display:grid;grid-template-columns:56px 1fr auto;gap:12px;align-items:center;border:1.5px solid var(--havs-line);border-radius:14px;padding:10px 12px;background:var(--havs-foam)}
+.item.must{border-color:var(--havs-sea);background:#F2F8FA}
+.item .ic{width:56px;height:56px;border-radius:12px;background:var(--havs-sand);display:grid;place-items:center}
+.item .ic svg{width:36px;height:36px;stroke:var(--havs-ink);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.item .why{font-size:12px;color:var(--havs-sea);font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.item .nm{font-weight:700;line-height:1.25}
+.item .bd{font-size:13px;color:var(--havs-mist)}
+.item .pr{text-align:right;display:grid;gap:6px;justify-items:end}
+.price{font-family:var(--font-display);font-weight:800;font-size:17px;white-space:nowrap}
+.price s{color:var(--havs-mist);font-weight:500;font-size:13px;margin-right:4px}
+.btn{display:inline-block;text-decoration:none;font-weight:700;font-size:13px;padding:7px 11px;border-radius:999px;background:var(--havs-ink);color:#fff;white-space:nowrap}
+.btn.sig{background:var(--havs-signal)}
+.btn:hover{filter:brightness(1.1)}
+@media (max-width:420px){.item{grid-template-columns:48px 1fr}.item .pr{grid-column:2;justify-items:start;grid-auto-flow:column;align-items:center;gap:10px}.item .ic{width:48px;height:48px}}
+.total{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px;padding-top:12px;border-top:1px dashed var(--havs-line);font-size:14px}
+.total b{font-family:var(--font-display);font-size:18px}
+.nudge{background:var(--havs-ink);color:#fff;border-radius:var(--radius);padding:18px}
+.nudge h3{font-size:20px;font-weight:800;margin-bottom:6px}
+.nudge p{margin:0 0 12px;color:#D4E1E8}
+.nudge .row{display:flex;gap:8px;flex-wrap:wrap}
+.nudge .btn{background:#fff;color:var(--havs-ink)}
+.nudge .btn.sig{background:var(--havs-signal);color:#fff}
+
+/* ---------- Rangering + koncept ---------- */
+.rank{display:grid;gap:6px}
+.rank .r{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--havs-line);cursor:pointer;background:none;border-left:0;border-right:0;border-top:0;text-align:left;width:100%}
+.rank .r:last-child{border-bottom:0}
+.rank .r .n{font-weight:700}
+.rank .r .c{font-size:13px;color:var(--havs-mist)}
+details.how{border-top:1px solid var(--havs-line);margin-top:8px;padding-top:8px}
+details.how summary{cursor:pointer;font-weight:700;color:var(--havs-sea)}
+details.how ol{padding-left:20px;margin:8px 0 0}
+details.how li{margin:4px 0;font-size:14px}
+footer{max-width:1180px;margin:0 auto;padding:0 16px 40px;font-size:13px;color:var(--havs-mist)}
+footer a{color:inherit}
+@media (prefers-reduced-motion:no-preference){.item,.chip,.day{transition:background .15s,border-color .15s}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <a class="brand" href="https://havsstore.dk" rel="noopener"><b>HAVS</b><span>Surf-forecast · Vestkysten</span></a>
+    <nav aria-label="HAVS">
+      <a href="https://havsstore.dk/shop/booking-189s1.html" rel="noopener">Book kursus</a>
+      <a class="cta" href="https://havsstore.dk/shop/frontpage.html" rel="noopener">Shop</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="spots" id="spots" role="group" aria-label="Vælg spot"></div>
+
+  <div class="grid">
+    <div class="stack">
+      <section class="card hero" aria-labelledby="spotname">
+        <div class="hero-head">
+          <div>
+            <div class="eyebrow" id="spot-region">Nordjylland</div>
+            <h1 id="spotname">Løkken</h1>
+          </div>
+          <div style="text-align:right">
+            <div class="when" id="when">—</div>
+            <span class="tag demo" id="datasrc">Eksempeldata</span>
+          </div>
+        </div>
+        <div class="hero-grid">
+          <div class="score good" id="score">
+            <div class="big num" id="score-n">–</div>
+            <div><div class="lbl" id="score-l">…</div><div class="sub">surf-vurdering 0–10</div></div>
+          </div>
+          <div class="stats" id="stats"></div>
+        </div>
+        <p class="verdict" id="verdict"></p>
+      </section>
+
+      <section class="card" aria-labelledby="ugen">
+        <div class="gear-head"><h2 id="ugen" style="font-size:20px">Ugen på spottet</h2><span class="small muted">tryk på en dag, træk i timen</span></div>
+        <div class="days" id="days"></div>
+        <div class="chart" id="chart"></div>
+        <div class="slider">
+          <label class="sr" for="hour">Time</label>
+          <input type="range" id="hour" min="0" max="23" step="1" value="12">
+          <div class="hour num" id="hour-l">12:00</div>
+        </div>
+        <div class="sun" id="sun"></div>
+      </section>
+
+      <section class="card" aria-labelledby="rank-h">
+        <div class="gear-head"><h2 id="rank-h" style="font-size:20px">Bedste spot lige nu</h2><span class="small muted" id="rank-sub"></span></div>
+        <div class="rank" id="rank"></div>
+        <details class="how">
+          <summary>Sådan regner vi</summary>
+          <ol>
+            <li>Bølgehøjde og -periode fra havmodellen (Open-Meteo Marine) og vind, lufttemperatur og nedbør fra vejrmodellen.</li>
+            <li>Vinden holdes op mod spottets kystretning: offshore giver rene bølger, onshore trækker ned.</li>
+            <li>Vandtemperatur + vindafkøling afgør grej-listen: dragt-tykkelse, støvler, handsker, hætte og efter-surf.</li>
+            <li>Grej-listen slår op i HAVS' sortiment. Andre shops kan kobles på med et produktfeed med samme tags.</li>
+          </ol>
+        </details>
+      </section>
+    </div>
+
+    <div class="stack col-right">
+      <section class="card" aria-labelledby="gear-h">
+        <div class="gear-head"><h2 id="gear-h">Pak til forholdene</h2><span class="tag">HAVS · Løkken</span></div>
+        <p class="lead" id="gear-lead"></p>
+        <div class="kit" id="kit"></div>
+        <div class="total" id="total"></div>
+      </section>
+      <section class="nudge" id="nudge"></section>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <p><strong>HAVS Surf &amp; Bike Store</strong> · Norgesvej 7, 9480 Løkken · tlf. +45 27 50 17 50 · info@havsstore.dk · Fri fragt over 999 kr. · Gratis afhentning og retur i Løkken.</p>
+  <p id="foot-data">Vejr- og bølgedata: Open-Meteo (CC BY 4.0). Priser er vejledende og hentes fra havsstore.dk.</p>
+</footer>
+
+<script>
+/* =====================================================================
+   1. SPOTS. normal = den retning kysten vender ud mod (grader).
+   Tilføj et spot ved at tilføje en linje. wave-punktet skal ligge i en
+   våd celle i havmodellen (ca. 5–10 km fra kysten).
+   ===================================================================== */
+const SPOTS = [
+  { id:"loekken",     name:"Løkken",           region:"Nordjylland · HAVS' hjemmespot", lat:57.372, lon:9.706, normal:285, wave:{lat:57.37,lon:9.55}, size:1.0,  beginner:true },
+  { id:"noerlev",     name:"Nørlev Strand",    region:"Nordjylland · HAVS Nørlev",      lat:57.466, lon:9.783, normal:300, wave:{lat:57.48,lon:9.65}, size:0.95, beginner:true },
+  { id:"blokhus",     name:"Blokhus",          region:"Nordjylland",                    lat:57.253, lon:9.577, normal:290, wave:{lat:57.25,lon:9.45}, size:0.95, beginner:true },
+  { id:"klitmoeller", name:"Klitmøller",       region:"Thy · Cold Hawaii",              lat:57.040, lon:8.493, normal:305, wave:{lat:57.06,lon:8.35}, size:1.1 },
+  { id:"hanstholm",   name:"Hanstholm",        region:"Thy · Cold Hawaii",              lat:57.120, lon:8.590, normal:335, wave:{lat:57.18,lon:8.55}, size:0.9 },
+  { id:"vorupoer",    name:"Nr. Vorupør",      region:"Thy · Cold Hawaii",              lat:56.953, lon:8.362, normal:280, wave:{lat:56.95,lon:8.22}, size:1.0,  beginner:true },
+  { id:"agger",       name:"Agger",            region:"Thy",                            lat:56.763, lon:8.238, normal:275, wave:{lat:56.76,lon:8.10}, size:1.05 },
+  { id:"thyboroen",   name:"Thyborøn",         region:"Harboøre Tange",                 lat:56.630, lon:8.152, normal:275, wave:{lat:56.66,lon:8.13}, size:1.0 },
+  { id:"hvidesande",  name:"Hvide Sande",      region:"Vestjylland",                    lat:56.000, lon:8.113, normal:270, wave:{lat:56.00,lon:7.98}, size:1.0,  beginner:true }
+];
+
+/* =====================================================================
+   2. PRODUKTFEED. Ét feed pr. shop. Tags styrer, hvornår et produkt
+   foreslås. Et nyt feed (fx fra en anden shop) skal bare bruge samme tags.
+   Priser er fra havsstore.dk pr. nov. 2026 (vejledende).
+   ===================================================================== */
+const SHOP = { id:"havs", name:"HAVS", url:"https://havsstore.dk", freeShippingOver:999, pickup:"Norgesvej 7, Løkken" };
+const P = "https://havsstore.dk/shop/";
+const PRODUCTS = [
+  { id:"nuwave54",  cat:"wetsuit", name:"C-Skins NuWave Wired LQS 5:4 Hooded Steamer", brand:"C-Skins", price:3949, url:P+"c-skins-nuwave-wired-14706p.html", icon:"wetsuit", water:[0,10],  hooded:true,  who:"herre", note:"C-Skins' mest tekniske vinterdragt, bygget til 4–10 °C" },
+  { id:"wired54",   cat:"wetsuit", name:"C-Skins Wired LQS 5:4 Chest Zip Hooded", brand:"C-Skins", price:2097, old:3495, url:P+"c-skins-wired-lqs-6791p.html", icon:"wetsuit", water:[0,11], hooded:true, who:"herre", note:"Hooded vinterdragt på tilbud" },
+  { id:"rewired654",cat:"wetsuit", name:"C-Skins Rewired 6/5/4 Chest Zip (dame)", brand:"C-Skins", price:null, url:P+"c-skins-rewired-6-1187p.html", icon:"wetsuit", water:[0,9], hooded:false, who:"dame", note:"Tykkeste dragt i sortimentet til de koldeste måneder" },
+  { id:"wired43",   cat:"wetsuit", name:"C-Skins Wired 4/3 Chest Zip", brand:"C-Skins", price:2559, url:P+"vaaddragter-til-maend-8s1.html", icon:"wetsuit", water:[11,15], hooded:false, who:"herre", note:"Forår og efterår: 11–15 °C i vandet" },
+  { id:"legendbz",  cat:"wetsuit", name:"C-Skins Legend Back Zip", brand:"C-Skins", price:1499, url:P+"vaaddragter-6s1.html", icon:"wetsuit", water:[14,22], hooded:false, who:"herre", note:"Sommerdragt, nem at komme i" },
+  { id:"session543",cat:"wetsuit", name:"C-Skins Session 5/4/3 Junior Hooded", brand:"C-Skins", price:1699, url:P+"c-skins-session-5-4145p.html", icon:"wetsuit", water:[0,11], hooded:true, who:"junior", note:"Til de unge, der også vil i om vinteren" },
+
+  { id:"gl5",   cat:"gloves", name:"C-Skins Wired 5 mm handsker", brand:"C-Skins", price:359, old:449, url:P+"c-skins-handsker-343c1.html", icon:"gloves", water:[0,10],  note:"5 mm: når vandet er under 10 °C" },
+  { id:"gl3",   cat:"gloves", name:"C-Skins Legend 3 mm handsker", brand:"C-Skins", price:349, url:P+"c-skins-handsker-343c1.html", icon:"gloves", water:[10,14], note:"3 mm: 10–14 °C, god følelse i hænderne" },
+  { id:"glr3",  cat:"gloves", name:"Patagonia R3 Yulex Regulator handsker", brand:"Patagonia", price:699, url:P+"handsker-69c1.html", icon:"gloves", water:[0,12], alt:true, note:"Naturgummi i stedet for neopren" },
+  { id:"boots", cat:"boots",  name:"Neoprenstøvler (C-Skins / Solite)", brand:"C-Skins · Solite", price:null, url:P+"sko-49c1.html", icon:"boots", water:[0,15], note:"Støvler er ikke til diskussion under 15 °C" },
+  { id:"hood",  cat:"hood",   name:"C-Skins neoprenhætte", brand:"C-Skins", price:null, url:P+"c-skins-26s1.html", icon:"hood", water:[0,12], note:"Hvis din dragt ikke har hætte" },
+
+  { id:"dryrobe", cat:"after", name:"Dryrobe Advance Long Sleeve", brand:"Dryrobe", price:1549, url:P+"dryrobe-25c1.html", icon:"robe", feels:[-20,9], note:"Skift tørt og lunt på parkeringspladsen, også i regn" },
+  { id:"beanie",  cat:"after", name:"Patagonia Fishermans Rolled Beanie", brand:"Patagonia", price:299, url:P+"patagonia-fishermans-6871p.html", icon:"beanie", feels:[-20,10], note:"100 % genbrugspolyester, varm fra første minut" },
+  { id:"brodeo",  cat:"after", name:"Patagonia Brodeo Beanie", brand:"Patagonia", price:399, url:P+"patagonia-brodeo-beanie-15083p.html", icon:"beanie", feels:[-20,6], alt:true, note:"Genbrugsuld til de rigtig kolde dage" },
+  { id:"soap",    cat:"after", name:"Kystlinje vegansk sæbe", brand:"Kystlinje", price:85, url:P+"kystlinje-182c1.html", icon:"soap", feels:[-20,30], low:true, note:"Til det varme bad bagefter" },
+
+  { id:"softlong", cat:"board", name:"NSP Soft Long 11'0\"", brand:"NSP", price:5459, old:7799, url:P+"soft-tops-84c1.html", icon:"longboard", hs:[0.3,0.9], note:"Små, rene bølger er longboard-dage" },
+  { id:"soft84",   cat:"board", name:"NSP Soft Surf Wide 8'4\"", brand:"NSP", price:5679, old:7099, url:P+"nsp-soft-surf-6390p.html", icon:"board", hs:[0.5,1.4], note:"Tilgivende soft top til begynder-bølger" },
+  { id:"flash70",  cat:"board", name:"Softech Eric Geiselmann Flash 7'0\"", brand:"Softech", price:3199, url:P+"surfboards-3s1.html", icon:"board", hs:[0.9,2.2], note:"Let at padle, holder til vestkystens bølger" },
+  { id:"sup",      cat:"board", name:"NSP paddleboard", brand:"NSP", price:9799, from:true, url:P+"paddleboards-539c1.html", icon:"sup", hs:[0,0.4], note:"Fladt hav er SUP-vejr" },
+  { id:"repair",   cat:"misc",  name:"C-Skins Neoprene Repair Kit", brand:"C-Skins", price:89, old:119, url:P+"c-skins-neoprene-repair-1021p.html", icon:"kit", hs:[2.2,9], note:"Store dage slider på dragten" }
+];
+const BOOKING = P+"booking-189s1.html";
+
+/* =====================================================================
+   3. HJÆLPERE
+   ===================================================================== */
+const $ = (s) => document.querySelector(s);
+const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
+const rad = (d) => d*Math.PI/180;
+const angDiff = (a,b) => { let d = Math.abs(((a-b)%360+360)%360); return d>180?360-d:d; };
+const DIRS = ["N","NNØ","NØ","ØNØ","Ø","ØSØ","SØ","SSØ","S","SSV","SV","VSV","V","VNV","NV","NNV"];
+const dirName = (d) => DIRS[Math.round((((d%360)+360)%360)/22.5)%16];
+const fmt1 = (v) => v.toLocaleString("da-DK",{minimumFractionDigits:1,maximumFractionDigits:1});
+const fmt0 = (v) => Math.round(v).toLocaleString("da-DK");
+const kr = (v) => v.toLocaleString("da-DK")+" kr.";
+const DAYS_DA = ["søn","man","tir","ons","tor","fre","lør"];
+const MONTHS_DA = ["jan","feb","mar","apr","maj","jun","jul","aug","sep","okt","nov","dec"];
+
+function feelsLike(t, ws){ // vindafkøling (JAG/TI), vind i m/s
+  const kmh = ws*3.6;
+  if (t > 10 || kmh < 4.8) return t;
+  return 13.12 + 0.6215*t - 11.37*Math.pow(kmh,0.16) + 0.3965*t*Math.pow(kmh,0.16);
+}
+
+// Solop/-ned (NOAA, forenklet) i lokal tid for dato + bredde/længde.
+function sunTimes(date, lat, lon){
+  const start = new Date(date.getFullYear(),0,0);
+  const doy = Math.floor((date - start)/86400000);
+  const g = rad(360/365*(doy-81));
+  const eot = 9.87*Math.sin(2*g) - 7.53*Math.cos(g) - 1.5*Math.sin(g); // min
+  const decl = rad(23.45*Math.sin(rad(360/365*(doy-81))));
+  const cosH = (Math.cos(rad(90.833)) - Math.sin(rad(lat))*Math.sin(decl))/(Math.cos(rad(lat))*Math.cos(decl));
+  if (cosH < -1 || cosH > 1) return null;
+  const H = Math.acos(cosH)*180/Math.PI/15; // timer
+  const tzOff = -date.getTimezoneOffset()/60;
+  const solarNoon = 12 - lon/15 - eot/60 + tzOff;
+  return { rise: solarNoon - H, set: solarNoon + H };
+}
+const hhmm = (h) => { const m = Math.round(h*60); return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0"); };
+
+/* =====================================================================
+   4. SCORE 0–10. Højde, periode og vind mod kystretningen.
+   ===================================================================== */
+function scoreHour(h, spot){
+  const hs = h.hs, tp = h.tp, ws = h.ws;
+  let sH;
+  if (hs < 0.3) sH = 0;
+  else if (hs < 1.0) sH = (hs-0.3)/0.7*6.5;
+  else if (hs <= 2.0) sH = 6.5 + (hs-1.0)*3.5;
+  else if (hs <= 3.2) sH = 10 - (hs-2.0)*5;
+  else sH = Math.max(0.5, 4 - (hs-3.2)*2);
+  const fT = clamp(0.5 + (tp-4)*0.09, 0.45, 1.15);
+  const offshore = (spot.normal+180)%360;
+  const d = angDiff(h.wd, offshore);              // 0 = offshore, 180 = onshore
+  const onshore = (1-Math.cos(rad(d)))/2;         // 0..1
+  let fW = 1.05 - onshore*clamp(ws/14,0,1.2)*1.0; // onshore-straf
+  if (d < 70 && ws > 11) fW -= (ws-11)*0.05;      // for hård offshore blæser toppen af
+  if (ws < 2.5) fW = 1.05;
+  return clamp(sH*fT*fW, 0, 10);
+}
+function band(s){ return s>=7?"good":s>=4.5?"mid":s>=2?"bad":"flat"; }
+function bandLabel(s){ return s>=8.5?"Kør nu!":s>=7?"God":s>=4.5?"Surfbar":s>=2?"Småt":"Ingenting"; }
+function windRel(h, spot){
+  const d = angDiff(h.wd,(spot.normal+180)%360);
+  return d<45?"offshore":d<110?"sideshore":"onshore";
+}
+
+/* =====================================================================
+   5. DATA. Først Open-Meteo live (virker når appen hostes på eget domæne).
+   Fejler kaldet (fx i et sandboxed preview), bruges indbygget eksempeldata
+   for en typisk november-uge. Begge veje giver samme struktur:
+   { hours: [{t:Date, hs, tp, swd, ws, wd, temp, rain, water}] } pr. spot.
+   ===================================================================== */
+const STORY = [ // regional historie, én post pr. dag (0 = i dag)
+  { ws:9,  wd:290, hs:1.5, tp:7,  swd:290, t:8,  rain:0.4 },
+  { ws:4,  wd:110, hs:1.2, tp:9,  swd:285, t:5,  rain:0   },
+  { ws:3,  wd:150, hs:0.7, tp:8,  swd:280, t:4,  rain:0   },
+  { ws:12, wd:230, hs:2.2, tp:7,  swd:250, t:9,  rain:1.2 },
+  { ws:16, wd:260, hs:3.0, tp:8,  swd:265, t:10, rain:2.0 },
+  { ws:8,  wd:330, hs:2.0, tp:9,  swd:290, t:6,  rain:0.3 },
+  { ws:5,  wd:60,  hs:1.3, tp:10, swd:290, t:3,  rain:0   },
+  { ws:4,  wd:90,  hs:0.9, tp:9,  swd:290, t:2,  rain:0   }
+];
+function seeded(n){ let x = Math.sin(n*9301+49297)*233280; return x-Math.floor(x); }
+function demoData(){
+  const now = new Date(); const day0 = new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const out = {};
+  SPOTS.forEach((spot, si) => {
+    const hours = [];
+    for (let i=0;i<168;i++){
+      const d = i/24, k = Math.floor(d), f = d-k, a = STORY[k], b = STORY[Math.min(k+1,STORY.length-1)];
+      const lerp = (p) => a[p] + (b[p]-a[p])*(f*f*(3-2*f));
+      const lerpDir = (p) => { let da = ((b[p]-a[p]+540)%360)-180; return (a[p]+da*f+360)%360; };
+      const hour = i%24, noise = (seeded(i*7+si)-0.5);
+      const swd = lerpDir("swd"), hsReg = lerp("hs")*(1+noise*0.12);
+      const expo = Math.max(0.3, Math.cos(rad(angDiff(swd, spot.normal))));
+      hours.push({
+        t: new Date(day0.getTime()+i*3600000),
+        hs: Math.max(0.1, hsReg*expo*spot.size),
+        tp: lerp("tp") + noise*0.6,
+        swd,
+        ws: Math.max(0.5, lerp("ws")*(1+noise*0.2) + (hour>=11&&hour<=16?0.8:0)),
+        wd: lerpDir("wd") + noise*20,
+        temp: lerp("t") - 1.8*Math.cos(rad((hour-14)*15)) + noise*0.6,
+        rain: Math.max(0, lerp("rain") + noise*0.5),
+        water: 10.6 - i/168*0.5 - (si>=3?0.3:0)
+      });
+    }
+    out[spot.id] = { hours };
+  });
+  return { bySpot: out, live:false };
+}
+
+async function liveData(){
+  const lat = SPOTS.map(s=>s.wave.lat).join(","), lon = SPOTS.map(s=>s.wave.lon).join(",");
+  const lat2 = SPOTS.map(s=>s.lat).join(","), lon2 = SPOTS.map(s=>s.lon).join(",");
+  const tz = "&timezone=Europe%2FCopenhagen&forecast_days=7";
+  const mUrl = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&hourly=wave_height,wave_direction,wave_period,sea_surface_temperature${tz}`;
+  const wUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat2}&longitude=${lon2}&hourly=temperature_2m,wind_speed_10m,wind_direction_10m,precipitation&wind_speed_unit=ms${tz}`;
+  const ctl = new AbortController(); const to = setTimeout(()=>ctl.abort(), 8000);
+  const [m, w] = await Promise.all([fetch(mUrl,{signal:ctl.signal}), fetch(wUrl,{signal:ctl.signal})]);
+  clearTimeout(to);
+  if (!m.ok || !w.ok) throw new Error("http");
+  let mj = await m.json(), wj = await w.json();
+  if (!Array.isArray(mj)) mj = [mj]; if (!Array.isArray(wj)) wj = [wj];
+  const out = {};
+  SPOTS.forEach((spot,i) => {
+    const mh = mj[i].hourly, wh = wj[i].hourly, hours = [];
+    for (let k=0;k<wh.time.length;k++){
+      if (mh.wave_height[k]==null || wh.wind_speed_10m[k]==null) continue;
+      hours.push({ t:new Date(wh.time[k]), hs:mh.wave_height[k], tp:mh.wave_period[k]??7, swd:mh.wave_direction[k]??spot.normal,
+        ws:wh.wind_speed_10m[k], wd:wh.wind_direction_10m[k], temp:wh.temperature_2m[k], rain:wh.precipitation[k]??0,
+        water:mh.sea_surface_temperature[k]??10 });
+    }
+    if (hours.length < 24) throw new Error("tør celle: "+spot.name);
+    out[spot.id] = { hours };
+  });
+  return { bySpot: out, live:true };
+}
+
+/* =====================================================================
+   6. ANBEFALINGER. Regler → tags → produkter fra feedet.
+   ===================================================================== */
+function recommend(h, spot, s){
+  const fl = feelsLike(h.temp, h.ws), water = h.water, items = [];
+  const pick = (cat, test) => PRODUCTS.filter(p=>p.cat===cat && !p.alt && test(p));
+  const inR = (r,v) => r && v>=r[0] && v<r[1];
+
+  // Dragt
+  const suits = pick("wetsuit", p=>inR(p.water,water) && p.who!=="junior");
+  const suit = suits[0];
+  const thick = water<9?"6/5 eller 5/4 med hætte":water<12?"5/4 med hætte":water<15?"4/3":water<18?"3/2 eller 4/3":"3/2";
+  if (suit) items.push({ p:suit, must:true, why:`Vand ${fmt0(water)} °C → ${thick}` });
+
+  // Støvler, handsker, hætte
+  if (water < 15){ const b = pick("boots", p=>inR(p.water,water))[0]; if (b) items.push({ p:b, must:water<12, why:water<10?"Vinter: 5–7 mm":"3–5 mm" }); }
+  if (water < 14){ const g = pick("gloves", p=>inR(p.water,water))[0]; if (g) items.push({ p:g, must:water<11, why:water<10?"Vand under 10 °C":"Køligt vand" }); }
+  if (water < 12 && !(suit&&suit.hooded)){ const hd = pick("hood", p=>inR(p.water,water))[0]; if (hd) items.push({ p:hd, must:true, why:"Dragten har ikke hætte" }); }
+
+  // Efter surf
+  if (fl < 9){
+    const r = pick("after", p=>p.icon==="robe" && inR(p.feels,fl))[0];
+    if (r) items.push({ p:r, must:fl<4 || h.rain>0.5, why: h.rain>0.5 ? `Regn og føles som ${fmt0(fl)} °C` : `Føles som ${fmt0(fl)} °C på stranden` });
+  }
+  if (fl < 10){ const bn = pick("after", p=>p.icon==="beanie" && inR(p.feels,fl))[0]; if (bn) items.push({ p:bn, must:false, why:`Luft ${fmt0(h.temp)} °C · vind ${fmt0(h.ws)} m/s` }); }
+
+  // Bræt efter bølgestørrelse
+  const boards = pick("board", p=>inR(p.hs,h.hs));
+  if (boards[0]) items.push({ p:boards[0], must:false, why: h.hs<0.4?"Fladt hav":h.hs<0.9?`Små bølger (${fmt1(h.hs)} m)`:`Bølger ${fmt1(h.hs)} m` });
+  const misc = pick("misc", p=>inR(p.hs,h.hs)); misc.forEach(p=>items.push({ p, must:false, why:"Stor dag, pas på dragten" }));
+  if (fl >= 9 && water >= 15){ const sp = PRODUCTS.find(p=>p.id==="soap"); if (sp) items.push({ p:sp, must:false, why:"Sommer-surf" }); }
+
+  return { items, fl, water };
+}
+
+function gearLead(h, spot, s, rec){
+  const rel = windRel(h, spot), fl = rec.fl;
+  if (s < 2) return `Der er stort set ingen bølger ved ${spot.name}. Fladt hav er SUP- eller gåtur-vejr, og så er der mere tid til saunagus.`;
+  const cold = rec.water < 10 ? `Vandet er ${fmt0(rec.water)} °C, så det er fuld vinterpakke: tyk dragt, støvler, handsker og hætte.` :
+               rec.water < 14 ? `Vandet er ${fmt0(rec.water)} °C. Hætte og handsker gør forskellen på 40 minutter og to timer i vandet.` :
+               `Vandet er ${fmt0(rec.water)} °C, så en 4/3 eller 3/2 rækker.`;
+  const wind = rel==="offshore" ? "Vinden står offshore, så bølgerne er rene." : rel==="onshore" ? `Onshore vind på ${fmt0(h.ws)} m/s gør det rodet.` : "Sideshore vind.";
+  const feel = fl < 3 ? ` Det føles som ${fmt0(fl)} °C på stranden, så tænk på skiftet bagefter.` : "";
+  return `${cold} ${wind}${feel}`;
+}
+
+/* =====================================================================
+   7. IKONER (inline SVG, så de virker uden billeder udefra)
+   ===================================================================== */
+const ICONS = {
+  wetsuit:`<svg viewBox="0 0 48 48"><path d="M18 6h12l2 6 7 3-3 9-4-1v19h-16V23l-4 1-3-9 7-3z"/><path d="M24 12v8"/></svg>`,
+  gloves:`<svg viewBox="0 0 48 48"><path d="M14 22V10a2 2 0 0 1 4 0v10M18 20V8a2 2 0 0 1 4 0v12M22 20V9a2 2 0 0 1 4 0v11M26 21v-9a2 2 0 0 1 4 0v12l4-4a2 2 0 0 1 3 3l-6 9v6H14v-7z"/></svg>`,
+  boots:`<svg viewBox="0 0 48 48"><path d="M16 8h12v18l10 6v6H10v-6l6-4z"/><path d="M16 14h12"/></svg>`,
+  hood:`<svg viewBox="0 0 48 48"><path d="M12 40c0-14 2-26 12-30 10 4 12 16 12 30"/><path d="M18 36c0-8 1-14 6-16 5 2 6 8 6 16"/></svg>`,
+  robe:`<svg viewBox="0 0 48 48"><path d="M16 8h16l8 8-5 5-3-2v22H16V19l-3 2-5-5z"/><path d="M24 8v33"/></svg>`,
+  beanie:`<svg viewBox="0 0 48 48"><circle cx="24" cy="8" r="3"/><path d="M12 32c0-12 5-20 12-20s12 8 12 20"/><rect x="9" y="30" width="30" height="8" rx="3"/></svg>`,
+  soap:`<svg viewBox="0 0 48 48"><rect x="8" y="16" width="32" height="20" rx="6"/><path d="M16 12c2-4 6-4 8 0"/><circle cx="34" cy="10" r="2"/></svg>`,
+  board:`<svg viewBox="0 0 48 48"><path d="M24 4c8 10 10 24 0 40-10-16-8-30 0-40z"/><path d="M24 12v24"/></svg>`,
+  longboard:`<svg viewBox="0 0 48 48"><path d="M24 3c10 12 10 30 0 42-10-12-10-30 0-42z"/><path d="M24 10v28"/><path d="M19 38h10"/></svg>`,
+  sup:`<svg viewBox="0 0 48 48"><path d="M24 4c9 11 9 29 0 40-9-11-9-29 0-40z"/><path d="M33 6l-8 32"/><path d="M31 4l4 2"/></svg>`,
+  kit:`<svg viewBox="0 0 48 48"><rect x="8" y="14" width="32" height="24" rx="4"/><path d="M18 14v-4h12v4M24 20v12M18 26h12"/></svg>`
+};
+
+/* =====================================================================
+   8. UI-STATE OG RENDER
+   ===================================================================== */
+const state = { data:null, spotId:"loekken", day:0, hour:12 };
+
+function hoursOfDay(spotId, day){
+  const hs = state.data.bySpot[spotId].hours;
+  const d0 = hs[0].t; const start = new Date(d0.getFullYear(),d0.getMonth(),d0.getDate()+day);
+  const end = new Date(start.getTime()+86400000);
+  return hs.filter(h=>h.t>=start && h.t<end);
+}
+function dayStart(){ const d0 = state.data.bySpot[state.spotId].hours[0].t; return new Date(d0.getFullYear(),d0.getMonth(),d0.getDate()); }
+function daylight(day, spot){
+  const d = new Date(dayStart().getTime()+day*86400000);
+  return sunTimes(d, spot.lat, spot.lon) || { rise:8, set:16 };
+}
+function bestOfDay(spotId, day){
+  const spot = SPOTS.find(s=>s.id===spotId), sun = daylight(day, spot);
+  let best = null;
+  hoursOfDay(spotId, day).forEach(h=>{ const hr = h.t.getHours()+0.5; if (hr<sun.rise-0.5 || hr>sun.set+0.5) return; const s = scoreHour(h,spot); if (!best || s>best.s) best = { s, h }; });
+  return best;
+}
+function currentHour(){
+  const list = hoursOfDay(state.spotId, state.day);
+  return list.find(h=>h.t.getHours()===state.hour) || list[0];
+}
+
+function renderSpots(){
+  const h0 = currentHour();
+  $("#spots").innerHTML = SPOTS.map(sp => {
+    const h = hoursOfDay(sp.id, state.day).find(x=>x.t.getHours()===state.hour);
+    const s = h ? scoreHour(h, sp) : 0;
+    return `<button class="chip" type="button" data-spot="${sp.id}" aria-pressed="${sp.id===state.spotId}">${sp.name}<span class="pill ${band(s)} num">${fmt1(s)}</span></button>`;
+  }).join("");
+  $("#spots").querySelectorAll(".chip").forEach(b=>b.addEventListener("click",()=>{ state.spotId=b.dataset.spot; render(); }));
+}
+
+function renderHero(){
+  const spot = SPOTS.find(s=>s.id===state.spotId), h = currentHour(), s = scoreHour(h,spot);
+  $("#spotname").textContent = spot.name; $("#spot-region").textContent = spot.region;
+  const t = h.t;
+  $("#when").textContent = `${DAYS_DA[t.getDay()]} ${t.getDate()}. ${MONTHS_DA[t.getMonth()]} · kl. ${String(t.getHours()).padStart(2,"0")}`;
+  const sc = $("#score"); sc.className = "score "+band(s);
+  $("#score-n").textContent = fmt1(s); $("#score-l").textContent = bandLabel(s);
+  const rel = windRel(h, spot), fl = feelsLike(h.temp,h.ws);
+  $("#stats").innerHTML = `
+    <div class="stat"><div class="k">Bølger</div><div class="v num">${fmt1(h.hs)} m</div><div class="d">${fmt0(h.tp)} s · fra ${dirName(h.swd)}</div></div>
+    <div class="stat"><div class="k">Vind</div><div class="v num"><span class="wind-arrow" style="transform:rotate(${Math.round(h.wd)+180}deg)">&#10140;</span> ${fmt0(h.ws)} m/s</div><div class="d">${dirName(h.wd)} · ${rel}</div></div>
+    <div class="stat"><div class="k">Luft</div><div class="v num">${fmt0(h.temp)} °C</div><div class="d">føles som ${fmt0(fl)} °C${h.rain>0.3?" · regn":""}</div></div>
+    <div class="stat"><div class="k">Vand</div><div class="v num">${fmt0(h.water)} °C</div><div class="d">${h.water<10?"vinter":h.water<14?"koldt":h.water<17?"køligt":"sommer"}</div></div>`;
+  let v;
+  if (s >= 7) v = `<strong>Det her er dagen.</strong> ${fmt1(h.hs)} m med ${fmt0(h.tp)} sekunders periode og ${rel} vind. Ned til ${spot.name}, inden det vender.`;
+  else if (s >= 4.5) v = `<strong>Surfbart.</strong> ${fmt1(h.hs)} m og ${rel} vind på ${fmt0(h.ws)} m/s. Ikke perfekt, men du kommer i vandet.`;
+  else if (s >= 2) v = `<strong>Småt eller rodet.</strong> ${rel==="onshore"?`Onshore vind på ${fmt0(h.ws)} m/s`:`${fmt1(h.hs)} m`} ved ${spot.name}. Tjek de andre spots eller en anden dag.`;
+  else v = `<strong>Ingen bølger at tale om.</strong> ${fmt1(h.hs)} m ved ${spot.name}. Godt vejr til SUP, en gåtur eller værkstedet.`;
+  $("#verdict").innerHTML = v;
+}
+
+function renderDays(){
+  const spot = SPOTS.find(s=>s.id===state.spotId);
+  $("#days").innerHTML = [0,1,2,3,4,5,6].map(d => {
+    const b = bestOfDay(state.spotId, d); if (!b) return "";
+    const t = b.h.t; return `<button class="day" type="button" data-day="${d}" aria-pressed="${d===state.day}"><span class="dn">${d===0?"i dag":DAYS_DA[t.getDay()]}</span><span class="pill ${band(b.s)} num">${fmt1(b.s)}</span><span class="dh num">${fmt1(b.h.hs)} m · ${fmt0(b.h.ws)} m/s</span></button>`;
+  }).join("");
+  $("#days").querySelectorAll(".day").forEach(b=>b.addEventListener("click",()=>{ state.day=+b.dataset.day; const best=bestOfDay(state.spotId,state.day); if(best) state.hour=best.h.t.getHours(); render(); }));
+
+  // Timegraf
+  const list = hoursOfDay(state.spotId, state.day), sun = daylight(state.day, spot);
+  const W=700, H=150, pad=22, bw=(W-pad*2)/24;
+  const bars = list.map(h => { const s=scoreHour(h,spot), x=pad+h.t.getHours()*bw, bh=s/10*(H-40);
+    const cls=band(s), col = cls==="good"?"var(--good)":cls==="mid"?"var(--mid)":cls==="bad"?"var(--bad)":"var(--flat)";
+    const night = (h.t.getHours()+0.5<sun.rise || h.t.getHours()+0.5>sun.set);
+    return `<rect x="${x+1}" y="${H-30-bh}" width="${bw-2}" height="${Math.max(2,bh)}" rx="3" fill="${col}" opacity="${night?0.35:1}"${h.t.getHours()===state.hour?' stroke="var(--havs-ink)" stroke-width="2"':''}/>`; }).join("");
+  const grid = [2.5,5,7.5,10].map(v=>`<line x1="${pad}" x2="${W-pad}" y1="${H-30-v/10*(H-40)}" y2="${H-30-v/10*(H-40)}" stroke="var(--havs-line)" stroke-dasharray="2 4"/><text x="${pad-4}" y="${H-30-v/10*(H-40)+4}" font-size="10" text-anchor="end" fill="var(--havs-mist)">${v}</text>`).join("");
+  const labels = [0,6,12,18,23].map(hh=>`<text x="${pad+hh*bw+bw/2}" y="${H-12}" font-size="11" text-anchor="middle" fill="var(--havs-mist)">${String(hh).padStart(2,"0")}</text>`).join("");
+  $("#chart").innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Surf-score time for time">${grid}${bars}${labels}</svg>`;
+  $("#hour").value = state.hour; $("#hour-l").textContent = String(state.hour).padStart(2,"0")+":00";
+  $("#sun").textContent = `Lyst fra ${hhmm(sun.rise)} til ${hhmm(sun.set)} · dæmpede søjler er mørke timer`;
+}
+
+function renderRank(){
+  const rows = SPOTS.map(sp => { const h = hoursOfDay(sp.id, state.day).find(x=>x.t.getHours()===state.hour); return h ? { sp, h, s:scoreHour(h,sp) } : null; }).filter(Boolean).sort((a,b)=>b.s-a.s);
+  const t = rows[0].h.t;
+  $("#rank-sub").textContent = `${state.day===0?"i dag":DAYS_DA[t.getDay()]} kl. ${String(state.hour).padStart(2,"0")}`;
+  $("#rank").innerHTML = rows.map(r => `<button class="r" type="button" data-spot="${r.sp.id}"><span class="pill ${band(r.s)} num">${fmt1(r.s)}</span><span><span class="n">${r.sp.name}</span><br><span class="c">${r.sp.region}</span></span><span class="c num">${fmt1(r.h.hs)} m · ${fmt0(r.h.ws)} m/s ${dirName(r.h.wd)} · ${windRel(r.h,r.sp)}</span></button>`).join("");
+  $("#rank").querySelectorAll(".r").forEach(b=>b.addEventListener("click",()=>{ state.spotId=b.dataset.spot; render(); window.scrollTo({top:0,behavior:"smooth"}); }));
+}
+
+function renderGear(){
+  const spot = SPOTS.find(s=>s.id===state.spotId), h = currentHour(), s = scoreHour(h,spot), rec = recommend(h, spot, s);
+  $("#gear-lead").textContent = gearLead(h, spot, s, rec);
+  $("#kit").innerHTML = rec.items.map(({p,must,why}) => `
+    <div class="item${must?" must":""}">
+      <div class="ic">${ICONS[p.icon]||""}</div>
+      <div><div class="why">${must?"Skal med · ":""}${why}</div><div class="nm">${p.name}</div><div class="bd">${p.note}</div></div>
+      <div class="pr"><div class="price num">${p.old?`<s>${kr(p.old)}</s>`:""}${p.price==null?"Se pris":(p.from?"fra ":"")+kr(p.price)}</div><a class="btn" href="${p.url}" rel="noopener">Se hos HAVS</a></div>
+    </div>`).join("");
+  const mustSum = rec.items.filter(i=>i.must && i.p.price!=null).reduce((a,i)=>a+i.p.price,0);
+  const mustN = rec.items.filter(i=>i.must).length;
+  $("#total").innerHTML = mustN ? `<span>${mustN} ting markeret “skal med”${mustSum>=SHOP.freeShippingOver?" · fri fragt":""}</span><b class="num">${mustSum?kr(mustSum):""}</b>` : `<span>Ingen tvungne køb i dag. Nyd det.</span>`;
+
+  // Nudge-boks: leje/kursus på begynderdage, ellers butik/afhentning
+  const beginnerDay = spot.beginner && h.hs>=0.5 && h.hs<=1.3 && h.ws<9 && s>=4;
+  let n;
+  if (beginnerDay) n = `<h3>Perfekt dag at starte på</h3><p>${fmt1(h.hs)} m og ${fmt0(h.ws)} m/s ved ${spot.name} er begynder-forhold. HAVS lejer våddragt ud for 150 kr. om dagen og kører surfkurser med North Shore Surf.</p><div class="row"><a class="btn sig" href="${BOOKING}" rel="noopener">Book surfkursus</a><a class="btn" href="${BOOKING}" rel="noopener">Lej våddragt</a></div>`;
+  else if (s >= 7) n = `<h3>Mangler du noget til i morgen?</h3><p>Bestil inden kl. 14, eller hent gratis i butikken på Norgesvej i Løkken på vej til stranden.</p><div class="row"><a class="btn sig" href="${SHOP.url}" rel="noopener">Gå til shoppen</a><a class="btn" href="${BOOKING}" rel="noopener">Lej grej</a></div>`;
+  else if (s < 2) n = `<h3>Ingen bølger? Så er der sauna.</h3><p>HAVS har saunagus-tilbehør og paddleboards til de flade dage. Og Vesterhavet kommer igen.</p><div class="row"><a class="btn sig" href="${P}paddleboards-539c1.html" rel="noopener">Se paddleboards</a><a class="btn" href="${P}tilbehoer-til-saunagus-230s1.html" rel="noopener">Saunagus</a></div>`;
+  else n = `<h3>Gør dig klar til den næste gode dag</h3><p>Tjek ugen ovenfor, og pak efter den bedste dag. Fri fragt over 999 kr. og gratis retur i Løkken.</p><div class="row"><a class="btn sig" href="${SHOP.url}" rel="noopener">Gå til shoppen</a><a class="btn" href="${BOOKING}" rel="noopener">Book kursus</a></div>`;
+  $("#nudge").innerHTML = n;
+}
+
+function render(){ renderSpots(); renderHero(); renderDays(); renderRank(); renderGear(); }
+
+$("#hour").addEventListener("input", (e)=>{ state.hour = +e.target.value; render(); });
+
+async function boot(){
+  let data = null;
+  try { data = await liveData(); } catch (e) { data = demoData(); }
+  state.data = data;
+  const tag = $("#datasrc");
+  if (data.live){ tag.textContent = "Live · Open-Meteo"; tag.className = "tag live"; $("#foot-data").textContent = "Vejr- og bølgedata: Open-Meteo (CC BY 4.0), opdateres hver time. Priser er vejledende og hentes fra havsstore.dk."; }
+  else { tag.textContent = "Eksempeldata"; tag.className = "tag demo"; $("#foot-data").textContent = "Viser en typisk november-uge som eksempel. Hostet på eget domæne henter appen live-data fra Open-Meteo. Priser er vejledende fra havsstore.dk."; }
+  // Starttidspunkt: næste lyse time i dag
+  const now = new Date(); const spot = SPOTS.find(s=>s.id===state.spotId); const sun = daylight(0, spot);
+  state.hour = clamp(Math.max(now.getHours(), Math.ceil(sun.rise)), 0, 23);
+  if (state.hour > Math.floor(sun.set)) { state.day = 1; const b = bestOfDay(state.spotId,1); state.hour = b ? b.h.t.getHours() : 12; }
+  render();
+}
+boot();
+</script>
+</body>
+</html>
