@@ -6,20 +6,26 @@ dansk surf-forecast kunne se ud som. Mappen rører ikke den eksisterende app.
 
 ## Skærme (som forlægget)
 
+Sprog: DA / EN / DE i toppen, huskes i browseren. Kompas, ugedage,
+decimaltegn og klokkeslæt følger med.
+
 - **NU**: dommen som swipebare spot-kort (bedste først) med scoren time for
-  time, horisont 2 døgn / 7 dage, rangering af alle spots efter bedste
-  dagslys-vindue, ugen for det valgte spot som barograf (3-timers blokke,
-  vindpil over hver søjle, lys bund ved ground swell) og blok-detalje med
-  ground/wind swell-skala, bølge, front, periode, retning, vind, stød, luft,
-  vand (med våddragt-regel) og vandstand.
+  time, horisont 2 døgn / 7 dage, en bjælke med HAVS' tilbud, rangering af
+  alle spots efter bedste dagslys-vindue, ugen for det valgte spot som
+  barograf (3-timers blokke, vindpil over hver søjle, lys bund ved ground
+  swell) og blok-detalje med swell-skala, bølge, front, periode, retning,
+  vind, stød, luft, vand (med våddragt-regel), vandstand og grejet til timen
+  fra HAVS' hylder (foldet sammen). Dobbelttryk på et spot, eller knappen
+  Kort, åbner kortet på spottet til det tidspunkt. Nederst login til loggen.
 - **KORT**: Leaflet med tegnet kystlinje (OSM-data, 250 m), tidsskyder time
   for time gennem 9 døgn med afspilning (1×/2×/4×), vejr-skilt pr. område
   med vind (hel pil), bølger (stiplet pil) og swell-type, prik pr. spot med
-  score og navn, og vind- og bølgepile ved spottet fra zoom 10. Dobbelttryk
-  på et spot på NU åbner kortet dér.
-- **GREJ**: grejet til den valgte blok fra HAVS' hylder: dragt efter
-  vandtemperatur, støvler, handsker, hætte, efter-surf, bræt. Få ord, pris
-  og link. Leje og kursus på begynderdage.
+  score og navn, og vind- og bølgepile ved spottet fra zoom 10.
+- **LOG** (kun når man er logget ind): som forlæggets LOG. Ny session med
+  dato, klokkeslæt, spot, delvurderinger (størrelse, form, overflade),
+  samlet karakter og note; appen gemmer et snapshot af modellens forhold og
+  score for tidspunktet. Liste med ret/slet, CSV til udklipsholderen, og
+  afvigelsen karakter minus model. Lokal lagring pr. navn i browseren.
 
 ## Model og data
 
