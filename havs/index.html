@@ -942,17 +942,22 @@ input[type="range"]{flex:1;min-width:0;height:44px;accent-color:var(--fg);backgr
 .offers-h a{color:var(--muted);font-size:10px;letter-spacing:1px;text-transform:none;font-weight:600}
 .offers-row{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;margin:0 -16px;padding:0 16px 2px}
 .offers-row::-webkit-scrollbar{display:none}
-.offer{flex:0 0 auto;width:150px;background:var(--surf);border-radius:var(--r-sm);padding:10px 12px;text-decoration:none;color:var(--fg);display:grid;gap:4px;align-content:start}
-.offer .o-tag{font-size:9.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#FF8A5A}
-.offer .o-name{font-size:12.5px;font-weight:600;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.offer .o-price{font-family:var(--display);font-size:18px;font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums}
-.offer .o-old{font-size:11px;color:var(--muted);text-decoration:line-through}
+.offer{flex:0 0 auto;width:124px;background:var(--surf);border-radius:var(--r-sm);padding:8px 10px 9px;text-decoration:none;color:var(--fg);display:grid;gap:3px;align-content:start;position:relative}
+.offer .o-img{position:relative;height:56px;border-radius:8px;background:var(--surf2);display:grid;place-items:center;overflow:hidden;margin-bottom:2px}
+.offer .o-img svg{width:40px;height:40px;stroke:var(--fg);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.offer .o-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.offer .o-tag{position:absolute;top:6px;left:6px;font-size:9px;font-weight:800;letter-spacing:.8px;padding:1px 5px;border-radius:999px;background:#FF7A45;color:#1B2630}
+.offer .o-name{font-size:11px;font-weight:600;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:28px}
+.offer .o-price{font-family:var(--display);font-size:15px;font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums}
+.offer .o-old{font-size:10px;color:var(--muted);text-decoration:line-through}
 .login{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:14px}
 .login-body{min-width:0}
 .login h3{font-family:var(--display);font-size:20px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
 .login p{font-size:13px;color:var(--muted);line-height:1.45;margin-bottom:10px}
 .login form{display:flex;gap:8px}
-.login input[type="text"]{flex:1;min-width:0;min-height:42px;background:var(--bg);border:1px solid var(--line2);border-radius:999px;color:var(--fg);font-size:14px;padding:0 14px}
+.login input{flex:1;min-width:0;min-height:42px;background:var(--bg);border:1px solid var(--line2);border-radius:999px;color:var(--fg);font-size:14px;padding:0 14px;font-family:inherit}
+.login form.auth{flex-direction:column;align-items:stretch}
+.login form.auth .btn{margin-top:2px}
 .login-logo{height:110px;width:auto;max-width:100%;display:block}
 @media (max-width:420px){.login-logo{height:88px}}
 /* ---- grej i blok-detaljen ---- */
@@ -1017,7 +1022,7 @@ input[type="range"]{flex:1;min-width:0;height:44px;accent-color:var(--fg);backgr
   <nav class="tabbar" aria-label="faner">
     <button class="tab active" data-tab="nu" type="button">NU</button>
     <button class="tab" data-tab="kort" type="button">KORT</button>
-    <button class="tab" data-tab="log" type="button" hidden>LOG</button>
+    <button class="tab" data-tab="log" type="button">LOG</button>
   </nav>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" crossorigin=""></script>
@@ -1079,6 +1084,7 @@ const STR = {
     csv: "CSV", csv_copied: "Kopieret til udklipsholderen.", csv_shown: "Markér og kopiér teksten herunder.",
     calib: "Kalibrering", dev: (n) => `Din karakter minus modellens score, snit af ${n} ${n === 1 ? "session" : "sessions"}`, dev_none: "Ingen sessions med snapshot endnu, så der er ikke noget at kalibrere efter.",
     help_log_q: "Hvorfor logge?", help_log: `<p>Hver gang du gemmer en session, gemmer appen et <strong>snapshot</strong> af de forhold, modellen forudsagde for tidspunktet, og modellens score. Så kan du bagefter sammenligne, hvad modellen <em>troede</em>, med hvad du <em>oplevede</em>. Delvurderingerne (valgfri) viser hvilken del af modellen, der skyder forkert: STØRRELSE tjekker energileddet, FORM bankerne, OVERFLADE vindleddet.</p><p>Loggen ligger kun i denne browser. CSV-knappen giver en kopi til et regneark.</p>`,
+    signup_p: "Opret en profil, så får du din surf-log: sessions med karakter, note og et snapshot af forecasten, så du kan se, hvor modellen rammer.", email: "E-mail", create_btn: "Opret dig", have_profile: "Har du allerede en profil?", login_link: "Log ind", back_signup: "Opret ny profil", no_profile: "Ingen profil med den e-mail i denne browser.", profile_note: "Profilen gemmes kun i denne browser (demo).",
     clk: (h) => `kl. ${h}`
   },
   en: {
@@ -1124,6 +1130,7 @@ const STR = {
     csv: "CSV", csv_copied: "Copied to the clipboard.", csv_shown: "Select and copy the text below.",
     calib: "Calibration", dev: (n) => `Your rating minus the model's score, average of ${n} ${n === 1 ? "session" : "sessions"}`, dev_none: "No sessions with a snapshot yet, so nothing to calibrate against.",
     help_log_q: "Why log?", help_log: `<p>Every time you save a session the app also saves a <strong>snapshot</strong> of the conditions the model predicted for that time, and the model's score. Afterwards you can compare what the model <em>thought</em> with what you <em>experienced</em>. The partial ratings (optional) show which part of the model is off: SIZE checks the energy term, SHAPE the banks, SURFACE the wind term.</p><p>The log lives only in this browser. The CSV button gives you a copy for a spreadsheet.</p>`,
+    signup_p: "Create a profile to get your surf log: sessions with rating, note and a snapshot of the forecast, so you can see where the model hits.", email: "Email", create_btn: "Create profile", have_profile: "Already have a profile?", login_link: "Sign in", back_signup: "Create a new profile", no_profile: "No profile with that email in this browser.", profile_note: "The profile is stored only in this browser (demo).",
     clk: (h) => `${h}:00`
   },
   de: {
@@ -1169,6 +1176,7 @@ const STR = {
     csv: "CSV", csv_copied: "In die Zwischenablage kopiert.", csv_shown: "Markiere und kopiere den Text unten.",
     calib: "Kalibrierung", dev: (n) => `Deine Note minus Score des Modells, Schnitt aus ${n} ${n === 1 ? "Session" : "Sessions"}`, dev_none: "Noch keine Sessions mit Schnappschuss, also nichts zum Kalibrieren.",
     help_log_q: "Warum loggen?", help_log: `<p>Jedes Mal, wenn du eine Session speicherst, speichert die App auch einen <strong>Schnappschuss</strong> der Bedingungen, die das Modell für diese Zeit vorhergesagt hat, und den Score des Modells. So kannst du danach vergleichen, was das Modell <em>dachte</em>, mit dem, was du <em>erlebt</em> hast. Die Teilnoten (optional) zeigen, welcher Teil des Modells danebenliegt: GRÖSSE prüft den Energieterm, FORM die Bänke, OBERFLÄCHE den Windterm.</p><p>Das Log liegt nur in diesem Browser. Der CSV-Button gibt dir eine Kopie für eine Tabelle.</p>`,
+    signup_p: "Lege ein Profil an, dann bekommst du dein Surf-Log: Sessions mit Note, Notiz und einem Schnappschuss der Vorhersage, damit du siehst, wo das Modell trifft.", email: "E-Mail", create_btn: "Profil anlegen", have_profile: "Schon ein Profil?", login_link: "Anmelden", back_signup: "Neues Profil anlegen", no_profile: "Kein Profil mit dieser E-Mail in diesem Browser.", profile_note: "Das Profil wird nur in diesem Browser gespeichert (Demo).",
     clk: (h) => `${h} Uhr`
   }
 };
@@ -1533,9 +1541,23 @@ ${g.items.map(({ k, p, must, w }) => `<div class="kit-row"><div><div class="k${m
 <div class="kit-sum"><span>${mustN ? t("kit_sum", mustN, mustSum >= 999) : t("kit_none")}</span><b>${mustSum ? kr(mustSum) : ""}</b></div>
 <div class="kit-foot">${beginner ? `<span class="muted" style="font-size:12px;flex-basis:100%">${t("beginner", fmt(r.hs), fmt(r.wspd, 0), esc(spot.name))}</span><a class="btn-ghost btn-sm" href="${BOOKING}" rel="noopener">${t("book")}</a><a class="btn-ghost btn-sm" href="${BOOKING}" rel="noopener">${t("rent")}</a>` : `<span class="muted" style="font-size:12px">${t("prices")}</span>`}</div></details>`;
 }
+/* Piktogrammer pr. kategori: tegnet, så de virker uden billeder udefra.
+   Har et produkt et `img` (foto-URL fra shoppens feed), vises det ovenpå,
+   når appen er hostet; kan fotoet ikke hentes, står piktogrammet. */
+const ICONS = {
+  wetsuit: `<svg viewBox="0 0 48 48"><path d="M18 6h12l2 6 7 3-3 9-4-1v19h-16V23l-4 1-3-9 7-3z"/><path d="M24 12v8"/></svg>`,
+  gloves: `<svg viewBox="0 0 48 48"><path d="M14 22V10a2 2 0 0 1 4 0v10M18 20V8a2 2 0 0 1 4 0v12M22 20V9a2 2 0 0 1 4 0v11M26 21v-9a2 2 0 0 1 4 0v12l4-4a2 2 0 0 1 3 3l-6 9v6H14v-7z"/></svg>`,
+  boots: `<svg viewBox="0 0 48 48"><path d="M16 8h12v18l10 6v6H10v-6l6-4z"/><path d="M16 14h12"/></svg>`,
+  hood: `<svg viewBox="0 0 48 48"><path d="M12 40c0-14 2-26 12-30 10 4 12 16 12 30"/><path d="M18 36c0-8 1-14 6-16 5 2 6 8 6 16"/></svg>`,
+  robe: `<svg viewBox="0 0 48 48"><path d="M16 8h16l8 8-5 5-3-2v22H16V19l-3 2-5-5z"/><path d="M24 8v33"/></svg>`,
+  beanie: `<svg viewBox="0 0 48 48"><circle cx="24" cy="8" r="3"/><path d="M12 32c0-12 5-20 12-20s12 8 12 20"/><rect x="9" y="30" width="30" height="8" rx="3"/></svg>`,
+  board: `<svg viewBox="0 0 48 48"><path d="M24 4c8 10 10 24 0 40-10-16-8-30 0-40z"/><path d="M24 12v24"/></svg>`,
+  sup: `<svg viewBox="0 0 48 48"><path d="M24 4c9 11 9 29 0 40-9-11-9-29 0-40z"/><path d="M33 6l-8 32"/><path d="M31 4l4 2"/></svg>`,
+  repair: `<svg viewBox="0 0 48 48"><rect x="8" y="14" width="32" height="24" rx="4"/><path d="M18 14v-4h12v4M24 20v12M18 26h12"/></svg>`
+};
 function offersHtml() {
   const sale = PRODUCTS.filter((p) => p.old).map((p) => ({ p, pct: Math.round((1 - p.price / p.old) * 100) }));
-  return `<section class="offers" aria-label="${t("offers")}"><div class="offers-h"><span>${t("offers")}</span><a href="${P}shop-198c1.html" rel="noopener">${t("shop_all")}</a></div><div class="offers-row">${sale.map(({ p, pct }) => `<a class="offer" href="${p.url}" rel="noopener"><span class="o-tag">−${pct} %</span><span class="o-name">${esc(p.name)}</span><span class="o-price">${kr(p.price)}</span><span class="o-old">${t("before")} ${kr(p.old)}</span></a>`).join("")}</div></section>`;
+  return `<section class="offers" aria-label="${t("offers")}"><div class="offers-h"><span>${t("offers")}</span><a href="${P}shop-198c1.html" rel="noopener">${t("shop_all")}</a></div><div class="offers-row">${sale.map(({ p, pct }) => `<a class="offer" href="${p.url}" rel="noopener"><span class="o-img">${ICONS[p.cat] || ICONS.board}${p.img ? `<img src="${esc(p.img)}" alt="" loading="lazy" onerror="this.remove()">` : ""}<span class="o-tag">−${pct} %</span></span><span class="o-name">${esc(p.name)}</span><span class="o-price">${kr(p.price)}</span><span class="o-old">${t("before")} ${kr(p.old)}</span></a>`).join("")}</div></section>`;
 }
 
 /* ---------- 5. NU ---------- */
@@ -1609,13 +1631,10 @@ ${ranking.length > 1 ? `<div class="cdots" aria-hidden="true">${ranking.map((e) 
     ? `<div class="baro-block baro-hole" title="${t("hole")}"><span class="baro-hour">${pad2(BLOCK_HOURS[i])}</span></div>`
     : `<button type="button" class="baro-block${selected && selected.time === b.time ? " selected" : ""}${b.time < now ? " past" : ""}${b.time === nowKey ? " now" : ""}${swellKind(b.row.tp) === "ground" ? " ground" : ""}" data-block="${b.time}" data-now="${t("now_mark")}" role="option" aria-selected="${!!(selected && selected.time === b.time)}"><span class="baro-arrow">${arrowSvg(b.row.wdir, 16, false, b.row.wspd >= 8)}</span><span class="baro-barwrap"><span class="baro-bar" style="height:${Math.max(3, (b.score / 10) * 100)}%;background:${scoreColor(b.score)}"></span></span><span class="baro-hour">${pad2(BLOCK_HOURS[i])}</span></button>`).join("")}</div></div>`; }).join("")}</div>`;
   const holes = (f.areas[spot.area] && f.areas[spot.area].holes.length) || 0;
-  const login = state.user
-    ? `<section class="card login"><div class="login-body"><h3>${t("login_t")}</h3><p>${t("logged", esc(state.user))}</p><div style="display:flex;gap:8px"><button class="btn" type="button" data-goto="log">${t("tab_log")}</button><button class="btn-ghost" type="button" data-logout>${t("logout")}</button></div></div><img class="login-logo" src="${LOGO}" alt="HAVS, North Shore Surf, Løkken"></section>`
-    : `<section class="card login"><div class="login-body"><h3>${t("login_t")}</h3><p>${t("login_p")}</p><form id="login-form"><label class="sr" for="login-name">${t("login_name")}</label><input type="text" id="login-name" placeholder="${t("login_name")}" autocomplete="name" required maxlength="40"><button class="btn" type="submit">${t("login_btn")}</button></form></div><img class="login-logo" src="${LOGO}" alt="HAVS, North Shore Surf, Løkken"></section>`;
 
   el.innerHTML = headerHtml(null, true) + (state.helpOpen ? nuHelp() : "") + cards + offersHtml() + quick +
     `<div class="sec-h"><span>${t("week_for", esc(spot.name))}</span><span>${t("faces", compass(spot.normal), spot.normal)}</span></div>` + chips + baro + `<div id="detail">${selected ? blockDetailHtml(selected, spot) : ""}</div>` +
-    `<p class="hint">${t("hint")}${holes ? ` · ${t("holes", holes)}` : ""}</p>` + login;
+    `<p class="hint">${t("hint")}${holes ? ` · ${t("holes", holes)}` : ""}</p>`;
 
   const perSpot = new Map();
   $$(".spark", el).forEach((sp) => { const s = spotById(sp.dataset.spot); if (!perSpot.has(s.id)) perSpot.set(s.id, hourlyBlocks(f, s)); const pick = perSpot.get(s.id).get(sp.dataset.time), W = Math.max(120, Math.round(sp.clientWidth || 320)); if (pick) sp.innerHTML = sparkSvg(perSpot.get(s.id), fromHour, dates, pick, s, W); });
@@ -1634,10 +1653,6 @@ ${ranking.length > 1 ? `<div class="cdots" aria-hidden="true">${ranking.map((e) 
   $$("[data-rank]", el).forEach((b) => b.addEventListener("click", () => { if (isDoubleTap("rank:" + b.dataset.rank)) { openMapAt(b.dataset.rank, b.dataset.time); return; } state.spotId = b.dataset.rank; state.selectedTime = b.dataset.time; renderNu(); }));
   $$("[data-chip]", el).forEach((b) => b.addEventListener("click", () => { if (isDoubleTap("chip:" + b.dataset.chip)) { const sp = spotById(b.dataset.chip); const bb = bestBlock(f, sp, now, state.horizon); openMapAt(sp.id, bb ? bb.time : (selected ? selected.time : now.slice(0, 13) + ":00")); return; } state.spotId = b.dataset.chip; state.selectedTime = null; renderNu(); }));
   $$("[data-block]", el).forEach((b) => b.addEventListener("click", () => { if (isDoubleTap("block:" + b.dataset.block)) { openMapAt(spot.id, b.dataset.block); return; } state.selectedTime = b.dataset.block; state.scrollDetail = true; renderNu(); }));
-  $$("[data-goto]", el).forEach((b) => b.addEventListener("click", () => showTab(b.dataset.goto)));
-  $$("[data-logout]", el).forEach((b) => b.addEventListener("click", () => { state.user = null; store.del("havs-surf.user"); renderTabs(); renderNu(); }));
-  const lf = $("#login-form", el);
-  if (lf) lf.addEventListener("submit", (e) => { e.preventDefault(); const name = $("#login-name", el).value.trim(); if (!name) return; state.user = name; store.set("havs-surf.user", name); renderTabs(); showTab("log"); });
 }
 function waveParts(r) {
   const parts = [];
@@ -1757,7 +1772,9 @@ function applyMapFocus() {
 const SESS_KEY = "havs-surf.sessions";
 function loadSessions() { try { const l = JSON.parse(store.get(SESS_KEY) || "[]"); return Array.isArray(l) ? l : []; } catch (e) { return []; } }
 function saveSessions(list) { store.set(SESS_KEY, JSON.stringify(list)); }
-const mySessions = () => loadSessions().filter((s) => s.user === state.user);
+const mySessions = () => loadSessions().filter((s) => s.user === state.user.email);
+function loadAccounts() { try { const l = JSON.parse(store.get("havs-surf.accounts") || "[]"); return Array.isArray(l) ? l : []; } catch (e) { return []; } }
+function loadUser() { try { const u = JSON.parse(store.get("havs-surf.user") || "null"); return u && u.email ? u : null; } catch (e) { return null; } }
 function findRowAt(timeIso, areaId) {
   const ar = state.forecast && state.forecast.areas[areaId]; if (!ar) return null;
   let best = null, bestDist = Infinity; const target = new Date(timeIso).getTime();
@@ -1766,7 +1783,7 @@ function findRowAt(timeIso, areaId) {
 }
 function makeSession(timeIso, spot, rating, note, params, id) {
   const row = findRowAt(timeIso, spot.area);
-  return { id: id || String(Date.now()) + Math.random().toString(36).slice(2, 7), user: state.user, time: timeIso, spotId: spot.id, rating, params, note,
+  return { id: id || String(Date.now()) + Math.random().toString(36).slice(2, 7), user: state.user.email, time: timeIso, spotId: spot.id, rating, params, note,
     snapshot: row ? { hs: row.hs, tp: row.tp, swdir: row.swdir, wspd: row.wspd, wdir: row.wdir, gust: row.gust } : null,
     predicted: row ? scoreSpot(row, spot.normal, spotOpts(spot)) : null };
 }
@@ -1783,11 +1800,28 @@ function paramRow(key, label, ends, value) {
 }
 function renderLog() {
   const el = $("#log"); const lg = state.log;
-  if (!state.user) { el.innerHTML = headerHtml(null, false) + `<p class="statusline">${t("login_p")}</p>`; bindHeader(el, renderLog); return; }
+  if (!state.user) {
+    const mode = lg.mode || "signup";
+    el.innerHTML = headerHtml(null, false) + `<section class="card login"><div class="login-body"><h3>${t("login_t")}</h3><p>${t("signup_p")}</p>
+<form id="auth-form" class="auth">${mode === "signup" ? `<label class="sr" for="auth-name">${t("login_name")}</label><input type="text" id="auth-name" placeholder="${t("login_name")}" required maxlength="40" autocomplete="name">` : ""}<label class="sr" for="auth-email">${t("email")}</label><input type="email" id="auth-email" placeholder="${t("email")}" required autocomplete="email"><button class="btn" type="submit">${mode === "signup" ? t("create_btn") : t("login_btn")}</button></form>
+<p class="form-note">${mode === "signup" ? `${t("have_profile")} <button class="linkbtn" type="button" data-mode="login">${t("login_link")}</button>` : `<button class="linkbtn" type="button" data-mode="signup">${t("back_signup")}</button>`}${lg.authErr ? `<br><strong>${lg.authErr}</strong>` : ""}<br>${t("profile_note")}</p></div><img class="login-logo" src="${LOGO}" alt="HAVS, North Shore Surf, Løkken"></section>`;
+    bindHeader(el, renderLog);
+    $$("[data-mode]", el).forEach((b) => b.addEventListener("click", () => { lg.mode = b.dataset.mode; lg.authErr = null; renderLog(); }));
+    $("#auth-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const email = $("#auth-email").value.trim().toLowerCase(); if (!email) return;
+      const accounts = loadAccounts(); let acc = accounts.find((a) => a.email === email);
+      if (mode === "signup") { const name = $("#auth-name").value.trim(); if (!name) return; if (!acc) { acc = { name, email }; accounts.unshift(acc); store.set("havs-surf.accounts", JSON.stringify(accounts)); } }
+      else if (!acc) { lg.authErr = t("no_profile"); renderLog(); return; }
+      state.user = acc; store.set("havs-surf.user", JSON.stringify(acc)); lg.authErr = null; form.spotId = null; renderLog();
+    });
+    return;
+  }
   const sessions = mySessions().sort((a, b) => (a.time < b.time ? 1 : -1));
   if (!form.spotId) form.spotId = sessions[0] ? sessions[0].spotId : SPOTS[0].id;
   const dev = meanDeviation(sessions), unset = form.rating < 0;
   el.innerHTML = headerHtml(t("sessions", sessions.length), true) + (state.helpOpen ? `<section class="card help-card">${info(t("help_log_q"), t("help_log"))}</section>` : "") +
+    `<p class="statusline" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>${t("logged", esc(state.user.name))}</span><button class="linkbtn" type="button" data-logout>${t("logout")}</button></p>` +
     `<section class="card"><div class="card-h"><span>${lg.editingId ? t("log_edit") : t("log_new")}</span>${lg.editingId ? `<button class="linkbtn" type="button" data-cancel>${t("cancel")}</button>` : ""}</div><div class="card-body">
 <div class="field-row"><input type="date" id="f-date" value="${form.date}" aria-label="${t("date")}"><select id="f-hour" aria-label="${t("hour")}">${Array.from({ length: 24 }, (_, h) => `<option value="${h}"${h === form.hour ? " selected" : ""}>${t("clk", pad2(h))}</option>`).join("")}</select></div>
 <div class="chips" role="tablist">${SPOTS.map((s) => `<button class="chip${s.id === form.spotId ? " on" : ""}" type="button" data-fspot="${s.id}">${esc(s.name)}</button>`).join("")}</div>
@@ -1806,6 +1840,7 @@ ${s.note ? `<p class="session-note">${esc(s.note)}</p>` : ""}
 <section class="card"><div class="card-h"><span>${t("calib")}</span></div>${dev ? `<div class="dev-row"><span class="dev-label">${t("dev", dev.n)}</span><span class="dev-value">${dev.mean >= 0 ? "+" : ""}${fmt(dev.mean)}</span></div>` : `<p class="statusline" style="padding:0 14px 10px">${t("dev_none")}</p>`}</section>`;
 
   bindHeader(el, renderLog);
+  $$("[data-logout]", el).forEach((b) => b.addEventListener("click", () => { state.user = null; store.del("havs-surf.user"); renderLog(); }));
   $("#f-date").addEventListener("change", (e) => { form.date = e.target.value; });
   $("#f-hour").addEventListener("change", (e) => { form.hour = Number(e.target.value); });
   $("#f-note").addEventListener("input", (e) => { form.note = e.target.value; });
@@ -1833,10 +1868,9 @@ ${s.note ? `<p class="session-note">${esc(s.note)}</p>` : ""}
 
 /* ---------- 8. Faner og start ---------- */
 function renderTabs() {
-  $$(".tab").forEach((tb) => { tb.textContent = t("tab_" + tb.dataset.tab); tb.classList.toggle("active", tb.dataset.tab === state.tab); if (tb.dataset.tab === "log") tb.hidden = !state.user; });
+  $$(".tab").forEach((tb) => { tb.textContent = t("tab_" + tb.dataset.tab); tb.classList.toggle("active", tb.dataset.tab === state.tab); });
 }
 function showTab(id) {
-  if (id === "log" && !state.user) id = "nu";
   state.tab = id; state.helpOpen = false; renderTabs();
   for (const s of ["nu", "kort", "log"]) $("#" + s).hidden = s !== id;
   if (id !== "kort") stopPlay();
@@ -1848,7 +1882,7 @@ function showTab(id) {
 $$(".tab").forEach((tb) => tb.addEventListener("click", () => { state.mapFocus = null; showTab(tb.dataset.tab); }));
 function prepareDerived() { const f = state.forecast; perSpotMap = new Map(); for (const s of SPOTS) perSpotMap.set(s.id, hourlyBlocks(f, s)); const all = new Set(); for (const m of perSpotMap.values()) for (const tm of m.keys()) all.add(tm); timeline = [...all].sort(); }
 async function boot() {
-  setLang(loadLang()); state.horizon = loadHorizon(); state.user = store.get("havs-surf.user") || null;
+  setLang(loadLang()); state.horizon = loadHorizon(); state.user = loadUser();
   renderTabs(); renderNu();
   const cached = loadCache();
   try { state.forecast = await fetchLive(); state.source = "live"; store.set("havs-surf.forecast", JSON.stringify(state.forecast)); }
