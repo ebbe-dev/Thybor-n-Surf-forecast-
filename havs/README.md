@@ -36,9 +36,11 @@ dansk surf-forecast kunne se ud som. Mappen rører ikke den eksisterende app.
 
 ## Udtryk
 
-Tokens øverst i `<style>` (`:root`) styrer farver og fonte: hvidt, sort,
-lysegrå flader og piller, Poppins, som havsstore.dk. Scoreskalaen er
-forlæggets fem bånd lagt om til hvid baggrund.
+Paletten er HAVS' logo: marineblå bund (#2A3A4A) og hvidt. Ordmærket og
+hele logoet (HAVS, makrellen, North Shore Surf Løkken) ligger inline som
+PNG. Kondenserede versaler (Oswald) til dom, tal og faner som i logoet,
+Poppins til brødtekst som på havsstore.dk. Tokens øverst i `<style>`
+(`:root`) styrer farverne. Scoreskalaen er forlæggets fem bånd.
 
 ## Hosting
 
