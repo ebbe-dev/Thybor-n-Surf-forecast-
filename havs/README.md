@@ -49,6 +49,32 @@ decimaltegn og klokkeslæt følger med.
 - Kystlinjen er klippet ud af `@geo-maps/countries-coastline-250m` (OSM,
   ODbL) og ligger inline, fordi kortfliser ikke kan hentes i en artifact.
 
+## Produktfeed
+
+`FEED` i `index.html` er et uddrag af HAVS' eget produktfeed (3.001 varer,
+nov. 2026): de ca. 320 varer, der er surf-grej. Uddraget laves af
+`extract.py` ud fra feedets kategorier og varenavne:
+
+| kategori | fra feedet | egenskaber reglerne bruger |
+|----------|------------|----------------------------|
+| wetsuit  | Våddragter / Neoprendragter | tykkelse (5/4 → 5), hætte, herre/dame/junior |
+| gloves, boots, hood | Neopren handsker / sko / huer | mm, junior |
+| robe     | Dryrobe, ponchoer, badejakker | varm (changing robe) eller håndklæde |
+| beanie   | HAVS Huer, Patagonia Huer | |
+| board    | Surfboards | længde, soft top, long/fun/short |
+| sup, repair, wax | SUP Boards, Tools, Surf Wax | |
+
+Hver vare har id, navn, pris, førpris, url og miniaturebillede (feedets
+`-t`-udgave, 600 px). Reglerne vælger: dragt efter vandtemperatur (samme
+grænser som våddragt-reglen) og profil (herre/dame), tilbud først og så
+billigst; støvler og handsker efter mm; efter-surf kun varme robes; hue fra
+HAVS' egne først; bræt efter bølgehøjde og niveau (soft til begyndere).
+Tilbudsbjælken er feedets varer med mindst 15 % rabat, største rabat
+først, én pr. model.
+
+Billeder hentes fra havsstore.dk, så de vises hostet og i preview; i en
+artifact blokeres de, og piktogrammet står i stedet.
+
 ## Udtryk
 
 Paletten er HAVS' logo: marineblå bund (#2A3A4A) og hvidt. Ordmærket og
