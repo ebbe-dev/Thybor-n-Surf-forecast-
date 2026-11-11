@@ -7,7 +7,8 @@ dansk surf-forecast kunne se ud som. Mappen rører ikke den eksisterende app.
 ## Skærme (som forlægget)
 
 Sprog: DA / EN / DE i toppen, huskes i browseren. Kompas, ugedage,
-decimaltegn og klokkeslæt følger med.
+decimaltegn og klokkeslæt følger med. Alle vandrette rækker kan trækkes
+med musen på desktop.
 
 - **NU**: dommen som swipebare spot-kort (bedste først) med scoren time for
   time, horisont 2 døgn / 7 dage, en bjælke med HAVS' tilbud (tegnede
@@ -20,9 +21,12 @@ decimaltegn og klokkeslæt følger med.
   fra HAVS' hylder (foldet sammen). Dobbelttryk på et spot, eller knappen
   Kort, åbner kortet på spottet til det tidspunkt.
 - **KORT**: Leaflet med tegnet kystlinje (OSM-data, 250 m), tidsskyder time
-  for time gennem 9 døgn med afspilning (1×/2×/4×), vejr-skilt pr. område
-  med vind (hel pil), bølger (stiplet pil) og swell-type, prik pr. spot med
-  score og navn, og vind- og bølgepile ved spottet fra zoom 10.
+  for time gennem 9 døgn med afspilning (1×/2×/4×) og en stribe med vind,
+  bølge og swell-type pr. område. Ingen flydende kasser: prik pr. spot med
+  score ved kysten og navnet inde på land; ude i vandet vind (hel pil) og
+  bølger (stiplet pil) med tal under, ét sæt pr. område i overblikket og
+  ét pr. spot fra zoom 9. Tryk på en prik giver en smal bjælke i bunden
+  med dom, læ, bølge, front og vand, og et spring til NU.
 - **LOG** (fast fane til højre for KORT): uden profil viser den "Opret dig" med
   navn og e-mail, eller log ind med e-mail. Profiler og sessions ligger kun i
   browseren (demo). Logget ind: som forlæggets LOG. Ny session med
