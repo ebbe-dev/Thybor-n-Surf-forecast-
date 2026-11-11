@@ -29,7 +29,11 @@ decimaltegn og klokkeslæt følger med.
   dato, klokkeslæt, spot, delvurderinger (størrelse, form, overflade),
   samlet karakter og note; appen gemmer et snapshot af modellens forhold og
   score for tidspunktet. Liste med ret/slet, CSV til udklipsholderen, og
-  afvigelsen karakter minus model.
+  afvigelsen karakter minus model. Øverst en profil: niveau, foretrukne
+  bølger (små/mellem/store), højre/venstre og stance. Profilen giver
+  "passer dig" på dommen og i listen, når fronten ligger i den foretrukne
+  størrelse og spottet bryder den vej (`breaks` på spottet; "begge" hvor
+  det ikke er sat), og "over dit niveau" for begyndere ved front over 1,5 m.
 
 ## Model og data
 
@@ -40,7 +44,8 @@ decimaltegn og klokkeslæt følger med.
 - Data: Open-Meteo Marine + Forecast, 2 dage tilbage og 7 frem, ét kald pr.
   endpoint for alle områder, cache i localStorage. Kan Open-Meteo ikke nås
   (fx i et sandboxed preview), vises en typisk novemberuge som eksempel, og
-  det står øverst. Hostet på eget domæne er tallene live.
+  det står øverst. Eksemplet er lagt, så Løkken vinder. Hostet på eget
+  domæne, eller åbnet lokalt fra disk, er tallene live.
 - Kystlinjen er klippet ud af `@geo-maps/countries-coastline-250m` (OSM,
   ODbL) og ligger inline, fordi kortfliser ikke kan hentes i en artifact.
 

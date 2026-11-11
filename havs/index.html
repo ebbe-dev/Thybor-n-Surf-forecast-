@@ -960,6 +960,11 @@ input[type="range"]{flex:1;min-width:0;height:44px;accent-color:var(--fg);backgr
 .login form.auth .btn{margin-top:2px}
 .login-logo{height:110px;width:auto;max-width:100%;display:block}
 @media (max-width:420px){.login-logo{height:88px}}
+.fit-chip{display:inline-block;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;line-height:1.3;border:1px solid #7FD1A5;color:#9FE3BE;border-radius:4px;padding:1px 5px;vertical-align:2px;white-space:nowrap}
+.fit-chip.warn{border-color:#FFB07A;color:#FFC08F}
+.seg{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px}
+.seg button{min-height:34px;padding:0 12px;border-radius:999px;border:1px solid var(--line2);background:none;color:var(--fg);font-size:13px;font-weight:600;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
 /* ---- grej i blok-detaljen ---- */
 .gear-details{background:var(--surf2);border-radius:var(--r-sm)}
 .gear-details summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;font-size:13px;line-height:1.35;color:var(--muted)}
@@ -1084,6 +1089,7 @@ const STR = {
     csv: "CSV", csv_copied: "Kopieret til udklipsholderen.", csv_shown: "Markér og kopiér teksten herunder.",
     calib: "Kalibrering", dev: (n) => `Din karakter minus modellens score, snit af ${n} ${n === 1 ? "session" : "sessions"}`, dev_none: "Ingen sessions med snapshot endnu, så der er ikke noget at kalibrere efter.",
     help_log_q: "Hvorfor logge?", help_log: `<p>Hver gang du gemmer en session, gemmer appen et <strong>snapshot</strong> af de forhold, modellen forudsagde for tidspunktet, og modellens score. Så kan du bagefter sammenligne, hvad modellen <em>troede</em>, med hvad du <em>oplevede</em>. Delvurderingerne (valgfri) viser hvilken del af modellen, der skyder forkert: STØRRELSE tjekker energileddet, FORM bankerne, OVERFLADE vindleddet.</p><p>Loggen ligger kun i denne browser. CSV-knappen giver en kopi til et regneark.</p>`,
+    profile_t: "Din profil", level: "Niveau", lv_b: "Begynder", lv_i: "Øvet", lv_a: "Erfaren", pref_size: "Foretrukne bølger", sz_s: "Små, under 1 m", sz_m: "Mellem, 1–2 m", sz_l: "Store, over 2 m", pref_side: "Højre / venstre", side_r: "Højre", side_l: "Venstre", side_b: "Begge", stance: "Stance", st_r: "Regular", st_g: "Goofy", fits: "passer dig", above: "over dit niveau", profile_p: "Bruges til \"passer dig\" på dommen og til grej-forslagene.",
     signup_p: "Opret en profil, så får du din surf-log: sessions med karakter, note og et snapshot af forecasten, så du kan se, hvor modellen rammer.", email: "E-mail", create_btn: "Opret dig", have_profile: "Har du allerede en profil?", login_link: "Log ind", back_signup: "Opret ny profil", no_profile: "Ingen profil med den e-mail i denne browser.", profile_note: "Profilen gemmes kun i denne browser (demo).",
     clk: (h) => `kl. ${h}`
   },
@@ -1130,6 +1136,7 @@ const STR = {
     csv: "CSV", csv_copied: "Copied to the clipboard.", csv_shown: "Select and copy the text below.",
     calib: "Calibration", dev: (n) => `Your rating minus the model's score, average of ${n} ${n === 1 ? "session" : "sessions"}`, dev_none: "No sessions with a snapshot yet, so nothing to calibrate against.",
     help_log_q: "Why log?", help_log: `<p>Every time you save a session the app also saves a <strong>snapshot</strong> of the conditions the model predicted for that time, and the model's score. Afterwards you can compare what the model <em>thought</em> with what you <em>experienced</em>. The partial ratings (optional) show which part of the model is off: SIZE checks the energy term, SHAPE the banks, SURFACE the wind term.</p><p>The log lives only in this browser. The CSV button gives you a copy for a spreadsheet.</p>`,
+    profile_t: "Your profile", level: "Level", lv_b: "Beginner", lv_i: "Intermediate", lv_a: "Advanced", pref_size: "Preferred waves", sz_s: "Small, under 1 m", sz_m: "Medium, 1–2 m", sz_l: "Big, over 2 m", pref_side: "Rights / lefts", side_r: "Rights", side_l: "Lefts", side_b: "Both", stance: "Stance", st_r: "Regular", st_g: "Goofy", fits: "fits you", above: "above your level", profile_p: "Used for \"fits you\" on the verdict and for the gear suggestions.",
     signup_p: "Create a profile to get your surf log: sessions with rating, note and a snapshot of the forecast, so you can see where the model hits.", email: "Email", create_btn: "Create profile", have_profile: "Already have a profile?", login_link: "Sign in", back_signup: "Create a new profile", no_profile: "No profile with that email in this browser.", profile_note: "The profile is stored only in this browser (demo).",
     clk: (h) => `${h}:00`
   },
@@ -1176,6 +1183,7 @@ const STR = {
     csv: "CSV", csv_copied: "In die Zwischenablage kopiert.", csv_shown: "Markiere und kopiere den Text unten.",
     calib: "Kalibrierung", dev: (n) => `Deine Note minus Score des Modells, Schnitt aus ${n} ${n === 1 ? "Session" : "Sessions"}`, dev_none: "Noch keine Sessions mit Schnappschuss, also nichts zum Kalibrieren.",
     help_log_q: "Warum loggen?", help_log: `<p>Jedes Mal, wenn du eine Session speicherst, speichert die App auch einen <strong>Schnappschuss</strong> der Bedingungen, die das Modell für diese Zeit vorhergesagt hat, und den Score des Modells. So kannst du danach vergleichen, was das Modell <em>dachte</em>, mit dem, was du <em>erlebt</em> hast. Die Teilnoten (optional) zeigen, welcher Teil des Modells danebenliegt: GRÖSSE prüft den Energieterm, FORM die Bänke, OBERFLÄCHE den Windterm.</p><p>Das Log liegt nur in diesem Browser. Der CSV-Button gibt dir eine Kopie für eine Tabelle.</p>`,
+    profile_t: "Dein Profil", level: "Niveau", lv_b: "Anfänger", lv_i: "Fortgeschritten", lv_a: "Erfahren", pref_size: "Bevorzugte Wellen", sz_s: "Klein, unter 1 m", sz_m: "Mittel, 1–2 m", sz_l: "Groß, über 2 m", pref_side: "Rechts / links", side_r: "Rechts", side_l: "Links", side_b: "Beide", stance: "Stance", st_r: "Regular", st_g: "Goofy", fits: "passt zu dir", above: "über deinem Niveau", profile_p: "Wird für \"passt zu dir\" im Urteil und für die Ausrüstungsvorschläge genutzt.",
     signup_p: "Lege ein Profil an, dann bekommst du dein Surf-Log: Sessions mit Note, Notiz und einem Schnappschuss der Vorhersage, damit du siehst, wo das Modell trifft.", email: "E-Mail", create_btn: "Profil anlegen", have_profile: "Schon ein Profil?", login_link: "Anmelden", back_signup: "Neues Profil anlegen", no_profile: "Kein Profil mit dieser E-Mail in diesem Browser.", profile_note: "Das Profil wird nur in diesem Browser gespeichert (Demo).",
     clk: (h) => `${h} Uhr`
   }
@@ -1253,7 +1261,7 @@ const SPOTS = [
   { id: "loekken",     name: "Løkken",        area: "nord",   normal: 285, lat: 57.372, lon: 9.706, beginner: true },
   { id: "noerlev",     name: "Nørlev",        area: "nord",   normal: 300, lat: 57.466, lon: 9.783, beginner: true },
   { id: "blokhus",     name: "Blokhus",       area: "nord",   normal: 290, lat: 57.253, lon: 9.577, beginner: true },
-  { id: "hanstholm",   name: "Hanstholm",     area: "thy",    normal: 335, lat: 57.120, lon: 8.590, reflective: true },
+  { id: "hanstholm",   name: "Hanstholm",     area: "thy",    normal: 335, lat: 57.120, lon: 8.590, reflective: true, breaks: ["hoejre"] },
   { id: "klitmoeller", name: "Klitmøller",    area: "thy",    normal: 305, lat: 57.040, lon: 8.493 },
   { id: "vorupoer",    name: "Vorupør",       area: "thy",    normal: 280, lat: 56.953, lon: 8.362, beginner: true },
   { id: "agger",       name: "Agger",         area: "tangen", normal: 275, lat: 56.763, lon: 8.238, groynes: true },
@@ -1407,12 +1415,12 @@ async function fetchLive() {
 }
 const STORY = [
   { ws: 7,  wd: 250, hs: 1.1, tp: 6,  swd: 270, t: 9 }, { ws: 11, wd: 280, hs: 1.8, tp: 7,  swd: 285, t: 8 },
-  { ws: 9,  wd: 290, hs: 1.5, tp: 7,  swd: 290, t: 8 }, { ws: 4,  wd: 110, hs: 1.2, tp: 9,  swd: 285, t: 5 },
+  { ws: 9,  wd: 290, hs: 1.5, tp: 7,  swd: 290, t: 8 }, { ws: 5,  wd: 95,  hs: 1.2, tp: 9,  swd: 285, t: 5 }, // i morgen: ren østlig fralandsvind lige på Løkkens kyst
   { ws: 3,  wd: 150, hs: 0.7, tp: 8,  swd: 280, t: 4 }, { ws: 12, wd: 230, hs: 2.2, tp: 7,  swd: 250, t: 9 },
   { ws: 16, wd: 260, hs: 3.0, tp: 8,  swd: 265, t: 10 }, { ws: 8,  wd: 330, hs: 2.0, tp: 9,  swd: 290, t: 6 },
   { ws: 5,  wd: 60,  hs: 1.3, tp: 10, swd: 290, t: 3 }, { ws: 4,  wd: 90,  hs: 0.9, tp: 9,  swd: 290, t: 2 }
 ];
-const AREA_TWEAK = { nord: { hs: 0.95, wd: 5 }, thy: { hs: 1.1, wd: 0 }, tangen: { hs: 1.0, wd: -3 }, vest: { hs: 0.9, wd: -6 } };
+const AREA_TWEAK = { nord: { hs: 1.08, wd: 0 }, thy: { hs: 0.92, wd: 8 }, tangen: { hs: 0.95, wd: -3 }, vest: { hs: 0.85, wd: -6 } }; // Løkken-området får ugens bedste sø i eksemplet
 function seeded(n) { const x = Math.sin(n * 9301 + 49297) * 233280; return x - Math.floor(x); }
 function demoForecast() {
   const start = addDays(todayIso(), -PAST_DAYS), areas = {};
@@ -1493,6 +1501,20 @@ function bindHeader(el, rerender) {
 function legendHtml() { const bands = [...BANDS].reverse(); return `<ul class="legend">${bands.map((b, i) => { const next = bands[i + 1]; return `<li><span class="dot" style="background:${b.hex}"></span><span class="legend-range">${next ? `${fmt(b.min)}–${fmt(next.min)}` : `${fmt(b.min)}+`}</span> ${t(b.k)}</li>`; }).join("")}</ul>`; }
 const info = (q, body) => `<details class="info"><summary>${q}</summary><div class="info-body">${body}</div></details>`;
 
+/* ---------- Profil: niveau, foretrukne bølger, højre/venstre, stance ----------
+   Gemmes på profilen i browseren. "passer dig" på dommen og listen, når
+   fronten ligger i den foretrukne størrelse og spottet bryder den vej, du
+   foretrækker; "over dit niveau" for begyndere ved front over 1,5 m. */
+const profile = () => (state.user && state.user.profile) || {};
+function fitChip(spot, b) {
+  const pr = profile(); if (!pr.size && !pr.level) return "";
+  const face = breakerHeight(b.row.hs, b.row.tp);
+  if (pr.level === "b" && face > 1.5) return `<span class="fit-chip warn">${t("above")}</span>`;
+  const inSize = pr.size === "s" ? face < 1 : pr.size === "m" ? face >= 1 && face < 2 : pr.size === "l" ? face >= 2 : false;
+  const sideOk = !pr.side || pr.side === "b" || (spot.breaks || ["hoejre", "venstre"]).includes(pr.side === "r" ? "hoejre" : "venstre");
+  return inSize && sideOk ? `<span class="fit-chip">${t("fits")}</span>` : "";
+}
+
 /* ---------- Tilbud og grej (HAVS' hylder) ----------
    Feed-format: cat + interval (water °C, feels °C, hs m). Priser fra
    havsstore.dk, nov. 2026. Andre shops kan kobles på med samme felter. */
@@ -1535,7 +1557,7 @@ function gearFor(r) {
 function gearHtml(b, spot) {
   const r = b.row, g = gearFor(r);
   const mustSum = g.items.filter((i) => i.must && i.p.price != null).reduce((a, i) => a + i.p.price, 0), mustN = g.items.filter((i) => i.must).length;
-  const beginner = spot.beginner && r.hs >= 0.5 && r.hs <= 1.3 && r.wspd < 9 && b.score >= 3.5;
+  const beginner = (profile().level === "b") || (spot.beginner && r.hs >= 0.5 && r.hs <= 1.3 && r.wspd < 9 && b.score >= 3.5);
   return `<details class="gear-details"><summary><span><strong>${r.sst == null ? t("gear_btn") : wetsuitHint(r.sst)}</strong>${t("gear_for")}</span><span class="btn-ghost btn-sm">${t("gear_btn")}</span></summary>
 ${g.items.map(({ k, p, must, w }) => `<div class="kit-row"><div><div class="k${must ? " must" : ""}">${must ? t("must") + " · " : ""}${k}</div><div class="n">${esc(p.name)}</div><div class="w">${w}</div></div><div class="go"><span class="pr">${p.old ? `<s>${kr(p.old)}</s>` : ""}${p.price == null ? t("see_price") : (p.from ? t("from") + " " : "") + kr(p.price)}</span><a class="btn-ghost btn-sm" href="${p.url}" rel="noopener">HAVS</a></div></div>`).join("")}
 <div class="kit-sum"><span>${mustN ? t("kit_sum", mustN, mustSum >= 999) : t("kit_none")}</span><b>${mustSum ? kr(mustSum) : ""}</b></div>
@@ -1618,13 +1640,13 @@ function renderNu() {
       const r = block.row, color = scoreColor(block.score), ink = scoreInk(block.score), warn = blockCaveats(sp, block);
       return `<section class="hero" style="--band:${color}" data-spot="${sp.id}" aria-label="${i + 1}/${ranking.length}: ${esc(sp.name)}">${eyebrow}
 <div class="hero-row" data-open-map="${sp.id}" data-time="${block.time}"><div class="hero-main"><h1 class="hero-label" style="color:${ink}">${scoreLabel(block.score)}</h1><div class="hero-spot">${esc(sp.name)}</div>
-<div class="hero-when"><strong>${cap(relativeDayLabel(block.time, today))} ${clk(block.time)}</strong> · ${leeCaption(sp, block)}</div>
+<div class="hero-when"><strong>${cap(relativeDayLabel(block.time, today))} ${clk(block.time)}</strong> · ${leeCaption(sp, block)} ${fitChip(sp, block)}</div>
 <div class="hero-sub">${swellChipHtml(r.tp)}${groundSwellUnder(r) ? ` <span class="swell-chip under">${t("under")}</span>` : ""} <span class="nw">${fmt(r.hs)} m / ${fmt(r.tp)} s</span> · <span class="nw front">${t("front")} ${fmtSurfHeight(breakerHeight(r.hs, r.tp))}</span> · <span class="nw">${t("wind")} ${compass(r.wdir)} ${fmt(r.wspd, 0)} m/s</span>${r.sst != null ? ` · <span class="nw">${t("water")} ${fmt(r.sst, 0)} °C</span>` : ""}</div>
 ${warn.length ? `<div class="hero-caveat">⚠ ${warn.map((c) => c.short).join(" · ")}</div>` : ""}</div>
 <div class="hero-score"><div class="n" style="color:${ink}">${fmt(block.score)}</div><div class="d">${t("of10")}</div><button class="btn-ghost btn-sm" type="button" data-map-btn="${sp.id}" data-time="${block.time}" style="margin-top:8px">${t("map_btn")} ↗</button></div></div>
 <div class="spark" data-spot="${sp.id}" data-time="${block.time}"></div></section>`; }).join("")}</div>
 ${ranking.length > 1 ? `<div class="cdots" aria-hidden="true">${ranking.map((e) => `<span class="cdot${e.spot.id === spot.id ? " on" : ""}"${e.spot.id === spot.id ? ` style="background:${scoreColor(e.block.score)}"` : ""}></span>`).join("")}</div>` : ""}</div>`;
-  const quick = ranking.length ? `<section class="card"><div class="card-h"><span>${t("where_else")}</span><span class="card-h-hint">${t("dbl")}</span></div>${ranking.map(({ spot: sp, block }, i) => `<button class="rank-row${sp.id === spot.id ? " sel" : ""}" type="button" data-rank="${sp.id}" data-time="${block.time}" aria-pressed="${sp.id === spot.id}"><span class="rk">${i + 1}</span><span class="nm">${esc(sp.name)}</span><span class="wh">${relativeDayLabel(block.time, today)} ${clk(block.time)}</span>${pillHtml(block.score)}</button>`).join("")}</section>` : "";
+  const quick = ranking.length ? `<section class="card"><div class="card-h"><span>${t("where_else")}</span><span class="card-h-hint">${t("dbl")}</span></div>${ranking.map(({ spot: sp, block }, i) => `<button class="rank-row${sp.id === spot.id ? " sel" : ""}" type="button" data-rank="${sp.id}" data-time="${block.time}" aria-pressed="${sp.id === spot.id}"><span class="rk">${i + 1}</span><span class="nm">${esc(sp.name)}${fitChip(sp, block) ? " " + fitChip(sp, block) : ""}</span><span class="wh">${relativeDayLabel(block.time, today)} ${clk(block.time)}</span>${pillHtml(block.score)}</button>`).join("")}</section>` : "";
   const chips = `<div class="chips" role="tablist">${SPOTS.map((s) => `<button class="chip${s.id === spot.id ? " on" : ""}" type="button" role="tab" aria-selected="${s.id === spot.id}" data-chip="${s.id}">${esc(s.name)}</button>`).join("")}</div>`;
   const nextBlock = all.find((b) => b.time >= now), nowKey = nextBlock && dateOf(nextBlock.time) === dateOf(now) ? nextBlock.time : null;
   const baro = `<div class="baro" role="listbox">${days.map((day) => { const isT = day.date === today; return `<div class="baro-day" ${isT ? 'data-today="1"' : ""}><div class="baro-daylabel${isT ? " today" : ""}">${fmtDayLabel(day.date + "T12:00")}</div><div class="baro-blocks">${day.blocks.map((b, i) => b === null
@@ -1798,6 +1820,22 @@ function paramRow(key, label, ends, value) {
   const unset = value < 0;
   return `<div class="param"><div class="param-head"><span class="param-label">${label}</span><span class="param-ends">${ends}</span></div><div class="rate-row"><input type="range" id="p-${key}" class="${unset ? "unset" : ""}" min="0" max="10" step="0.5" value="${unset ? 5 : value}" data-param="${key}" aria-label="${label}"><span class="rate-value${unset ? " unset" : ""}" id="pv-${key}"${!unset && key === "rating" ? ` style="color:${scoreColor(value)}"` : ""}>${unset ? "–" : fmt(value)}</span>${key !== "rating" ? `<button class="param-clear" type="button" data-clear="${key}" ${unset ? "disabled" : ""} aria-label="×">×</button>` : ""}</div></div>`;
 }
+const PROFILE_FIELDS = [
+  { key: "level", label: "level", opts: [["b", "lv_b"], ["i", "lv_i"], ["a", "lv_a"]] },
+  { key: "size", label: "pref_size", opts: [["s", "sz_s"], ["m", "sz_m"], ["l", "sz_l"]] },
+  { key: "side", label: "pref_side", opts: [["r", "side_r"], ["l", "side_l"], ["b", "side_b"]] },
+  { key: "stance", label: "stance", opts: [["regular", "st_r"], ["goofy", "st_g"]] }
+];
+function profileCardHtml() {
+  const pr = profile();
+  return `<section class="card"><div class="card-h"><span>${t("profile_t")}</span></div><div class="card-body"><p class="form-note" style="margin:0 0 8px">${t("profile_p")}</p>${PROFILE_FIELDS.map((f) => `<div class="param-label" style="margin-top:4px">${t(f.label).toUpperCase()}</div><div class="seg" role="group">${f.opts.map(([v, k]) => `<button type="button" data-prof="${f.key}" data-val="${v}" aria-pressed="${pr[f.key] === v}">${t(k)}</button>`).join("")}</div>`).join("")}</div></section>`;
+}
+function saveProfile(key, val) {
+  const pr = { ...profile() }; pr[key] = pr[key] === val ? undefined : val;
+  state.user = { ...state.user, profile: pr };
+  const accounts = loadAccounts().map((a) => (a.email === state.user.email ? state.user : a));
+  store.set("havs-surf.accounts", JSON.stringify(accounts)); store.set("havs-surf.user", JSON.stringify(state.user));
+}
 function renderLog() {
   const el = $("#log"); const lg = state.log;
   if (!state.user) {
@@ -1822,6 +1860,7 @@ function renderLog() {
   const dev = meanDeviation(sessions), unset = form.rating < 0;
   el.innerHTML = headerHtml(t("sessions", sessions.length), true) + (state.helpOpen ? `<section class="card help-card">${info(t("help_log_q"), t("help_log"))}</section>` : "") +
     `<p class="statusline" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>${t("logged", esc(state.user.name))}</span><button class="linkbtn" type="button" data-logout>${t("logout")}</button></p>` +
+    profileCardHtml() +
     `<section class="card"><div class="card-h"><span>${lg.editingId ? t("log_edit") : t("log_new")}</span>${lg.editingId ? `<button class="linkbtn" type="button" data-cancel>${t("cancel")}</button>` : ""}</div><div class="card-body">
 <div class="field-row"><input type="date" id="f-date" value="${form.date}" aria-label="${t("date")}"><select id="f-hour" aria-label="${t("hour")}">${Array.from({ length: 24 }, (_, h) => `<option value="${h}"${h === form.hour ? " selected" : ""}>${t("clk", pad2(h))}</option>`).join("")}</select></div>
 <div class="chips" role="tablist">${SPOTS.map((s) => `<button class="chip${s.id === form.spotId ? " on" : ""}" type="button" data-fspot="${s.id}">${esc(s.name)}</button>`).join("")}</div>
@@ -1841,6 +1880,7 @@ ${s.note ? `<p class="session-note">${esc(s.note)}</p>` : ""}
 
   bindHeader(el, renderLog);
   $$("[data-logout]", el).forEach((b) => b.addEventListener("click", () => { state.user = null; store.del("havs-surf.user"); renderLog(); }));
+  $$("[data-prof]", el).forEach((b) => b.addEventListener("click", () => { saveProfile(b.dataset.prof, b.dataset.val); renderLog(); }));
   $("#f-date").addEventListener("change", (e) => { form.date = e.target.value; });
   $("#f-hour").addEventListener("change", (e) => { form.hour = Number(e.target.value); });
   $("#f-note").addEventListener("input", (e) => { form.note = e.target.value; });
